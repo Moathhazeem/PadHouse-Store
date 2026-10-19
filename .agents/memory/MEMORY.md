@@ -1,0 +1,1 @@
+- [PadHouse product context](padhouse-product-context.md) — Palestinian iPad-accessory store; mobile-only, Arabic RTL, turquoise identity, and careful claims about operational data.
