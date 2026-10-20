@@ -223,7 +223,6 @@ export function ProductCard({ product, showCompare = false }: { product: Product
   const colors = useColors();
   const { favorites, toggleFavorite, addToCart, toggleCompare, compareIds } = useStore();
   const [imageFailed, setImageFailed] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [added, setAdded] = useState(false);
   const routerPush = () => router.push(`/product/${product.id}` as any);
   const quickAdd = () => {
@@ -241,17 +240,11 @@ export function ProductCard({ product, showCompare = false }: { product: Product
       <View style={[styles.productImage, { backgroundColor: colors.card }]}>
         <Pressable accessibilityRole="button" onPress={routerPush} style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
           {!imageFailed ? (
-            <Image source={{ uri: product.image }} contentFit="contain" transition={160} onLoad={() => setImageLoaded(true)} onError={() => setImageFailed(true)} style={{ width: '100%', height: '100%' }} />
+            <Image source={{ uri: product.image }} contentFit="contain" transition={160} onError={() => setImageFailed(true)} style={{ width: '100%', height: '100%' }} />
           ) : (
             <Ionicons name="tablet-portrait-outline" size={38} color={colors.primary} />
           )}
         </Pressable>
-        {!imageLoaded && !imageFailed ? (
-          <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <Ionicons name="tablet-portrait-outline" size={34} color={colors.primary} />
-            <PHText color={colors.mutedForeground} style={{ fontSize: 10 }}>صورة المنتج المنشورة</PHText>
-          </View>
-        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={favorites.includes(product.id) ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}

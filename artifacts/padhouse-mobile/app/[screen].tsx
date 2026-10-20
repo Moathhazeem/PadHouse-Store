@@ -462,6 +462,7 @@ function AuthScreen({ mode }: { mode: string }) {
 export default function DynamicScreen() {
   const params = useLocalSearchParams<{ screen?: string }>();
   const screen = typeof params.screen === 'string' ? params.screen : '';
+  console.log('[PadHouse] dynamic route rendered', screen);
   if (screen === 'search') return <SearchScreen />;
   if (screen === 'favorites') return <FavoritesScreen />;
   if (screen === 'compare') return <CompareScreen />;

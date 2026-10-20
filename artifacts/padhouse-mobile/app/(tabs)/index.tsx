@@ -8,6 +8,7 @@ import { Button, Card, Notice, Page, PHText, ProductGrid, SectionTitle } from '@
 import { useStore } from '@/store/StoreContext';
 
 export default function HomeScreen() {
+  console.log('[PadHouse] home screen rendered');
   const colors = useColors();
   const { profile, cart, storageError } = useStore();
   const openCategory = (category: string) => router.push({ pathname: '/categories', params: { category } } as any);
@@ -44,7 +45,7 @@ export default function HomeScreen() {
 
       <SectionTitle title="تصفح حسب النوع" action="كل التصنيفات" onAction={() => router.push('/categories' as any)} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row-reverse', gap: 10, paddingBottom: 3 }}>
-        {CATEGORIES.slice().reverse().map((category) => {
+        {CATEGORIES.map((category) => {
           const count = PRODUCTS.filter((product) => product.category === category.name).length;
           return (
             <Pressable key={category.id} onPress={() => openCategory(category.name)} accessibilityRole="button" style={{ width: 92, minHeight: 94, alignItems: 'center', justifyContent: 'center', gap: 7, padding: 10, backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1, borderRadius: 18 }}>

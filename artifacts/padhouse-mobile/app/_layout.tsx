@@ -20,6 +20,7 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const colors = useColors();
+  console.log('[PadHouse] root navigation rendered');
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, direction: 'rtl' }}>
