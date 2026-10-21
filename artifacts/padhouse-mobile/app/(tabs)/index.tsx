@@ -14,7 +14,7 @@ export default function HomeScreen() {
 
   return (
     <Page tabbed>
-      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <View>
           <PHText color={colors.primary} weight="semibold" style={{ fontSize: 12 }}>شعار المتجر الرسمي سيضاف عند توفيره</PHText>
           <PHText weight="bold" style={{ fontSize: 25, marginTop: 1 }}>باد هاوس ستور</PHText>
