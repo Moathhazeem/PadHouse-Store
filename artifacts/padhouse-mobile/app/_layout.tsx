@@ -15,12 +15,12 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StoreProvider } from '@/store/StoreContext';
 import { useColors } from '@/hooks/useColors';
+import { Ionicons } from '@expo/vector-icons';
 
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const colors = useColors();
-  console.log('[PadHouse] root navigation rendered');
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, direction: 'rtl' }}>
@@ -43,6 +43,7 @@ export default function RootLayout() {
     Cairo_400Regular,
     Cairo_600SemiBold,
     Cairo_700Bold,
+    ...Ionicons.font,
   });
 
   useEffect(() => {
