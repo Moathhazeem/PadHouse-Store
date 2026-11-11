@@ -1,0 +1,56 @@
+name: padhouse_mobile
+description: "PadHouse — Palestinian E-Commerce Store specializing in iPad accessories & Business Intelligence Platform."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management & Architecture
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Navigation & Routing
+  go_router: ^14.8.1
+
+  # Networking & Serialization
+  dio: ^5.8.0+1
+  json_annotation: ^4.9.0
+  freezed_annotation: ^2.4.4
+
+  # Secure Local Storage
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.2
+
+  # UI, Icons, Typography & Charts
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.0.17
+  fl_chart: ^0.70.2
+  badges: ^3.1.2
+  shimmer: ^3.0.0
+  intl: ^0.20.2
+  lucide_icons_flutter: ^4.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.15
+  json_serializable: ^6.9.4
+  freezed: ^2.5.7
+  riverpod_generator: 2.6.4
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/

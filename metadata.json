@@ -1,0 +1,6 @@
+{
+  "name": "PadHouse — E-Commerce & Business Intelligence Platform",
+  "description": "Enterprise mobile commerce & business intelligence platform for PadHouse (Palestine iPad accessories): Flutter mobile app, NestJS backend, competitor pricing intelligence, social media planner, and Gemini AI business assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
