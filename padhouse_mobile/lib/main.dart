@@ -47,9 +47,9 @@ class _PadHouseAppState extends ConsumerState<PadHouseApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'PadHouse',
+      title: 'بادهاوس',
       debugShowCheckedModeBanner: false,
-      // Strict White Light Theme with IBM Plex Sans Arabic globally
+      // Strict White Light Theme with Tajawal globally
       theme: AppTheme.lightTheme(isArabic: true),
       themeMode: ThemeMode.light,
       scrollBehavior: const AppScrollBehavior(),
@@ -57,7 +57,6 @@ class _PadHouseAppState extends ConsumerState<PadHouseApp> {
       supportedLocales: const [
         Locale('ar', 'PS'), // Arabic (Palestine) RTL
         Locale('ar', ''),
-        Locale('en', 'US'), // English LTR
       ],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

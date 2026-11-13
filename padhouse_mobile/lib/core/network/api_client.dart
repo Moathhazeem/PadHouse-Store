@@ -6,7 +6,11 @@ class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
-  static const String baseUrl = 'https://api.padhouse.ps/api/v1';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://127.0.0.1:4000/api/v1',
+  );
+  static const String fallbackRemoteUrl = 'https://api.padhouse.ps/api/v1';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   late final Dio _dio = _createDio();

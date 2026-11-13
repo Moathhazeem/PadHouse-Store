@@ -140,4 +140,35 @@ void main() {
     // Should return to Customer Store
     expect(find.byKey(const Key('nav-home')), findsOneWidget);
   });
+
+  testWidgets('Guest can open the Cart tab and run a Product Search', (WidgetTester tester) async {
+    setPhoneSize(tester);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: PadHouseApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('continue-guest')));
+    await tester.pumpAndSettle();
+
+    // Cart tab shows cart contents and checkout CTA
+    await tester.tap(find.byKey(const Key('nav-cart')));
+    await tester.pumpAndSettle();
+    expect(find.text('سلة التسوق'), findsWidgets);
+    expect(find.text('متابعة إلى الدفع'), findsOneWidget);
+
+    // Search tab shows the search field and empty prompt
+    await tester.tap(find.byKey(const Key('nav-search')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('search-field')), findsOneWidget);
+    expect(find.text('ابحث في متجر بادهاوس'), findsOneWidget);
+
+    // Typing a query renders search results
+    await tester.enterText(find.byKey(const Key('search-field')), 'قلم');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('نتائج البحث'), findsOneWidget);
+  });
 }

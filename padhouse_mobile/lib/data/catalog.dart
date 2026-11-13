@@ -3,6 +3,7 @@ class AppUser {
   final String email;
   final String phone;
   final String city;
+  final String address;
   final String role; // super_admin | customer | guest
 
   const AppUser({
@@ -10,6 +11,7 @@ class AppUser {
     required this.email,
     required this.phone,
     required this.city,
+    this.address = '',
     required this.role,
   });
 
@@ -18,6 +20,7 @@ class AppUser {
         'email': email,
         'phone': phone,
         'city': city,
+        'address': address,
         'role': role,
       };
 
@@ -26,6 +29,7 @@ class AppUser {
         email: json['email'] as String? ?? '',
         phone: json['phone'] as String? ?? '',
         city: json['city'] as String? ?? '',
+        address: json['address'] as String? ?? '',
         role: json['role'] as String? ?? 'customer',
       );
 }
@@ -40,9 +44,11 @@ class Product {
   final int stock;
   final int minThreshold;
   final String compatibility;
+  final List<String> compatibilityList;
   final double rating;
   final int reviewsCount;
   final String image;
+  final List<String> images;
   final String description;
   final List<String> colors;
 
@@ -56,12 +62,71 @@ class Product {
     required this.stock,
     required this.minThreshold,
     required this.compatibility,
+    this.compatibilityList = const [],
     required this.rating,
     required this.reviewsCount,
     required this.image,
+    this.images = const [],
     required this.description,
     required this.colors,
   });
+
+  List<String> get galleryImages => images.isNotEmpty ? images : [image];
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    final imgs = json['images'];
+    List<String> imageList = [];
+    if (imgs is List) {
+      imageList = imgs.map((e) => e.toString()).toList();
+    }
+    final rawImg = json['image']?.toString() ?? (imageList.isNotEmpty ? imageList.first : '');
+    if (imageList.isEmpty && rawImg.isNotEmpty) {
+      imageList = [rawImg];
+    }
+    final rawColors = json['colors'];
+    List<String> colorsList = ['افتراضي'];
+    if (rawColors is List && rawColors.isNotEmpty) {
+      colorsList = rawColors.map((e) => e.toString()).toList();
+    }
+    final rawCategories = json['categories'];
+    List<String> catList = ['cat_others'];
+    if (rawCategories is List && rawCategories.isNotEmpty) {
+      catList = rawCategories.map((e) => e.toString()).toList();
+    }
+
+    // Verified iPad compatibility list from the backend (never guessed locally).
+    final compatibilityStr = json['compatibility']?.toString() ?? 'جميع أجهزة iPad المدعومة';
+    final rawCompatList = json['compatibilityList'];
+    List<String> compatList = [];
+    if (rawCompatList is List && rawCompatList.isNotEmpty) {
+      compatList = rawCompatList.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
+    } else {
+      compatList = compatibilityStr
+          .split(RegExp(r'[,،·]'))
+          .map((e) => e.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
+
+    return Product(
+      id: json['id']?.toString() ?? 'prod-${DateTime.now().millisecondsSinceEpoch}',
+      sku: json['sku']?.toString() ?? 'PH-GEN',
+      name: json['nameAr']?.toString() ?? json['name']?.toString() ?? 'منتج بادهاوس',
+      categories: catList,
+      price: (json['price'] as num?)?.toInt() ?? 0,
+      originalPrice: (json['originalPrice'] as num?)?.toInt() ?? (json['price'] as num?)?.toInt() ?? 0,
+      stock: (json['stock'] as num?)?.toInt() ?? 10,
+      minThreshold: (json['minThreshold'] as num?)?.toInt() ?? 5,
+      compatibility: compatibilityStr,
+      compatibilityList: compatList,
+      rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
+      reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 25,
+      image: rawImg,
+      images: imageList,
+      description: json['description']?.toString() ?? '',
+      colors: colorsList,
+    );
+  }
 
   Product copyWith({
     String? name,
@@ -70,7 +135,9 @@ class Product {
     int? originalPrice,
     int? stock,
     String? compatibility,
+    List<String>? compatibilityList,
     String? description,
+    List<String>? images,
   }) {
     return Product(
       id: id,
@@ -82,9 +149,11 @@ class Product {
       stock: stock ?? this.stock,
       minThreshold: minThreshold,
       compatibility: compatibility ?? this.compatibility,
+      compatibilityList: compatibilityList ?? this.compatibilityList,
       rating: rating,
       reviewsCount: reviewsCount,
       image: image,
+      images: images ?? this.images,
       description: description ?? this.description,
       colors: colors,
     );
@@ -313,7 +382,7 @@ const officialProducts = <Product>[
     compatibility: 'iPad 10th Gen / Air 11 / Pro 11',
     rating: 4.8,
     reviewsCount: 41,
-    image: 'https://padhouse.ps/wp-content/uploads/2025/06/CWK-1.jpg',
+    image: 'https://padhouse.ps/wp-content/uploads/2024/11/CWK-1.jpg',
     description: 'كفر حماية متكامل ومزود بلوحة مفاتيح بلوتوث لاسلكية قابلة للفصل مع بطارية تدوم لأسابيع عمل متواصلة.',
     colors: ['أسود', 'أزرق داكن'],
   ),

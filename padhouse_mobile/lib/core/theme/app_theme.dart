@@ -30,23 +30,24 @@ class AppTheme {
       shadow: Colors.black.withValues(alpha: 0.04),
     );
 
-    final fontName = GoogleFonts.ibmPlexSansArabic().fontFamily;
+    final fontName = GoogleFonts.tajawal().fontFamily;
     final baseTheme = ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       fontFamily: fontName,
+      textTheme: GoogleFonts.tajawalTextTheme(),
       scaffoldBackgroundColor: AppColors.secondaryBackground, // #F8FAFC
       canvasColor: AppColors.surfaceWhite,
       cardColor: AppColors.surfaceWhite,
       dividerColor: AppColors.borderLight,
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.surfaceWhite,
         foregroundColor: AppColors.navy,
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0.5,
-        iconTheme: IconThemeData(color: AppColors.navy),
-        titleTextStyle: TextStyle(
+        iconTheme: const IconThemeData(color: AppColors.navy),
+        titleTextStyle: GoogleFonts.tajawal(
           color: AppColors.navy,
           fontSize: 18,
           fontWeight: FontWeight.w700,
@@ -64,7 +65,7 @@ class AppTheme {
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.surfaceWhite,
         selectedItemColor: AppColors.turquoise,
-        unselectedItemColor: AppColors.textSecondary,
+        unselectedItemColor: AppColors.navy,
         elevation: 8,
         type: BottomNavigationBarType.fixed,
       ),
@@ -102,7 +103,7 @@ class AppTheme {
         filled: true,
         fillColor: AppColors.surfaceWhite,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: const TextStyle(color: AppColors.textTertiary, fontSize: 14),
+        hintStyle: GoogleFonts.tajawal(color: AppColors.textTertiary, fontSize: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.borderLight),
@@ -123,7 +124,7 @@ class AppTheme {
     );
 
     return baseTheme.copyWith(
-      textTheme: GoogleFonts.ibmPlexSansArabicTextTheme(baseTheme.textTheme),
+      textTheme: GoogleFonts.tajawalTextTheme(baseTheme.textTheme),
     );
   }
 }

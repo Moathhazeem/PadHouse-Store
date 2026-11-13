@@ -70,6 +70,8 @@ class StoreScreen extends ConsumerWidget {
   }
 }
 
+// ─── Header ──────────────────────────────────────────────────────────────────
+
 class _Header extends ConsumerWidget {
   const _Header({required this.store});
   final PadhouseController store;
@@ -158,22 +160,31 @@ class _Header extends ConsumerWidget {
                 ],
               ),
             ),
+          // Cart icon (always visible) — opens cart tab
           IconButton(
-            onPressed: () => store.setStack(CustomerStack.wishlist),
+            key: const Key('nav-cart'),
+            onPressed: () => store.setCustomerTab(CustomerTab.cart),
             icon: Badge(
-              isLabelVisible: store.wishlistIds.isNotEmpty,
-              label: Text('${store.wishlistIds.length}'),
-              backgroundColor: AppColors.navy,
-              child: const PhIcon(LucideIcons.heart, size: 18, color: AppColors.textSecondary),
+              isLabelVisible: store.cartCount > 0,
+              label: Text('${store.cartCount}'),
+              backgroundColor: AppColors.turquoise,
+              child: const PhIcon(LucideIcons.shoppingCart, size: 20, color: AppColors.navy),
             ),
           ),
+          // Search icon — opens search tab
+          IconButton(
+            key: const Key('nav-search'),
+            onPressed: () => store.setCustomerTab(CustomerTab.search),
+            icon: const PhIcon(LucideIcons.search, size: 20, color: AppColors.textSecondary),
+          ),
+          // Notifications with dot badge
           IconButton(
             onPressed: () => store.setStack(CustomerStack.notifications),
             icon: const Badge(
               isLabelVisible: true,
               smallSize: 8,
               backgroundColor: AppColors.turquoise,
-              child: PhIcon(LucideIcons.bell, size: 18, color: AppColors.textSecondary),
+              child: PhIcon(LucideIcons.bell, size: 20, color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -182,6 +193,8 @@ class _Header extends ConsumerWidget {
   }
 }
 
+// ─── Customer Navigation ──────────────────────────────────────────────────────
+
 class _CustomerNav extends StatelessWidget {
   const _CustomerNav({required this.store});
   final PadhouseController store;
@@ -189,12 +202,13 @@ class _CustomerNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = store.customerStack == null ? store.customerTab : null;
-    return _NavBar(
+    return _NavBarWithFab(
+      store: store,
       items: [
         _NavItem('الرئيسية', LucideIcons.home, active == CustomerTab.home, () => store.setCustomerTab(CustomerTab.home), const Key('nav-home')),
-        _NavItem('الأقسام', LucideIcons.layoutGrid, active == CustomerTab.categories, () => store.setCustomerTab(CustomerTab.categories), const Key('nav-categories')),
-        _NavItem('البحث', LucideIcons.search, active == CustomerTab.search, () => store.setCustomerTab(CustomerTab.search), const Key('nav-search')),
-        _NavItem('السلة', LucideIcons.shoppingBag, active == CustomerTab.cart, () => store.setCustomerTab(CustomerTab.cart), const Key('nav-cart'), badge: store.cartCount),
+        _NavItem('التصنيفات', LucideIcons.layoutGrid, active == CustomerTab.categories, () => store.setCustomerTab(CustomerTab.categories), const Key('nav-categories')),
+        _NavItem('', LucideIcons.bot, active == CustomerTab.ai, () => store.setCustomerTab(CustomerTab.ai), const Key('nav-ai'), isFab: true),
+        _NavItem('المفضلة', LucideIcons.heart, active == CustomerTab.wishlist, () => store.setCustomerTab(CustomerTab.wishlist), const Key('nav-wishlist'), badge: store.wishlistIds.length),
         _NavItem('حسابي', LucideIcons.user, active == CustomerTab.profile, () => store.setCustomerTab(CustomerTab.profile), const Key('nav-profile')),
       ],
     );
@@ -220,7 +234,7 @@ class _AdminNav extends StatelessWidget {
 }
 
 class _NavItem {
-  const _NavItem(this.label, this.icon, this.active, this.onTap, this.keyId, {this.badge = 0, this.badgeColor = AppColors.turquoise});
+  const _NavItem(this.label, this.icon, this.active, this.onTap, this.keyId, {this.badge = 0, this.badgeColor = AppColors.turquoise, this.isFab = false});
   final String label;
   final IconData icon;
   final bool active;
@@ -228,6 +242,132 @@ class _NavItem {
   final Key keyId;
   final int badge;
   final Color badgeColor;
+  final bool isFab;
+}
+
+// Nav bar with center FAB-style button for AI tab
+class _NavBarWithFab extends StatelessWidget {
+  const _NavBarWithFab({required this.items, required this.store});
+  final List<_NavItem> items;
+  final PadhouseController store;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.borderLight))),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          for (final item in items)
+            Expanded(
+              child: item.isFab ? _FabNavItem(item: item) : _RegularNavItem(item: item),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FabNavItem extends StatelessWidget {
+  const _FabNavItem({required this.item});
+  final _NavItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: item.keyId,
+      onTap: item.onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: item.active ? AppColors.navy : AppColors.turquoise,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.turquoise.withValues(alpha: 0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: PhIcon(item.icon, size: 22, color: Colors.white),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'الذكاء الاصطناعي',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: item.active ? FontWeight.w800 : FontWeight.w600,
+              color: item.active ? AppColors.turquoise : AppColors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RegularNavItem extends StatelessWidget {
+  const _RegularNavItem({required this.item});
+  final _NavItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final isWide = MediaQuery.sizeOf(context).width >= 700;
+    return InkWell(
+      key: item.keyId,
+      onTap: item.onTap,
+      child: isWide
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _navIcon(item, compact: true),
+                const SizedBox(width: 8),
+                Flexible(child: _navLabel(item, maxLines: 1)),
+              ],
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _navIcon(item),
+                const SizedBox(height: 2),
+                _navLabel(item, maxLines: 1),
+              ],
+            ),
+    );
+  }
+
+  Widget _navIcon(_NavItem item, {bool compact = false}) => Container(
+        padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: item.active ? AppColors.turquoise.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Badge(
+          isLabelVisible: item.badge > 0,
+          label: Text('${item.badge}'),
+          backgroundColor: item.badgeColor,
+          child: PhIcon(item.icon, size: 18, color: item.active ? AppColors.turquoise : AppColors.textTertiary),
+        ),
+      );
+
+  Widget _navLabel(_NavItem item, {required int maxLines}) => Text(
+        item.label,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: item.active ? FontWeight.w800 : FontWeight.w600,
+          color: item.active ? AppColors.turquoise : AppColors.textTertiary,
+        ),
+      );
 }
 
 class _NavBar extends StatelessWidget {
@@ -297,6 +437,8 @@ class _NavBar extends StatelessWidget {
       );
 }
 
+// ─── Customer Tab Body ────────────────────────────────────────────────────────
+
 class CustomerTabBody extends StatelessWidget {
   const CustomerTabBody({super.key, required this.store});
   final PadhouseController store;
@@ -310,6 +452,10 @@ class CustomerTabBody extends StatelessWidget {
         return _CategoriesTab(store: store);
       case CustomerTab.search:
         return _SearchTab(store: store);
+      case CustomerTab.ai:
+        return _AiTab(store: store);
+      case CustomerTab.wishlist:
+        return _WishlistTab(store: store);
       case CustomerTab.cart:
         return _CartTab(store: store);
       case CustomerTab.profile:
@@ -317,6 +463,292 @@ class CustomerTabBody extends StatelessWidget {
     }
   }
 }
+
+// ─── Search Tab ────────────────────────────────────────────────────────────────
+
+class _SearchTab extends StatefulWidget {
+  const _SearchTab({required this.store});
+  final PadhouseController store;
+
+  @override
+  State<_SearchTab> createState() => _SearchTabState();
+}
+
+class _SearchTabState extends State<_SearchTab> {
+  late final TextEditingController _controller = TextEditingController(text: widget.store.searchQuery);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = widget.store;
+    final q = store.searchQuery.trim();
+    final results = q.isEmpty
+        ? <Product>[]
+        : store.products
+            .where((p) =>
+                p.name.contains(q) ||
+                p.sku.toLowerCase().contains(q.toLowerCase()) ||
+                p.compatibility.contains(q))
+            .toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: Row(
+              children: [
+                const PhIcon(LucideIcons.search, size: 18, color: AppColors.turquoise),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    key: const Key('search-field'),
+                    controller: _controller,
+                    autofocus: true,
+                    textInputAction: TextInputAction.search,
+                    onChanged: store.setSearch,
+                    decoration: bareInput('ابحث عن منتج أو رمز SKU...'),
+                  ),
+                ),
+                if (q.isNotEmpty)
+                  InkWell(
+                    onTap: () {
+                      _controller.clear();
+                      store.setSearch('');
+                    },
+                    child: const PhIcon(LucideIcons.x, size: 18, color: AppColors.textTertiary),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (q.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+            child: Row(
+              children: [
+                Text('نتائج البحث (${results.length})',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.navy)),
+              ],
+            ),
+          ),
+        Expanded(
+          child: q.isEmpty
+              ? const EmptyState(
+                  icon: LucideIcons.search,
+                  title: 'ابحث في متجر بادهاوس',
+                  subtitle: 'اكتب اسم المنتج أو رمز SKU للعثور على ما يناسب آيبادك',
+                )
+              : results.isEmpty
+                  ? EmptyState(
+                      icon: LucideIcons.search,
+                      title: 'لا توجد نتائج مطابقة',
+                      subtitle: 'جرّب كلمات بحث أخرى أو استعرض الأقسام',
+                      ctaLabel: 'تصفح الأقسام',
+                      onCta: () => store.setCustomerTab(CustomerTab.categories),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(14),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 0.72,
+                      ),
+                      itemCount: results.length,
+                      itemBuilder: (context, index) => ProductCard(store: store, product: results[index]),
+                    ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Cart Tab ──────────────────────────────────────────────────────────────────
+
+class _CartTab extends StatelessWidget {
+  const _CartTab({required this.store});
+  final PadhouseController store;
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = store.cart
+        .map((line) => (line: line, product: store.productById(line.productId)))
+        .where((e) => e.product != null)
+        .toList();
+
+    if (lines.isEmpty) {
+      return EmptyState(
+        icon: LucideIcons.shoppingCart,
+        title: 'سلة التسوق فارغة',
+        subtitle: 'أضف منتجاتك المفضلة ثم أكمل عملية الشراء بسهولة',
+        ctaLabel: 'تصفح المنتجات',
+        onCta: () => store.setCustomerTab(CustomerTab.home),
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(14),
+            children: [
+              Row(
+                children: [
+                  const PhIcon(LucideIcons.shoppingCart, size: 18, color: AppColors.turquoise),
+                  const SizedBox(width: 8),
+                  const Text('سلة التسوق', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  const Spacer(),
+                  Text('${store.cartCount} قطعة',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              for (final entry in lines)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SoftCard(
+                    child: Row(
+                      children: [
+                        NetImage(url: entry.product!.image, width: 64, height: 64, radius: 12),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(entry.product!.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                              const SizedBox(height: 2),
+                              Text(entry.line.selectedColor,
+                                  style: const TextStyle(fontSize: 10, color: AppColors.textTertiary)),
+                              const SizedBox(height: 6),
+                              Text('${entry.product!.price * entry.line.quantity} ₪',
+                                  style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.turquoise)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          children: [
+                            _QtyStepper(
+                              quantity: entry.line.quantity,
+                              onInc: () => store.updateCartQty(entry.line.productId, entry.line.selectedColor, 1),
+                              onDec: () => store.updateCartQty(entry.line.productId, entry.line.selectedColor, -1),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => store.removeFromCart(entry.line.productId, entry.line.selectedColor),
+                              child: const PhIcon(LucideIcons.trash2, size: 16, color: AppColors.error),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: AppColors.borderLight)),
+          ),
+          child: Column(
+            children: [
+              _summaryRow('المجموع الفرعي', '${store.subtotal} ₪'),
+              const SizedBox(height: 4),
+              _summaryRow('التوصيل', '${store.deliveryFee} ₪'),
+              if (store.discountAmount > 0) ...[
+                const SizedBox(height: 4),
+                _summaryRow('الخصم', '- ${store.discountAmount} ₪'),
+              ],
+              const Divider(height: 18),
+              _summaryRow('الإجمالي', '${store.grandTotal} ₪', bold: true),
+              const SizedBox(height: 10),
+              PrimaryButton(
+                label: 'متابعة إلى الدفع',
+                icon: LucideIcons.arrowLeft,
+                onPressed: () => store.setStack(CustomerStack.checkout),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _summaryRow(String label, String value, {bool bold = false}) {
+    return Row(
+      children: [
+        Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                color: bold ? AppColors.navy : AppColors.textSecondary,
+                fontWeight: bold ? FontWeight.w800 : FontWeight.w500)),
+        const Spacer(),
+        Text(value,
+            style: TextStyle(
+                fontSize: bold ? 15 : 12,
+                color: bold ? AppColors.navy : AppColors.textSecondary,
+                fontWeight: bold ? FontWeight.w900 : FontWeight.w600)),
+      ],
+    );
+  }
+}
+
+class _QtyStepper extends StatelessWidget {
+  const _QtyStepper({required this.quantity, required this.onInc, required this.onDec});
+
+  final int quantity;
+  final VoidCallback onInc;
+  final VoidCallback onDec;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.borderLight),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _stepperBtn(LucideIcons.plus, onInc),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+          ),
+          _stepperBtn(LucideIcons.minus, onDec),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepperBtn(IconData icon, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: PhIcon(icon, size: 14, color: AppColors.turquoise),
+        ),
+      );
+}
+
+// ─── Home Tab ─────────────────────────────────────────────────────────────────
 
 class _HomeTab extends StatelessWidget {
   const _HomeTab({required this.store});
@@ -328,6 +760,7 @@ class _HomeTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Search bar (tappable, opens the search tab)
         Material(
           color: AppColors.offWhite,
           borderRadius: BorderRadius.circular(16),
@@ -342,18 +775,24 @@ class _HomeTab extends StatelessWidget {
                 children: [
                   PhIcon(LucideIcons.search, size: 16, color: AppColors.turquoise),
                   SizedBox(width: 8),
-                  Expanded(child: Text('ابحث عن قلم بادهاوس، كفر كيبورد، شواحن يسيدو...', style: TextStyle(fontSize: 12, color: AppColors.textTertiary))),
+                  Expanded(child: Text('ابحث عن منتجات بادهاوس...', style: TextStyle(fontSize: 12, color: AppColors.textTertiary))),
+                  PhIcon(LucideIcons.bot, size: 16, color: AppColors.turquoise),
                 ],
               ),
             ),
           ),
         ),
         const SizedBox(height: 14),
+        // Hero banner
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: const LinearGradient(colors: [AppColors.turquoise, AppColors.turquoiseDark]),
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              colors: [AppColors.turquoise, AppColors.turquoiseDark],
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,30 +802,51 @@ class _HomeTab extends StatelessWidget {
                 decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
                 child: const Text('متجر بادهاوس الرسمي 🇵🇸', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
               ),
-              const SizedBox(height: 8),
-              const Text('ملحقات الآيباد المعتمدة والمختبرة', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              const Text('21 منتجاً أساسياً لتعزيز إنتاجيتك مع توصيل لكافة المدن والدفع عند الاستلام', style: TextStyle(color: Colors.white, fontSize: 12, height: 1.4)),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
+              const Text(
+                'ملحقات الآيباد الأكثر طلباً في فلسطين',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, height: 1.3),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'توصيل سريع لكافة المدن • دفع عند الاستلام • ضمان سنة كاملة',
+                style: TextStyle(color: Colors.white, fontSize: 11, height: 1.5),
+              ),
+              const SizedBox(height: 14),
               FilledButton.icon(
                 onPressed: () => store.setCustomerTab(CustomerTab.categories),
                 style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.turquoise),
                 icon: const PhIcon(LucideIcons.arrowRight, size: 14, color: AppColors.turquoise),
-                label: const Text('تصفح الأقسام الـ 6', style: TextStyle(fontWeight: FontWeight.w800)),
+                label: const Text('تصفح الأقسام الـ 6', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
+        // Category chips
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('الأقسام المعتمدة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+            const Text('الأقسام المعتمدة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
             TextButton(onPressed: () => store.setCustomerTab(CustomerTab.categories), child: const Text('عرض الكل')),
           ],
         ),
         CategoryChips(selected: store.selectedCategory, onSelect: (id) => store.setCategory(id)),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
+        // Verified iPad model compatibility selector (models from the backend).
+        if (store.ipadModels.isNotEmpty) ...[
+          const Row(
+            children: [
+              PhIcon(LucideIcons.tablet, size: 15, color: AppColors.turquoise),
+              SizedBox(width: 6),
+              Text('تصفية حسب موديل الآيباد', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _IpadModelSelector(store: store),
+          const SizedBox(height: 16),
+        ],
+        // Section header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -394,22 +854,23 @@ class _HomeTab extends StatelessWidget {
             const Text('الأسعار بالشيكل (₪)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
+        // Product grid: 2 columns on mobile
         LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            final columns = width >= 1400 ? 4 : width >= 1000 ? 3 : width >= 600 ? 2 : 1;
+            final columns = width >= 1400 ? 4 : width >= 1000 ? 3 : width >= 500 ? 2 : 2;
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: products.length,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: columns,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: columns == 1 ? 3.05 : 1.8,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.72,
               ),
-              itemBuilder: (context, index) => _ProductCard(store: store, product: products[index]),
+              itemBuilder: (context, index) => ProductCard(store: store, product: products[index]),
             );
           },
         ),
@@ -418,368 +879,519 @@ class _HomeTab extends StatelessWidget {
   }
 }
 
-class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.store, required this.product});
+// ─── iPad Model Selector ────────────────────────────────────────────────────
+
+/// Customer-facing iPad model filter. Models come from `GET /products/ipad-models`
+/// and filtering is delegated to the backend via `GET /products?compatibility=`.
+class _IpadModelSelector extends StatelessWidget {
+  const _IpadModelSelector({required this.store});
   final PadhouseController store;
-  final Product product;
 
   @override
   Widget build(BuildContext context) {
-    final wished = store.wishlistIds.contains(product.id);
-    return SoftCard(
-      onTap: () => store.openProduct(product),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          NetImage(url: product.image, width: 78, height: 78),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(product.compatibility, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: AppColors.turquoise, fontWeight: FontWeight.w700))),
-                    InkWell(
-                      onTap: () => store.toggleWishlist(product.id),
-                      child: PhIcon(LucideIcons.heart, size: 16, color: wished ? const Color(0xFFF43F5E) : AppColors.textTertiary),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(product.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.navy)),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const PhIcon(LucideIcons.star, size: 12, color: Color(0xFFF59E0B)),
-                    const SizedBox(width: 4),
-                    Text('${product.rating} (${product.reviewsCount})', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                    const SizedBox(width: 6),
-                    Text(product.stock > 0 ? 'متوفر (${product.stock})' : 'نفدت الكمية', style: TextStyle(fontSize: 11, color: product.stock > 0 ? AppColors.success : AppColors.error, fontWeight: FontWeight.w700)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text('${product.price} ₪', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.navy)),
-                    const SizedBox(width: 6),
-                    Text('${product.originalPrice} ₪', style: const TextStyle(fontSize: 11, color: AppColors.textTertiary, decoration: TextDecoration.lineThrough)),
-                    const Spacer(),
-                    FilledButton(
-                      onPressed: product.stock > 0 ? () => store.addToCart(product) : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.turquoise,
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                      ),
-                      child: Text(product.stock > 0 ? 'إضافة' : 'نفدت', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          _chip(null, 'كل الموديلات'),
+          for (final model in store.ipadModels) _chip(model, model),
         ],
+      ),
+    );
+  }
+
+  Widget _chip(String? model, String label) {
+    final active = store.selectedIpadModel == model;
+    final color = active ? AppColors.turquoise : AppColors.textSecondary;
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: Material(
+        color: active ? AppColors.turquoise.withValues(alpha: 0.1) : AppColors.offWhite,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: active ? null : () => store.selectIpadModel(model),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: active ? AppColors.turquoise.withValues(alpha: 0.35) : AppColors.borderLight),
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 12, fontWeight: active ? FontWeight.w700 : FontWeight.w600, color: color)),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _CategoriesTab extends StatelessWidget {
+// ─── Categories Tab ───────────────────────────────────────────────────────────
+
+class _CategoriesTab extends StatefulWidget {
   const _CategoriesTab({required this.store});
   final PadhouseController store;
 
   @override
+  State<_CategoriesTab> createState() => _CategoriesTabState();
+}
+
+class _CategoriesTabState extends State<_CategoriesTab> {
+  String? _activeCategoryId;
+
+  @override
   Widget build(BuildContext context) {
-    final cats = officialCategories.skip(1);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text('الأقسام الرسمية لمتجر بادهاوس (6 أقسام)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 6),
-        const Text('اختر الفئة للاطلاع على المنتجات المعتمدة فوراً', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-        const SizedBox(height: 12),
-        for (final cat in cats) ...[
-          SoftCard(
-            onTap: () => store.setCategory(cat.id, goHome: true),
-            padding: const EdgeInsets.all(14),
+    final store = widget.store;
+    final cats = officialCategories.where((c) => c.id != 'all').toList();
+
+    if (_activeCategoryId != null) {
+      final cat = cats.firstWhere((c) => c.id == _activeCategoryId, orElse: () => cats.first);
+      final catProducts = store.products.where((p) => p.categories.contains(_activeCategoryId)).toList();
+      return Column(
+        children: [
+          // Sub-header with back
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.borderLight))),
             child: Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.turquoise.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.2)),
-                  ),
-                  child: PhIcon(categoryIcon(cat.id), color: AppColors.turquoise, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                InkWell(
+                  onTap: () => setState(() => _activeCategoryId = null),
+                  child: const Row(
                     children: [
-                      Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                      Text('${store.products.where((p) => p.categories.contains(cat.id)).length} منتجات معتمدة', style: const TextStyle(fontSize: 11, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
+                      PhIcon(LucideIcons.arrowRight, size: 16, color: AppColors.navy),
+                      SizedBox(width: 4),
+                      Text('رجوع', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.navy)),
                     ],
                   ),
                 ),
-                const PhIcon(LucideIcons.chevronLeft, size: 16, color: AppColors.textTertiary),
+                const SizedBox(width: 12),
+                PhIcon(categoryIcon(cat.id), size: 18, color: AppColors.turquoise),
+                const SizedBox(width: 6),
+                Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.turquoise.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                  child: Text('${catProducts.length} منتج', style: const TextStyle(fontSize: 11, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          Expanded(
+            child: catProducts.isEmpty
+                ? const EmptyState(icon: LucideIcons.package, title: 'لا توجد منتجات', subtitle: 'لا توجد منتجات في هذا القسم حالياً')
+                : GridView.builder(
+                    padding: const EdgeInsets.all(14),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 0.72,
+                    ),
+                    itemCount: catProducts.length,
+                    itemBuilder: (context, index) => ProductCard(store: store, product: catProducts[index]),
+                  ),
+          ),
         ],
-      ],
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(14),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: cats.length,
+      itemBuilder: (context, index) {
+        final cat = cats[index];
+        final count = store.products.where((p) => p.categories.contains(cat.id)).length;
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => setState(() => _activeCategoryId = cat.id),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.turquoise.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.2)),
+                    ),
+                    child: PhIcon(categoryIcon(cat.id), color: AppColors.turquoise, size: 24),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(cat.name, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(color: AppColors.turquoise.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                    child: Text('$count منتج', style: const TextStyle(fontSize: 11, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
-class _SearchTab extends StatefulWidget {
-  const _SearchTab({required this.store});
+// ─── AI Tab ───────────────────────────────────────────────────────────────────
+
+class _AiTab extends StatefulWidget {
+  const _AiTab({required this.store});
   final PadhouseController store;
 
   @override
-  State<_SearchTab> createState() => _SearchTabState();
+  State<_AiTab> createState() => _AiTabState();
 }
 
-class _SearchTabState extends State<_SearchTab> {
-  late final TextEditingController _query = TextEditingController(text: widget.store.searchQuery);
+class _AiTabState extends State<_AiTab> {
+  final _controller = TextEditingController();
+  final _scrollController = ScrollController();
+
+  static const _welcomeMessage = 'مرحباً! أنا مساعد بادهاوس الذكي للتسوق 🛍️ اسألني عن أي منتج، توافقه مع جهازك، أو أفضل الصفقات المتاحة';
+  static const _suggestions = ['قلم آيباد', 'كيبورد مع تاتش باد', 'شاشة PaperFeel', 'الشواحن'];
 
   @override
   void dispose() {
-    _query.dispose();
+    _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _send([String? text]) {
+    final q = text ?? _controller.text;
+    if (q.trim().isEmpty) return;
+    _controller.clear();
+    widget.store.sendCustomerAi(q);
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 200,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final store = widget.store;
-    final results = store.filteredProducts;
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
+        // Header
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: AppColors.offWhite,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.turquoise),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: [AppColors.turquoise, AppColors.turquoiseDark]),
           ),
           child: Row(
             children: [
-              const PhIcon(LucideIcons.search, size: 16, color: AppColors.turquoise),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  key: const Key('search-field'),
-                  autofocus: true,
-                  controller: _query,
-                  decoration: bareInput('ابحث بالاسم، الكود، أو موديل الجهاز...'),
-                  onChanged: store.setSearch,
-                ),
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
+                child: const PhIcon(LucideIcons.bot, size: 20, color: Colors.white),
               ),
-              if (store.searchQuery.isNotEmpty)
-                IconButton(
-                  onPressed: () {
-                    _query.clear();
-                    store.setSearch('');
-                  },
-                  icon: const PhIcon(LucideIcons.x, size: 16, color: AppColors.textTertiary),
+              const SizedBox(width: 10),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('المساعد الذكي', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+                  Text('مساعد بادهاوس للتسوق', style: TextStyle(color: Colors.white, fontSize: 11)),
+                ],
+              ),
+              const Spacer(),
+              if (store.isAiThinking)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        CategoryChips(selected: store.selectedCategory, onSelect: (id) => store.setCategory(id)),
-        const SizedBox(height: 12),
-        Text('تم العثور على ${results.length} منتجات', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textSecondary)),
-        const SizedBox(height: 8),
-        for (final product in results)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: SoftCard(
-              onTap: () => store.openProduct(product),
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  NetImage(url: product.image, width: 44, height: 44, radius: 10),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                        Text(product.compatibility, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppColors.turquoise)),
-                      ],
-                    ),
+        // Messages
+        Expanded(
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(14),
+            itemCount: 1 + store.aiChat.length,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                // Welcome message
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(color: AppColors.turquoise, borderRadius: BorderRadius.circular(10)),
+                        child: const PhIcon(LucideIcons.bot, size: 16, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(4),
+                              topRight: Radius.circular(16),
+                              bottomLeft: Radius.circular(16),
+                              bottomRight: Radius.circular(16),
+                            ),
+                            border: Border.all(color: AppColors.borderLight),
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)],
+                          ),
+                          child: const Text(_welcomeMessage, style: TextStyle(fontSize: 13, height: 1.5, color: AppColors.navy)),
+                        ),
+                      ),
+                    ],
                   ),
-                  Text('${product.price} ₪', style: const TextStyle(fontWeight: FontWeight.w900)),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _CartTab extends StatelessWidget {
-  const _CartTab({required this.store});
-  final PadhouseController store;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text('سلة المشتريات (${store.cart.length} أصناف)', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
-        if (store.cart.isEmpty)
-          SoftCard(
-            color: AppColors.offWhite,
-            child: Column(
-              children: [
-                const PhIcon(LucideIcons.shoppingBag, size: 36, color: AppColors.textTertiary),
-                const SizedBox(height: 8),
-                const Text('سلة التسوق فارغة حالياً', style: TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 10),
-                FilledButton(onPressed: () => store.setCustomerTab(CustomerTab.home), child: const Text('تصفح المنتجات')),
-              ],
-            ),
-          )
-        else ...[
-          for (final line in store.cart)
-            if (store.productById(line.productId) != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _CartRow(store: store, line: line, product: store.productById(line.productId)!),
-              ),
-          const SizedBox(height: 8),
-          SoftCard(
-            color: AppColors.offWhite,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('هل لديك كود خصم؟ (جرب PALESTINE)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Row(
+                );
+              }
+              final msg = store.aiChat[index - 1];
+              final isUser = msg.sender == 'user';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        key: const Key('coupon-field'),
-                        decoration: const InputDecoration(hintText: 'PALESTINE'),
-                        onChanged: (value) => store.couponCode = value,
+                    if (!isUser) ...[
+                      Container(
+                        width: 30,
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(color: AppColors.turquoise, borderRadius: BorderRadius.circular(10)),
+                        child: const PhIcon(LucideIcons.bot, size: 16, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isUser ? AppColors.turquoise : Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(isUser ? 16 : 4),
+                            topRight: Radius.circular(isUser ? 4 : 16),
+                            bottomLeft: const Radius.circular(16),
+                            bottomRight: const Radius.circular(16),
+                          ),
+                          border: isUser ? null : Border.all(color: AppColors.borderLight),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)],
+                        ),
+                        child: Text(
+                          msg.text,
+                          style: TextStyle(fontSize: 13, height: 1.5, color: isUser ? Colors.white : AppColors.navy),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      key: const Key('apply-coupon'),
-                      style: FilledButton.styleFrom(backgroundColor: AppColors.navy),
-                      onPressed: store.applyCoupon,
-                      child: const Text('تطبيق'),
-                    ),
+                    if (isUser) const SizedBox(width: 8),
                   ],
+                ),
+              );
+            },
+          ),
+        ),
+        // AI thinking indicator
+        if (store.isAiThinking)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: AppColors.turquoise, borderRadius: BorderRadius.circular(10)),
+                  child: const PhIcon(LucideIcons.bot, size: 16, color: Colors.white),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.borderLight),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (int i = 0; i < 3; i++) ...[
+                        if (i > 0) const SizedBox(width: 4),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(color: AppColors.turquoise, shape: BoxShape.circle),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          SoftCard(
-            child: Column(
-              children: [
-                _moneyRow('المجموع الفرعي', '${store.subtotal} ₪'),
-                _moneyRow('رسوم التوصيل (${store.checkoutCity})', '${store.deliveryFee} ₪'),
-                if (store.couponApplied) _moneyRow('خصم الكوبون', '- ${store.discountAmount} ₪', color: AppColors.success),
-                const Divider(),
-                _moneyRow('المجموع الكلي', '${store.grandTotal} ₪', color: AppColors.turquoise, bold: true),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          PrimaryButton(
-            keyId: const Key('go-checkout'),
-            label: 'متابعة إلى إتمام الشراء (${store.grandTotal} ₪)',
-            icon: LucideIcons.shoppingBag,
-            onPressed: () => store.setStack(CustomerStack.checkout),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _moneyRow(String label, String value, {Color? color, bool bold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontSize: 12, color: color ?? AppColors.textSecondary, fontWeight: bold ? FontWeight.w800 : FontWeight.w500)),
-          Text(value, style: TextStyle(fontSize: bold ? 15 : 12, color: color ?? AppColors.navy, fontWeight: FontWeight.w800)),
-        ],
-      ),
-    );
-  }
-}
-
-class _CartRow extends StatelessWidget {
-  const _CartRow({required this.store, required this.line, required this.product});
-  final PadhouseController store;
-  final CartLine line;
-  final Product product;
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftCard(
-      child: Row(
-        children: [
-          NetImage(url: product.image, width: 56, height: 56),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(product.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
-                Text(line.selectedColor, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                Text('${product.price} ₪', style: const TextStyle(fontWeight: FontWeight.w900)),
-              ],
-            ),
-          ),
-          Column(
-            children: [
-              Row(
+        // Suggestion chips
+        if (store.aiChat.length <= 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
                 children: [
-                  _qtyBtn(LucideIcons.minus, () => store.updateCartQty(line.productId, line.selectedColor, -1)),
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: Text('${line.quantity}', style: const TextStyle(fontWeight: FontWeight.w800))),
-                  _qtyBtn(LucideIcons.plus, () => store.updateCartQty(line.productId, line.selectedColor, 1)),
+                  for (final chip in _suggestions) ...[
+                    InkWell(
+                      onTap: () => _send(chip),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.turquoise.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(chip, style: const TextStyle(fontSize: 12, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                 ],
               ),
-              IconButton(
-                onPressed: () => store.removeFromCart(line.productId, line.selectedColor),
-                icon: const PhIcon(LucideIcons.trash2, size: 16, color: AppColors.error),
+            ),
+          ),
+        // Input
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: AppColors.borderLight)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.offWhite,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.borderLight),
+                  ),
+                  child: TextField(
+                    controller: _controller,
+                    decoration: bareInput('اكتب سؤالك هنا...'),
+                    onSubmitted: _send,
+                    textInputAction: TextInputAction.send,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () => _send(),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: store.isAiThinking ? AppColors.textTertiary : AppColors.turquoise,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const PhIcon(LucideIcons.send, size: 18, color: Colors.white),
+                ),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _qtyBtn(IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: 26,
-        height: 26,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: AppColors.offWhite, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.borderLight)),
-        child: PhIcon(icon, size: 12, color: AppColors.navy),
-      ),
+        ),
+      ],
     );
   }
 }
+
+// ─── Wishlist Tab ─────────────────────────────────────────────────────────────
+
+class _WishlistTab extends StatelessWidget {
+  const _WishlistTab({required this.store});
+  final PadhouseController store;
+
+  @override
+  Widget build(BuildContext context) {
+    final wishlistProducts = store.products.where((p) => store.wishlistIds.contains(p.id)).toList();
+
+    return Column(
+      children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+          child: Row(
+            children: [
+              const PhIcon(LucideIcons.heart, size: 18, color: AppColors.turquoise),
+              const SizedBox(width: 8),
+              const Text('قائمة المفضلة', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              const Spacer(),
+              if (wishlistProducts.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(color: AppColors.turquoise.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: Text('${wishlistProducts.length} منتج', style: const TextStyle(fontSize: 12, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: wishlistProducts.isEmpty
+              ? EmptyState(
+                  icon: LucideIcons.heart,
+                  title: 'قائمة المفضلة فارغة',
+                  subtitle: 'أضف المنتجات التي تعجبك لمتابعتها والشراء لاحقاً',
+                  ctaLabel: 'تصفح المنتجات',
+                  onCta: () => store.setCustomerTab(CustomerTab.home),
+                )
+              : GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.72,
+                  ),
+                  itemCount: wishlistProducts.length,
+                  itemBuilder: (context, index) => ProductCard(store: store, product: wishlistProducts[index]),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Profile Tab ──────────────────────────────────────────────────────────────
 
 class _ProfileTab extends StatelessWidget {
   const _ProfileTab({required this.store});
@@ -796,15 +1408,30 @@ class _ProfileTab extends StatelessWidget {
           color: AppColors.offWhite,
           child: Row(
             children: [
-              CircleAvatar(radius: 24, backgroundColor: AppColors.turquoise, child: Text(initial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
-              const SizedBox(width: 12),
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: AppColors.turquoise,
+                child: Text(initial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(current?.name ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                     Text(current?.email ?? '', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                    Text(store.isSuperAdmin ? 'حساب المدير العام للمتجر' : current?.role == 'guest' ? 'تصفح كزائر' : 'حساب مشتري موثق', style: const TextStyle(fontSize: 11, color: AppColors.turquoise, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.turquoise.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        store.isSuperAdmin ? 'مدير عام' : current?.role == 'guest' ? 'زائر' : 'مشتري موثق',
+                        style: const TextStyle(fontSize: 11, color: AppColors.turquoise, fontWeight: FontWeight.w800),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -843,10 +1470,12 @@ class _ProfileTab extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 12),
-        _menuTile(LucideIcons.package, 'طلباتي السابقة (${store.orders.length})', () => store.setStack(CustomerStack.orders)),
-        _menuTile(LucideIcons.heart, 'قائمة المفضلة (${store.wishlistIds.length})', () => store.setStack(CustomerStack.wishlist)),
-        _menuTile(LucideIcons.messageSquare, 'خدمة العملاء والواتساب المباشر', () => store.setStack(CustomerStack.support)),
+        const SizedBox(height: 14),
+        _menuTile(LucideIcons.package, 'طلباتي (${store.orders.length})', () => store.setStack(CustomerStack.orders)),
+        _menuTile(LucideIcons.mapPin, 'عناويني', () => store.setStack(CustomerStack.addresses)),
+        _menuTile(LucideIcons.bell, 'الإشعارات', () => store.setStack(CustomerStack.notifications)),
+        _menuTile(LucideIcons.settings, 'الإعدادات', () => store.setStack(CustomerStack.settings)),
+        _menuTile(LucideIcons.messageSquare, 'خدمة العملاء', () => store.setStack(CustomerStack.support)),
         _menuTile(LucideIcons.logOut, 'تسجيل الخروج', store.logout, danger: true),
       ],
     );
@@ -861,14 +1490,14 @@ class _ProfileTab extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 34,
-              height: 34,
+              width: 36,
+              height: 36,
               alignment: Alignment.center,
               decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-              child: PhIcon(icon, size: 16, color: color),
+              child: PhIcon(icon, size: 17, color: color),
             ),
-            const SizedBox(width: 10),
-            Expanded(child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: danger ? AppColors.error : AppColors.navy))),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: danger ? AppColors.error : AppColors.navy))),
             PhIcon(LucideIcons.chevronLeft, size: 16, color: danger ? AppColors.error : AppColors.textTertiary),
           ],
         ),

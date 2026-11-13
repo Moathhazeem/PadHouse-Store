@@ -3,108 +3,57 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// PadHouse Typography System
-/// English: Inter / Poppins
-/// Arabic: Tajawal / IBM Plex Sans Arabic
+/// Arabic Only: Tajawal / Cairo
 class AppTypography {
   AppTypography._();
 
-  static TextStyle headingLarge({bool isArabic = false, Color color = AppColors.navy}) {
-    if (isArabic) {
-      return GoogleFonts.ibmPlexSansArabic(
-        fontSize: 28,
-        fontWeight: FontWeight.w700,
-        height: 1.25,
-        color: color,
-      );
-    }
-    return GoogleFonts.ibmPlexSansArabic(
+  static TextStyle headingLarge({Color color = AppColors.navy}) {
+    return GoogleFonts.tajawal(
       fontSize: 28,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w800,
       height: 1.25,
-      letterSpacing: -0.5,
       color: color,
     );
   }
 
-  static TextStyle headingMedium({bool isArabic = false, Color color = AppColors.navy}) {
-    if (isArabic) {
-      return GoogleFonts.ibmPlexSansArabic(
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
-        height: 1.3,
-        color: color,
-      );
-    }
-    return GoogleFonts.ibmPlexSansArabic(
+  static TextStyle headingMedium({Color color = AppColors.navy}) {
+    return GoogleFonts.tajawal(
       fontSize: 22,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w800,
       height: 1.3,
-      letterSpacing: -0.3,
       color: color,
     );
   }
 
-  static TextStyle headingSmall({bool isArabic = false, Color color = AppColors.navy}) {
-    if (isArabic) {
-      return GoogleFonts.ibmPlexSansArabic(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        height: 1.35,
-        color: color,
-      );
-    }
-    return GoogleFonts.ibmPlexSansArabic(
+  static TextStyle headingSmall({Color color = AppColors.navy}) {
+    return GoogleFonts.tajawal(
       fontSize: 18,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
       height: 1.35,
       color: color,
     );
   }
 
-  static TextStyle bodyLarge({bool isArabic = false, Color color = AppColors.textPrimary}) {
-    if (isArabic) {
-      return GoogleFonts.ibmPlexSansArabic(
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        height: 1.5,
-        color: color,
-      );
-    }
-    return GoogleFonts.inter(
+  static TextStyle bodyLarge({Color color = AppColors.textPrimary}) {
+    return GoogleFonts.tajawal(
       fontSize: 16,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w500,
       height: 1.5,
       color: color,
     );
   }
 
-  static TextStyle bodyMedium({bool isArabic = false, Color color = AppColors.textPrimary}) {
-    if (isArabic) {
-      return GoogleFonts.ibmPlexSansArabic(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        height: 1.45,
-        color: color,
-      );
-    }
-    return GoogleFonts.inter(
+  static TextStyle bodyMedium({Color color = AppColors.textPrimary}) {
+    return GoogleFonts.tajawal(
       fontSize: 14,
-      fontWeight: FontWeight.w400,
-      height: 1.45,
+      fontWeight: FontWeight.w500,
+      height: 1.5,
       color: color,
     );
   }
 
-  static TextStyle bodySmall({bool isArabic = false, Color color = AppColors.textSecondary}) {
-    if (isArabic) {
-      return GoogleFonts.ibmPlexSansArabic(
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        height: 1.4,
-        color: color,
-      );
-    }
-    return GoogleFonts.inter(
+  static TextStyle bodySmall({Color color = AppColors.textSecondary}) {
+    return GoogleFonts.tajawal(
       fontSize: 12,
       fontWeight: FontWeight.w400,
       height: 1.4,
@@ -112,18 +61,18 @@ class AppTypography {
     );
   }
 
-  static TextStyle labelLarge({bool isArabic = false, Color color = AppColors.navy}) {
-    if (isArabic) {
-      return GoogleFonts.tajawal(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: color,
-      );
-    }
-    return GoogleFonts.inter(
+  static TextStyle labelLarge({Color color = AppColors.navy}) {
+    return GoogleFonts.tajawal(
       fontSize: 14,
-      fontWeight: FontWeight.w600,
-      letterSpacing: 0.1,
+      fontWeight: FontWeight.w700,
+      color: color,
+    );
+  }
+
+  static TextStyle buttonText({Color color = Colors.white}) {
+    return GoogleFonts.tajawal(
+      fontSize: 15,
+      fontWeight: FontWeight.w700,
       color: color,
     );
   }

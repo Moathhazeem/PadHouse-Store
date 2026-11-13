@@ -15,19 +15,19 @@ class AppColors {
   static const Color offWhite = Color(0xFFF8FAFC);
   static const Color offWhiteAlt = Color(0xFFF1F5F9);
 
-  // Primary Brand Color: PadHouse Turquoise
-  static const Color turquoise = Color(0xFF00A896);
-  static const Color turquoiseLight = Color(0xFF00C9B7);
-  static const Color turquoiseDark = Color(0xFF028090);
-  static const Color turquoiseHover = Color(0xFF009688);
+  // Primary Brand Color: PadHouse Turquoise #2EC4B6
+  static const Color turquoise = Color(0xFF2EC4B6);
+  static const Color turquoiseLight = Color(0xFF5CE1D6);
+  static const Color turquoiseDark = Color(0xFF1EA89B);
+  static const Color turquoiseHover = Color(0xFF26B2A5);
 
-  // Secondary Brand Color: PadHouse Navy
-  static const Color navy = Color(0xFF142B45);
-  static const Color navyLight = Color(0xFF1D3B5E);
-  static const Color navyMuted = Color(0xFF2C4A6F);
+  // Secondary Brand Color: PadHouse Navy #0F172A
+  static const Color navy = Color(0xFF0F172A);
+  static const Color navyLight = Color(0xFF1E293B);
+  static const Color navyMuted = Color(0xFF334155);
 
   // Typography Colors
-  static const Color textPrimary = Color(0xFF142B45); // Dark Navy
+  static const Color textPrimary = Color(0xFF0F172A); // Navy #0F172A
   static const Color textSecondary = Color(0xFF64748B); // Muted Gray
   static const Color textTertiary = Color(0xFF94A3B8); // Light Slate
   static const Color textOnTurquoise = Color(0xFFFFFFFF); // White on buttons

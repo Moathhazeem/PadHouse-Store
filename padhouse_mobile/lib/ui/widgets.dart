@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../core/theme/app_colors.dart';
 import '../data/catalog.dart';
+import '../state/padhouse_controller.dart';
 
 bool get skipNetworkImages =>
     WidgetsBinding.instance.runtimeType.toString().contains('Test');
@@ -58,6 +59,18 @@ class NetImage extends StatelessWidget {
       alignment: Alignment.center,
       child: const PhIcon(LucideIcons.package, color: AppColors.turquoise, size: 22),
     );
+    final cleanUrl = url.trim();
+    if (cleanUrl.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: placeholder,
+      );
+    }
+
+    final safeUrl = cleanUrl.startsWith('http')
+        ? Uri.encodeFull(cleanUrl)
+        : cleanUrl;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: SizedBox(
@@ -66,7 +79,7 @@ class NetImage extends StatelessWidget {
         child: skipNetworkImages
             ? placeholder
             : Image.network(
-                url,
+                safeUrl,
                 width: width,
                 height: height,
                 fit: BoxFit.cover,
@@ -100,6 +113,210 @@ class SoftCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: box),
+    );
+  }
+}
+
+class ProductCard extends StatelessWidget {
+  const ProductCard({super.key, required this.store, required this.product});
+
+  final PadhouseController store;
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final isWishlisted = store.wishlistIds.contains(product.id);
+    final outOfStock = product.stock <= 0;
+    final hasDiscount = product.originalPrice > product.price;
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => store.openProduct(product),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    NetImage(url: product.image, width: double.infinity, radius: 0),
+                    if (outOfStock)
+                      Container(
+                        color: Colors.white.withValues(alpha: 0.65),
+                        alignment: Alignment.center,
+                        child: const Text('نفدت الكمية',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: AppColors.navy)),
+                      )
+                    else if (hasDiscount)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(6)),
+                          child: const Text('خصم',
+                              style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: InkWell(
+                        onTap: () => store.toggleWishlist(product.id),
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.borderLight),
+                          ),
+                          child: PhIcon(
+                            isWishlisted ? LucideIcons.heartCrack : LucideIcons.heart,
+                            size: 14,
+                            color: isWishlisted ? AppColors.error : AppColors.textTertiary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, height: 1.35, color: AppColors.navy),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const PhIcon(LucideIcons.star, size: 12, color: Color(0xFFF59E0B)),
+                        const SizedBox(width: 3),
+                        Text('${product.rating}',
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+                        const SizedBox(width: 6),
+                        Text('(${product.reviewsCount})',
+                            style: const TextStyle(fontSize: 10, color: AppColors.textTertiary)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text('${product.price} ₪',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.turquoise)),
+                              if (hasDiscount) ...[
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text('${product.originalPrice} ₪',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.textTertiary,
+                                          decoration: TextDecoration.lineThrough)),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        InkWell(
+                          onTap: outOfStock ? null : () => store.addToCart(product),
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: outOfStock ? AppColors.offWhiteAlt : AppColors.turquoise,
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: Center(
+                              child: PhIcon(LucideIcons.plus,
+                                  size: 16, color: outOfStock ? AppColors.textTertiary : Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class EmptyState extends StatelessWidget {
+  const EmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.ctaLabel,
+    this.onCta,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String? ctaLabel;
+  final VoidCallback? onCta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(color: AppColors.offWhite, shape: BoxShape.circle),
+              child: Center(child: PhIcon(icon, size: 32, color: AppColors.turquoise)),
+            ),
+            const SizedBox(height: 14),
+            Text(title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.navy)),
+            const SizedBox(height: 6),
+            Text(subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5)),
+            if (onCta != null && ctaLabel != null) ...[
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: onCta,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.turquoise,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: Text(ctaLabel!, style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
