@@ -57,11 +57,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   height: 84,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.turquoise, AppColors.turquoiseDark],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: AppColors.turquoise,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
@@ -401,7 +397,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.errorBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFEE2E2)),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -417,9 +413,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 margin: const EdgeInsets.only(bottom: 14),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
+                  color: AppColors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFDCFCE7)),
+                  border: Border.all(color: AppColors.borderLight),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,7 +425,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         const PhIcon(LucideIcons.shieldCheck, size: 14, color: AppColors.success),
                         const SizedBox(width: 6),
                         const Expanded(
-                          child: Text('بيانات حساب المسؤول العام:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF166534))),
+                          child: Text('بيانات حساب المسؤول العام:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                         ),
                         TextButton(
                           key: const Key('admin-autofill'),
@@ -453,7 +449,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     const SizedBox(height: 4),
                     const Directionality(
                       textDirection: TextDirection.ltr,
-                      child: Text('adimn123@gmail.com / 123456', style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: Color(0xFF166534))),
+                      child: Text('adimn123@gmail.com / 123456', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                     ),
                   ],
                 ),
@@ -541,7 +537,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            const Divider(color: Color(0xFFF1F5F9)),
+            const Divider(color: AppColors.borderLight),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               key: const Key('continue-guest'),

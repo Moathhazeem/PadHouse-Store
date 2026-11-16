@@ -43,22 +43,22 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="w-full space-y-16 pb-12">
       {/* 1. Hero Section: Premium Modern Apple-Inspired */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#F8FAFC] to-[#FFFFFF] border-b border-slate-100 py-12 md:py-20">
+      <section className="relative overflow-hidden bg-white border-b border-ph-border py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             {/* Left Content (RTL -> Right side in visual) */}
             <div className="lg:col-span-7 space-y-6 text-right">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#2EC4B6]/10 text-[#0F172A] border border-[#2EC4B6]/20 text-xs font-bold">
-                <Sparkles className="w-4 h-4 text-[#2EC4B6]" />
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-ph-border text-ph-ink border border-ph-border text-xs font-bold">
+                <Sparkles className="w-4 h-4 text-ph-brand" />
                 <span>الجيل الجديد لملحقات أجهزة Apple iPad في فلسطين</span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.25]">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-ph-ink tracking-tight leading-[1.25]">
                 ارتقِ بتجربة الآيباد الخاصة بك إلى{' '}
-                <span className="text-[#2EC4B6]">أقصى درجات الإنتاجية</span>
+                <span className="text-ph-brand">أقصى درجات الإنتاجية</span>
               </h1>
 
-              <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-xl">
+              <p className="text-ph-muted text-sm sm:text-base leading-relaxed max-w-xl">
                 أقلام ذكية بدقة متناهية، كيبوردات مع تاتش باد تدعم إيماءات iPadOS المتعددة، شاشات ملمس الورق الطبيعي PaperFeel، وحوامل ألمنيوم صُممت لتناسب كل بيئات العمل والدراسة.
               </p>
 
@@ -66,10 +66,10 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   onClick={() => onNavigate('products')}
-                  className="bg-[#0F172A] hover:bg-[#1E293B] text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-md transition-all flex items-center gap-2 group"
+                  className="bg-ph-brand hover:bg-ph-brand-hover text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-md transition-all flex items-center gap-2 group"
                 >
                   <span>تسوق جميع الملحقات (21 منتج)</span>
-                  <ChevronLeft className="w-4 h-4 text-[#2EC4B6] group-hover:-translate-x-1 transition-transform" />
+                  <ChevronLeft className="w-4 h-4 text-white group-hover:-translate-x-1 transition-transform" />
                 </button>
 
                 <button
@@ -77,32 +77,32 @@ export const HomePage: React.FC<HomePageProps> = ({
                     const pen = products.find(p => p.id === 'prod-01');
                     if (pen) onSelectProduct(pen);
                   }}
-                  className="bg-white hover:bg-[#F8FAFC] text-[#0F172A] border border-slate-200 px-5 py-3.5 rounded-xl font-bold text-sm transition-all"
+                  className="bg-white hover:bg-white text-ph-ink border border-ph-border px-5 py-3.5 rounded-xl font-bold text-sm transition-all"
                 >
                   اكتشف قلم بادهاوس الذكي
                 </button>
               </div>
 
               {/* Mini Highlights */}
-              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-slate-200 max-w-lg">
+              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-ph-border max-w-lg">
                 <div>
-                  <span className="block text-xl font-black text-[#0F172A]">21+</span>
-                  <span className="text-xs text-slate-500 font-medium">ملحق معتمد متوفر</span>
+                  <span className="block text-xl font-black text-ph-ink">21+</span>
+                  <span className="text-xs text-ph-muted font-medium">ملحق معتمد متوفر</span>
                 </div>
                 <div>
-                  <span className="block text-xl font-black text-[#0F172A]">100%</span>
-                  <span className="text-xs text-slate-500 font-medium">توافق مع iPad</span>
+                  <span className="block text-xl font-black text-ph-ink">100%</span>
+                  <span className="text-xs text-ph-muted font-medium">توافق مع iPad</span>
                 </div>
                 <div>
-                  <span className="block text-xl font-black text-[#2EC4B6]">12 شهر</span>
-                  <span className="text-xs text-slate-500 font-medium">ضمان استبدال مباشر</span>
+                  <span className="block text-xl font-black text-ph-brand">12 شهر</span>
+                  <span className="text-xs text-ph-muted font-medium">ضمان استبدال مباشر</span>
                 </div>
               </div>
             </div>
 
             {/* Right Media (Hero Product Showcase) */}
             <div className="lg:col-span-5 relative">
-              <div className="relative mx-auto w-full max-w-md aspect-square rounded-3xl bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-100 flex items-center justify-center">
+              <div className="relative mx-auto w-full max-w-md aspect-square rounded-3xl bg-white p-6 shadow-[0_20px_50px_rgba(15,61,58,0.08)] border border-ph-border flex items-center justify-center">
                 <img
                   src="https://padhouse.ps/wp-content/uploads/2024/11/PadHouse-Pencil-Product-Image.jpg"
                   alt="قلم بادهاوس الذكي"
@@ -110,14 +110,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                 />
 
                 {/* Floating Product Highlight Tag */}
-                <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200/80 shadow-lg flex items-center justify-between">
+                <div className="absolute bottom-6 left-6 right-6 bg-white backdrop-blur-md p-3.5 rounded-2xl border border-ph-border shadow-lg flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-bold text-[#0F172A] block">PadHouse Pencil</span>
-                    <span className="text-[11px] text-slate-500">حساسية إمالة • رفض راحة اليد</span>
+                    <span className="text-xs font-bold text-ph-ink block">PadHouse Pencil</span>
+                    <span className="text-[11px] text-ph-muted">حساسية إمالة • رفض راحة اليد</span>
                   </div>
                   <div className="text-left">
-                    <span className="text-base font-black text-[#2EC4B6]">120 ₪</span>
-                    <span className="text-[10px] text-slate-400 line-through block">150 ₪</span>
+                    <span className="text-base font-black text-ph-brand">120 ₪</span>
+                    <span className="text-[10px] text-ph-muted line-through block">150 ₪</span>
                   </div>
                 </div>
               </div>
@@ -130,12 +130,12 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-[#0F172A]">تصفح حسب القسم</h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">اختر ملحقاتك المصنفة بعناية لأجهزة الآيباد</p>
+            <h2 className="text-xl sm:text-2xl font-black text-ph-ink">تصفح حسب القسم</h2>
+            <p className="text-xs sm:text-sm text-ph-muted mt-1">اختر ملحقاتك المصنفة بعناية لأجهزة الآيباد</p>
           </div>
           <button
             onClick={() => onNavigate('categories')}
-            className="text-xs font-bold text-[#2EC4B6] hover:text-[#25a99d] flex items-center gap-1"
+            className="text-xs font-bold text-ph-brand hover:text-ph-brand-hover flex items-center gap-1"
           >
             عرض الكل
             <ChevronLeft className="w-4 h-4" />
@@ -148,16 +148,16 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 key={cat.id}
                 onClick={() => onNavigate('products', { category: cat.id })}
-                className="group p-4 rounded-2xl bg-[#F8FAFC] hover:bg-white border border-slate-100 hover:border-[#2EC4B6]/30 hover:shadow-lg transition-all duration-300 text-center flex flex-col items-center justify-center gap-3"
+                className="group p-4 rounded-2xl bg-white hover:bg-white border border-ph-border hover:border-ph-border hover:shadow-lg transition-all duration-300 text-center flex flex-col items-center justify-center gap-3"
               >
-                <div className="w-12 h-12 rounded-xl bg-white shadow-xs group-hover:bg-[#2EC4B6] text-[#0F172A] group-hover:text-white flex items-center justify-center transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-white shadow-xs group-hover:bg-ph-brand text-ph-ink group-hover:text-white flex items-center justify-center transition-colors">
                   <span className="font-bold text-sm">{cat.name.slice(0, 2)}</span>
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-[#0F172A] group-hover:text-[#2EC4B6] transition-colors">
+                  <h3 className="text-xs font-bold text-ph-ink group-hover:text-ph-brand transition-colors">
                     {cat.name}
                   </h3>
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                  <span className="text-[10px] text-ph-muted mt-0.5 block">
                     ملحقات متوافقة
                   </span>
                 </div>
@@ -172,14 +172,14 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="flex items-center justify-between mb-8">
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#2EC4B6]"></span>
-              <h2 className="text-xl sm:text-2xl font-black text-[#0F172A]">الأكثر طلباً ومبيعاً</h2>
+              <span className="w-2.5 h-2.5 rounded-full bg-ph-brand"></span>
+              <h2 className="text-xl sm:text-2xl font-black text-ph-ink">الأكثر طلباً ومبيعاً</h2>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">المنتجات الأكثر مراجعة واقتناء من طلاب ومصممي فلسطين</p>
+            <p className="text-xs sm:text-sm text-ph-muted mt-1">المنتجات الأكثر مراجعة واقتناء من طلاب ومصممي فلسطين</p>
           </div>
           <button
             onClick={() => onNavigate('products')}
-            className="text-xs font-bold text-[#2EC4B6] hover:text-[#25a99d] flex items-center gap-1"
+            className="text-xs font-bold text-ph-brand hover:text-ph-brand-hover flex items-center gap-1"
           >
             مشاهدة جميع المنتجات
             <ChevronLeft className="w-4 h-4" />
@@ -202,23 +202,23 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* 4. Product Bundle & "Frequently Bought Together" Promo */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="rounded-3xl bg-[#0F172A] text-white p-6 sm:p-10 border border-slate-800 shadow-xl overflow-hidden relative">
+        <div className="rounded-3xl bg-ph-brand text-white p-6 sm:p-10 border border-ph-border shadow-xl overflow-hidden relative">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-4 text-right">
-              <span className="inline-block px-3 py-1 rounded-full bg-[#2EC4B6]/20 text-[#2EC4B6] text-xs font-bold">
+              <span className="inline-block px-3 py-1 rounded-full bg-ph-border text-ph-brand text-xs font-bold">
                 حزمة الطالب والمصمم المتكاملة (وفر 40 ₪)
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-white">
                 قلم بادهاوس الذكي + شاشة الورق PaperFeel الأصلية
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-lg">
+              <p className="text-xs sm:text-sm text-ph-muted leading-relaxed max-w-lg">
                 احصل على أفضل تجربة تدوين ملاحظات ورسم رقمي بملمس مطابق تماماً للورق الحقيقي، مع قلم ذكي بدقة بكسل فائقة ودعم راحة اليد.
               </p>
 
               <div className="flex items-baseline gap-3 pt-2">
-                <span className="text-3xl font-black text-[#2EC4B6]">150 ₪</span>
-                <span className="text-base text-slate-500 line-through">190 ₪</span>
-                <span className="text-xs font-semibold text-emerald-400">توصيل مجاني لكافة المدن</span>
+                <span className="text-3xl font-black text-ph-brand">150 ₪</span>
+                <span className="text-base text-ph-muted line-through">190 ₪</span>
+                <span className="text-xs font-semibold text-ph-brand">توصيل مجاني لكافة المدن</span>
               </div>
 
               <div className="pt-2 flex items-center gap-3">
@@ -228,13 +228,13 @@ export const HomePage: React.FC<HomePageProps> = ({
                     onAddToCart(paperProduct);
                     onNavigate('cart');
                   }}
-                  className="bg-[#2EC4B6] hover:bg-[#25a99d] text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl transition-all shadow-md"
+                  className="bg-ph-brand hover:bg-ph-brand-hover text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl transition-all shadow-md"
                 >
                   أضف الحزمة معاً إلى السلة
                 </button>
                 <button
                   onClick={() => onSelectProduct(penProduct)}
-                  className="text-xs text-slate-300 hover:text-white underline underline-offset-4"
+                  className="text-xs text-ph-muted hover:text-white underline underline-offset-4"
                 >
                   تفاصيل المنتجات
                 </button>
@@ -245,7 +245,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="w-32 sm:w-40 aspect-square rounded-2xl bg-white p-3 shadow-md flex items-center justify-center">
                 <img src={penProduct.image} alt="قلم بادهاوس" className="max-h-full object-contain" />
               </div>
-              <span className="text-2xl font-bold text-[#2EC4B6]">+</span>
+              <span className="text-2xl font-bold text-ph-brand">+</span>
               <div className="w-32 sm:w-40 aspect-square rounded-2xl bg-white p-3 shadow-md flex items-center justify-center">
                 <img src={paperProduct.image} alt="شاشة PaperFeel" className="max-h-full object-contain" />
               </div>
@@ -258,8 +258,8 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-[#0F172A]">العروض والخصومات الخاصة</h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">توفير حقيقي مع ضمان الجودة والأداء</p>
+            <h2 className="text-xl sm:text-2xl font-black text-ph-ink">العروض والخصومات الخاصة</h2>
+            <p className="text-xs sm:text-sm text-ph-muted mt-1">توفير حقيقي مع ضمان الجودة والأداء</p>
           </div>
         </div>
 
@@ -280,53 +280,53 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 6. Customer Reviews / Social Proof */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-xl mx-auto mb-10">
-          <span className="text-xs font-bold text-[#2EC4B6] uppercase tracking-wider">آراء عملاء بادهاوس</span>
-          <h2 className="text-2xl font-black text-[#0F172A] mt-1">ماذا يقول مستخدمو آيباد في فلسطين؟</h2>
+          <span className="text-xs font-bold text-ph-brand uppercase tracking-wider">آراء عملاء بادهاوس</span>
+          <h2 className="text-2xl font-black text-ph-ink mt-1">ماذا يقول مستخدمو آيباد في فلسطين؟</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-[#F8FAFC] rounded-2xl p-6 border border-slate-100 space-y-3 text-right">
-            <div className="flex items-center gap-1 text-amber-400">
+          <div className="bg-white rounded-2xl p-6 border border-ph-border space-y-3 text-right">
+            <div className="flex items-center gap-1 text-amber-500">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-amber-400" />
+                <Star key={i} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
               ))}
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-ph-muted leading-relaxed">
               "قلم بادهاوس ممتاز جداً، استخدمه في المحاضرات وتدوين الملاحظات على GoodNotes وما في أي فرق عن قلم آبل الأصلي غير إنه سعره مناسب جداً. التوصيل لجامعة بيرزيت كان خلال يومين."
             </p>
-            <div className="pt-2 border-t border-slate-200">
-              <span className="block text-xs font-bold text-[#0F172A]">محمد الريماوي</span>
-              <span className="text-[11px] text-slate-400">طالب هندسة — رام الله</span>
+            <div className="pt-2 border-t border-ph-border">
+              <span className="block text-xs font-bold text-ph-ink">محمد الريماوي</span>
+              <span className="text-[11px] text-ph-muted">طالب هندسة — رام الله</span>
             </div>
           </div>
 
-          <div className="bg-[#F8FAFC] rounded-2xl p-6 border border-slate-100 space-y-3 text-right">
-            <div className="flex items-center gap-1 text-amber-400">
+          <div className="bg-white rounded-2xl p-6 border border-ph-border space-y-3 text-right">
+            <div className="flex items-center gap-1 text-amber-500">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-amber-400" />
+                <Star key={i} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
               ))}
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-ph-muted leading-relaxed">
               "شاشة PaperFeel مع كفر الكيبورد والتاتش باد حوّلوا الآيباد للابتوب حقيقي للشغل. الملمس الورقي مريح جداً للرسم والخطوط وما بيعمل انعكاس تحت الشمس."
             </p>
-            <div className="pt-2 border-t border-slate-200">
-              <span className="block text-xs font-bold text-[#0F172A]">لانا طه</span>
-              <span className="text-[11px] text-slate-400">مصممة جرافيك — نابلس</span>
+            <div className="pt-2 border-t border-ph-border">
+              <span className="block text-xs font-bold text-ph-ink">لانا طه</span>
+              <span className="text-[11px] text-ph-muted">مصممة جرافيك — نابلس</span>
             </div>
           </div>
 
-          <div className="bg-[#F8FAFC] rounded-2xl p-6 border border-slate-100 space-y-3 text-right">
-            <div className="flex items-center gap-1 text-amber-400">
+          <div className="bg-white rounded-2xl p-6 border border-ph-border space-y-3 text-right">
+            <div className="flex items-center gap-1 text-amber-500">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-amber-400" />
+                <Star key={i} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
               ))}
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-ph-muted leading-relaxed">
               "ستاند كاكوسيجا 360 درجة صلب ومريح وما بيهتز أبداً مع الضغط. تعامل المتجر محترم جداً والتغليف فخم."
             </p>
-            <div className="pt-2 border-t border-slate-200">
-              <span className="block text-xs font-bold text-[#0F172A]">طارق الجعبري</span>
-              <span className="text-[11px] text-slate-400">الخليل</span>
+            <div className="pt-2 border-t border-ph-border">
+              <span className="block text-xs font-bold text-ph-ink">طارق الجعبري</span>
+              <span className="text-[11px] text-ph-muted">الخليل</span>
             </div>
           </div>
         </div>
@@ -334,10 +334,10 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* 7. Newsletter Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="rounded-3xl bg-[#F8FAFC] border border-slate-200 p-8 sm:p-12 text-center max-w-3xl mx-auto space-y-4">
-          <span className="text-xs font-bold text-[#2EC4B6]">انضم لمجتمع بادهاوس</span>
-          <h2 className="text-2xl font-black text-[#0F172A]">احصل على أحدث عروض ملحقات الآيباد أولاً بأول</h2>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+        <div className="rounded-3xl bg-white border border-ph-border p-8 sm:p-12 text-center max-w-3xl mx-auto space-y-4">
+          <span className="text-xs font-bold text-ph-brand">انضم لمجتمع بادهاوس</span>
+          <h2 className="text-2xl font-black text-ph-ink">احصل على أحدث عروض ملحقات الآيباد أولاً بأول</h2>
+          <p className="text-xs sm:text-sm text-ph-muted max-w-md mx-auto">
             اشترك في نشرتنا البريدية لتصلك العروض الحصرية وخصومات الإطلاق على القطع الجديدة.
           </p>
           <form
@@ -351,11 +351,11 @@ export const HomePage: React.FC<HomePageProps> = ({
               type="email"
               required
               placeholder="أدخل بريدك الإلكتروني..."
-              className="w-full sm:w-auto flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#2EC4B6]"
+              className="w-full sm:w-auto flex-1 bg-white border border-ph-border rounded-xl px-4 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand"
             />
             <button
               type="submit"
-              className="w-full sm:w-auto bg-[#0F172A] hover:bg-[#2EC4B6] text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-colors shrink-0"
+              className="w-full sm:w-auto bg-ph-brand hover:bg-ph-brand-hover text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-colors shrink-0"
             >
               اشتراك الآن
             </button>

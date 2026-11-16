@@ -3,12 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// PadHouse Typography System
-/// Arabic Only: Tajawal / Cairo
+/// Arabic UI exclusively uses IBM Plex Sans Arabic.
 class AppTypography {
   AppTypography._();
 
   static TextStyle headingLarge({Color color = AppColors.navy}) {
-    return GoogleFonts.tajawal(
+    return GoogleFonts.ibmPlexSansArabic(
       fontSize: 28,
       fontWeight: FontWeight.w800,
       height: 1.25,
@@ -17,7 +17,7 @@ class AppTypography {
   }
 
   static TextStyle headingMedium({Color color = AppColors.navy}) {
-    return GoogleFonts.tajawal(
+    return GoogleFonts.ibmPlexSansArabic(
       fontSize: 22,
       fontWeight: FontWeight.w800,
       height: 1.3,
@@ -26,7 +26,7 @@ class AppTypography {
   }
 
   static TextStyle headingSmall({Color color = AppColors.navy}) {
-    return GoogleFonts.tajawal(
+    return GoogleFonts.ibmPlexSansArabic(
       fontSize: 18,
       fontWeight: FontWeight.w700,
       height: 1.35,
@@ -35,7 +35,7 @@ class AppTypography {
   }
 
   static TextStyle bodyLarge({Color color = AppColors.textPrimary}) {
-    return GoogleFonts.tajawal(
+    return GoogleFonts.ibmPlexSansArabic(
       fontSize: 16,
       fontWeight: FontWeight.w500,
       height: 1.5,
@@ -44,7 +44,7 @@ class AppTypography {
   }
 
   static TextStyle bodyMedium({Color color = AppColors.textPrimary}) {
-    return GoogleFonts.tajawal(
+    return GoogleFonts.ibmPlexSansArabic(
       fontSize: 14,
       fontWeight: FontWeight.w500,
       height: 1.5,
@@ -53,7 +53,7 @@ class AppTypography {
   }
 
   static TextStyle bodySmall({Color color = AppColors.textSecondary}) {
-    return GoogleFonts.tajawal(
+    return GoogleFonts.ibmPlexSansArabic(
       fontSize: 12,
       fontWeight: FontWeight.w400,
       height: 1.4,
@@ -62,7 +62,7 @@ class AppTypography {
   }
 
   static TextStyle labelLarge({Color color = AppColors.navy}) {
-    return GoogleFonts.tajawal(
+    return GoogleFonts.ibmPlexSansArabic(
       fontSize: 14,
       fontWeight: FontWeight.w700,
       color: color,
@@ -70,9 +70,21 @@ class AppTypography {
   }
 
   static TextStyle buttonText({Color color = Colors.white}) {
-    return GoogleFonts.tajawal(
+    return GoogleFonts.ibmPlexSansArabic(
       fontSize: 15,
       fontWeight: FontWeight.w700,
+      color: color,
+    );
+  }
+
+  static TextStyle latin({
+    double fontSize = 14,
+    FontWeight fontWeight = FontWeight.w500,
+    Color color = AppColors.textPrimary,
+  }) {
+    return GoogleFonts.ibmPlexSansArabic(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
       color: color,
     );
   }

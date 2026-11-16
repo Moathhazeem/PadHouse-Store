@@ -124,16 +124,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
   return (
     <div className="max-w-md mx-auto px-4 py-16 text-right">
-      <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl space-y-6">
+      <div className="bg-white rounded-3xl p-8 border border-ph-border shadow-xl space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-[#2EC4B6] text-white flex items-center justify-center font-black text-xl mx-auto shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-ph-brand text-white flex items-center justify-center font-black text-xl mx-auto shadow-sm">
             PH
           </div>
-          <h1 className="text-2xl font-black text-[#0F172A]">
+          <h1 className="text-2xl font-black text-ph-ink">
             {mode === 'login' ? 'تسجيل الدخول إلى بادهاوس' : 'إنشاء حساب جديد'}
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-ph-muted">
             {mode === 'login'
               ? 'أهلاً بك مجدداً! تابع طلباتك وتفضيلاتك بكل سهولة'
               : 'سجل حسابك للاستفادة من تتبع الشحنات وحفظ السلة والمفضلة'}
@@ -141,7 +141,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         </div>
 
         {errorMsg && (
-          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 text-xs rounded-xl font-medium">
+          <div className="p-3 bg-red-50 border border-red-200 text-[#DC2626] text-xs rounded-xl font-medium">
             {errorMsg}
           </div>
         )}
@@ -150,7 +150,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'register' && (
             <div>
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">الاسم الكامل *</label>
+              <label className="text-xs font-bold text-ph-ink block mb-1">الاسم الكامل *</label>
               <div className="relative">
                 <input
                   type="text"
@@ -158,15 +158,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   placeholder="مثال: أحمد الفلسطيني"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#2EC4B6] focus:bg-white"
+                  className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white"
                 />
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ph-muted" />
               </div>
             </div>
           )}
 
           <div>
-            <label className="text-xs font-bold text-[#0F172A] block mb-1">البريد الإلكتروني *</label>
+            <label className="text-xs font-bold text-ph-ink block mb-1">البريد الإلكتروني *</label>
             <div className="relative">
               <input
                 type="email"
@@ -174,16 +174,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#2EC4B6] focus:bg-white text-left dir-ltr"
+                className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white text-left dir-ltr"
               />
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ph-muted" />
             </div>
           </div>
 
           {mode === 'register' && (
             <>
               <div>
-                <label className="text-xs font-bold text-[#0F172A] block mb-1">رقم الهاتف (واتساب) *</label>
+                <label className="text-xs font-bold text-ph-ink block mb-1">رقم الهاتف (واتساب) *</label>
                 <div className="relative">
                   <input
                     type="tel"
@@ -191,18 +191,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     placeholder="0599123456"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#2EC4B6] focus:bg-white text-left dir-ltr"
+                    className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white text-left dir-ltr"
                   />
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ph-muted" />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#0F172A] block mb-1">المدينة / المحافظة *</label>
+                <label className="text-xs font-bold text-ph-ink block mb-1">المدينة / المحافظة *</label>
                 <select
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#2EC4B6] focus:bg-white"
+                  className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white"
                 >
                   {cities.map((c) => (
                     <option key={c} value={c}>
@@ -215,7 +215,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           )}
 
           <div>
-            <label className="text-xs font-bold text-[#0F172A] block mb-1">كلمة المرور *</label>
+            <label className="text-xs font-bold text-ph-ink block mb-1">كلمة المرور *</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -223,12 +223,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#2EC4B6] focus:bg-white text-left dir-ltr"
+                className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white text-left dir-ltr"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ph-muted hover:text-ph-muted"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -238,7 +238,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           <button
             type="submit"
             disabled={busy}
-            className="w-full bg-[#0F172A] hover:bg-[#2EC4B6] disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors shadow-md mt-2 flex items-center justify-center gap-2"
+            className="w-full bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors shadow-md mt-2 flex items-center justify-center gap-2"
           >
             {busy && <Loader2 className="w-4 h-4 animate-spin" />}
             <span>
@@ -248,35 +248,35 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         </form>
 
         {/* Trust note */}
-        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-          <ShieldCheck className="w-3.5 h-3.5 text-[#2EC4B6]" />
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-ph-muted">
+          <ShieldCheck className="w-3.5 h-3.5 text-ph-brand" />
           <span>بياناتك محمية ومشفرة على خوادم بادهاوس</span>
         </div>
 
         {/* Toggle Mode */}
-        <div className="text-center pt-2 border-t border-slate-100">
+        <div className="text-center pt-2 border-t border-ph-border">
           {mode === 'login' ? (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ph-muted">
               ليس لديك حساب بعد؟{' '}
               <button
                 onClick={() => {
                   setMode('register');
                   setErrorMsg(null);
                 }}
-                className="text-[#2EC4B6] font-bold hover:underline"
+                className="text-ph-brand font-bold hover:underline"
               >
                 إنشاء حساب جديد
               </button>
             </p>
           ) : (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ph-muted">
               لديك حساب بالفعل؟{' '}
               <button
                 onClick={() => {
                   setMode('login');
                   setErrorMsg(null);
                 }}
-                className="text-[#2EC4B6] font-bold hover:underline"
+                className="text-ph-brand font-bold hover:underline"
               >
                 تسجيل الدخول
               </button>

@@ -2,9 +2,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../core/network/api_client.dart';
 import '../core/theme/app_colors.dart';
+import '../core/theme/app_typography.dart';
 import '../data/catalog.dart';
 import '../state/padhouse_controller.dart';
 
@@ -54,12 +56,13 @@ IconData categoryIcon(String id) {
 }
 
 class NetImage extends StatelessWidget {
-  const NetImage({super.key, required this.url, this.width, this.height, this.radius = 12});
+  const NetImage({super.key, required this.url, this.width, this.height, this.radius = 12, this.fit = BoxFit.cover});
 
   final String url;
   final double? width;
   final double? height;
   final double radius;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -91,9 +94,35 @@ class NetImage extends StatelessWidget {
                 safeUrl,
                 width: width,
                 height: height,
-                fit: BoxFit.cover,
+                fit: fit,
                 errorBuilder: (_, __, ___) => placeholder,
               ),
+      ),
+    );
+  }
+}
+
+class CompatibilityBadge extends StatelessWidget {
+  const CompatibilityBadge({super.key, required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 190),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.mintLight,
+        border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textDirection: TextDirection.rtl,
+        style: const TextStyle(color: AppColors.evergreen, fontSize: 10, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -156,13 +185,13 @@ class ProductCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    NetImage(url: product.image, width: double.infinity, radius: 0),
+                    Container(color: AppColors.offWhite, child: NetImage(url: product.image, width: double.infinity, radius: 0, fit: BoxFit.contain)),
                     if (outOfStock)
                       Container(
-                        color: Colors.white.withValues(alpha: 0.65),
+                        color: Colors.white.withValues(alpha: 0.8),
                         alignment: Alignment.center,
                         child: const Text('نفدت الكمية',
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: AppColors.navy)),
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: AppColors.error)),
                       )
                     else if (hasDiscount)
                       Positioned(
@@ -209,10 +238,12 @@ class ProductCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, height: 1.35, color: AppColors.navy),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 5),
+                    CompatibilityBadge(label: product.compatibility),
+                    const SizedBox(height: 5),
                     Row(
                       children: [
-                        const PhIcon(LucideIcons.star, size: 12, color: Color(0xFFF59E0B)),
+                        const PhIcon(LucideIcons.star, size: 12, color: AppColors.starGold),
                         const SizedBox(width: 3),
                         Text('${product.rating}',
                             style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
@@ -229,8 +260,10 @@ class ProductCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.baseline,
                             textBaseline: TextBaseline.alphabetic,
                             children: [
-                              Text('${product.price} ₪',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.turquoise)),
+                              Directionality(
+                                textDirection: TextDirection.ltr,
+                                child: Text('${product.price} ₪', style: AppTypography.latin(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.emerald)),
+                              ),
                               if (hasDiscount) ...[
                                 const SizedBox(width: 4),
                                 Flexible(
@@ -246,20 +279,22 @@ class ProductCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        InkWell(
-                          onTap: outOfStock ? null : () => store.addToCart(product),
-                          child: Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: outOfStock ? AppColors.offWhiteAlt : AppColors.turquoise,
-                              borderRadius: BorderRadius.circular(9),
-                            ),
-                            child: Center(
-                              child: PhIcon(LucideIcons.plus,
-                                  size: 16, color: outOfStock ? AppColors.textTertiary : Colors.white),
-                            ),
+                        FilledButton.icon(
+                          onPressed: outOfStock ? null : () => store.addToCart(product),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.turquoise,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.offWhiteAlt,
+                            disabledForegroundColor: AppColors.textTertiary,
+                            minimumSize: const Size(0, 32),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
                           ),
+                          icon: const PhIcon(LucideIcons.shoppingCart, size: 13),
+                          label: Text(outOfStock ? 'غير متوفر' : 'أضف للسلة',
+                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800)),
                         ),
                       ],
                     ),
@@ -330,6 +365,58 @@ class EmptyState extends StatelessWidget {
   }
 }
 
+
+class SkeletonLoader extends StatelessWidget {
+  const SkeletonLoader({super.key, this.itemCount = 6});
+
+  final int itemCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(14),
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.72,
+      ),
+      itemCount: itemCount,
+      itemBuilder: (context, index) => Shimmer.fromColors(
+        baseColor: AppColors.offWhiteAlt,
+        highlightColor: Colors.white,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.borderLight),
+          ),
+          child: Column(
+            children: [
+              Expanded(child: Container(color: Colors.white)),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(height: 12, width: 90, color: Colors.white),
+                    const SizedBox(height: 8),
+                    Container(height: 14, width: double.infinity, color: Colors.white),
+                    const SizedBox(height: 8),
+                    Container(height: 36, width: double.infinity, color: Colors.white),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({super.key, required this.label, required this.onPressed, this.icon, this.keyId});
 
@@ -364,6 +451,11 @@ class PrimaryButton extends StatelessWidget {
       ),
     );
   }
+}
+
+
+class AppButton extends PrimaryButton {
+  const AppButton({super.key, required super.label, required super.onPressed, super.icon, super.keyId});
 }
 
 class FieldLabel extends StatelessWidget {
@@ -405,6 +497,45 @@ class IconField extends StatelessWidget {
           Expanded(child: child),
         ],
       ),
+    );
+  }
+}
+
+
+class AppInput extends StatelessWidget {
+  const AppInput({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.child,
+    this.helperText,
+    this.errorText,
+  });
+
+  final String label;
+  final IconData icon;
+  final Widget child;
+  final String? helperText;
+  final String? errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FieldLabel(label),
+        IconField(icon: icon, child: child),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: 4, top: 5),
+            child: Text(errorText!, style: const TextStyle(color: AppColors.error, fontSize: 12)),
+          )
+        else if (helperText != null)
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: 4, top: 5),
+            child: Text(helperText!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          ),
+      ],
     );
   }
 }
@@ -473,7 +604,7 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = active ? AppColors.turquoise : AppColors.textSecondary;
     return Material(
-      color: active ? AppColors.turquoise.withValues(alpha: 0.1) : AppColors.offWhite,
+      color: active ? AppColors.turquoise.withValues(alpha: 0.12) : AppColors.offWhite,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -482,7 +613,7 @@ class _Chip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: active ? AppColors.turquoise.withValues(alpha: 0.35) : AppColors.borderLight),
+            border: Border.all(color: active ? AppColors.turquoise : AppColors.borderLight),
           ),
           child: Row(
             children: [
@@ -510,7 +641,7 @@ class ToastBanner extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.navy,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.4)),
+          border: Border.all(color: AppColors.turquoise),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

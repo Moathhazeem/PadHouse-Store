@@ -3,22 +3,22 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// PadHouse Material 3 Strict Light Theme Configuration
-/// Pure White & Off-White backgrounds, Navy typography, Turquoise accents
+/// Pure White & Soft clean surfaces, Brand Teal actions, IBM Plex Sans Arabic typography.
 class AppTheme {
   AppTheme._();
 
   static ThemeData lightTheme({bool isArabic = false}) {
-    final colorScheme = ColorScheme(
+    const colorScheme = ColorScheme(
       brightness: Brightness.light,
-      primary: AppColors.turquoise,
+      primary: AppColors.emerald,
       onPrimary: Colors.white,
-      primaryContainer: const Color(0xFFE6F7F5),
+      primaryContainer: AppColors.mintLight,
       onPrimaryContainer: AppColors.turquoiseDark,
       secondary: AppColors.navy,
       onSecondary: Colors.white,
-      secondaryContainer: const Color(0xFFEDF3F9),
+      secondaryContainer: AppColors.white,
       onSecondaryContainer: AppColors.navy,
-      tertiary: AppColors.turquoiseDark,
+      tertiary: AppColors.evergreen,
       onTertiary: Colors.white,
       error: AppColors.error,
       onError: Colors.white,
@@ -27,15 +27,15 @@ class AppTheme {
       surfaceContainerHighest: AppColors.offWhite,
       onSurfaceVariant: AppColors.textSecondary,
       outline: AppColors.borderLight,
-      shadow: Colors.black.withValues(alpha: 0.04),
+      shadow: AppColors.cardShadow,
     );
 
-    final fontName = GoogleFonts.tajawal().fontFamily;
+    final fontName = GoogleFonts.ibmPlexSansArabic().fontFamily;
     final baseTheme = ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       fontFamily: fontName,
-      textTheme: GoogleFonts.tajawalTextTheme(),
+      textTheme: GoogleFonts.ibmPlexSansArabicTextTheme(),
       scaffoldBackgroundColor: AppColors.secondaryBackground, // #F8FAFC
       canvasColor: AppColors.surfaceWhite,
       cardColor: AppColors.surfaceWhite,
@@ -47,7 +47,7 @@ class AppTheme {
         centerTitle: false,
         scrolledUnderElevation: 0.5,
         iconTheme: const IconThemeData(color: AppColors.navy),
-        titleTextStyle: GoogleFonts.tajawal(
+        titleTextStyle: GoogleFonts.ibmPlexSansArabic(
           color: AppColors.navy,
           fontSize: 18,
           fontWeight: FontWeight.w700,
@@ -55,7 +55,8 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: AppColors.surfaceWhite,
-        elevation: 0,
+        elevation: 1,
+        shadowColor: AppColors.cardShadow,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -64,22 +65,22 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.surfaceWhite,
-        selectedItemColor: AppColors.turquoise,
-        unselectedItemColor: AppColors.navy,
+        selectedItemColor: AppColors.emerald,
+        unselectedItemColor: AppColors.textSecondary,
         elevation: 8,
         type: BottomNavigationBarType.fixed,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.turquoise,
+          backgroundColor: AppColors.emerald,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
+          textStyle: GoogleFonts.ibmPlexSansArabic(
+            fontWeight: FontWeight.w700,
             fontSize: 15,
           ),
         ),
@@ -93,7 +94,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(
+          textStyle: GoogleFonts.ibmPlexSansArabic(
             fontWeight: FontWeight.w600,
             fontSize: 15,
           ),
@@ -102,8 +103,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceWhite,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: GoogleFonts.tajawal(color: AppColors.textTertiary, fontSize: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        hintStyle:
+            GoogleFonts.ibmPlexSansArabic(color: AppColors.textTertiary, fontSize: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.borderLight),
@@ -114,7 +117,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.turquoise, width: 2),
+          borderSide: const BorderSide(color: AppColors.emerald, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -124,7 +127,7 @@ class AppTheme {
     );
 
     return baseTheme.copyWith(
-      textTheme: GoogleFonts.tajawalTextTheme(baseTheme.textTheme),
+      textTheme: GoogleFonts.ibmPlexSansArabicTextTheme(baseTheme.textTheme),
     );
   }
 }

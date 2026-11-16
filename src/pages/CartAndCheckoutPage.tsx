@@ -296,35 +296,35 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
   if (step === 'success' && placedOrder) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-right">
-        <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl text-center space-y-5">
-          <div className="w-16 h-16 rounded-full bg-[#2EC4B6]/10 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-8 h-8 text-[#2EC4B6]" />
+        <div className="bg-white rounded-3xl p-8 border border-ph-border shadow-xl text-center space-y-5">
+          <div className="w-16 h-16 rounded-full bg-ph-border flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-8 h-8 text-ph-brand" />
           </div>
-          <h1 className="text-2xl font-black text-[#0F172A]">تم استلام طلبك بنجاح</h1>
-          <p className="text-xs text-slate-500">
-            رقم الطلب <span className="font-mono font-bold text-[#0F172A]">{placedOrder.orderNumber || placedOrder.id}</span>
+          <h1 className="text-2xl font-black text-ph-ink">تم استلام طلبك بنجاح</h1>
+          <p className="text-xs text-ph-muted">
+            رقم الطلب <span className="font-mono font-bold text-ph-ink">{placedOrder.orderNumber || placedOrder.id}</span>
           </p>
-          <div className="bg-[#F8FAFC] rounded-2xl p-4 text-xs text-slate-600 space-y-1.5 text-right">
+          <div className="bg-white rounded-2xl p-4 text-xs text-ph-muted space-y-1.5 text-right">
             <div className="flex justify-between"><span>المجموع الفرعي</span><span className="font-bold">{placedOrder.subtotal} ₪</span></div>
             <div className="flex justify-between"><span>رسوم التوصيل</span><span className="font-bold">{placedOrder.shipping} ₪</span></div>
             {!!placedOrder.discount && (
-              <div className="flex justify-between text-[#2EC4B6]"><span>الخصم</span><span className="font-bold">-{placedOrder.discount} ₪</span></div>
+              <div className="flex justify-between text-ph-brand"><span>الخصم</span><span className="font-bold">-{placedOrder.discount} ₪</span></div>
             )}
-            <div className="flex justify-between border-t border-slate-200 pt-1.5 mt-1.5 text-sm font-black text-[#0F172A]"><span>الإجمالي</span><span>{placedOrder.total} ₪</span></div>
+            <div className="flex justify-between border-t border-ph-border pt-1.5 mt-1.5 text-sm font-black text-ph-ink"><span>الإجمالي</span><span>{placedOrder.total} ₪</span></div>
           </div>
-          <p className="text-xs text-slate-500">
-            الحالة الحالية: <span className="font-bold text-[#0F172A]">{placedOrder.status}</span>
+          <p className="text-xs text-ph-muted">
+            الحالة الحالية: <span className="font-bold text-ph-ink">{placedOrder.status}</span>
           </p>
           <div className="flex flex-col sm:flex-row gap-2 pt-2">
             <button
               onClick={() => onNavigate('tracking', { orderId: placedOrder.orderNumber || placedOrder.id })}
-              className="flex-1 bg-[#0F172A] hover:bg-[#2EC4B6] text-white py-3 rounded-xl font-bold text-xs transition-colors"
+              className="flex-1 bg-ph-brand hover:bg-ph-brand-hover text-white py-3 rounded-xl font-bold text-xs transition-colors"
             >
               تتبع الطلب
             </button>
             <button
               onClick={() => onNavigate('products')}
-              className="flex-1 bg-white border border-slate-200 text-[#0F172A] py-3 rounded-xl font-bold text-xs hover:bg-slate-50 transition-colors"
+              className="flex-1 bg-white border border-ph-border text-ph-ink py-3 rounded-xl font-bold text-xs hover:bg-white transition-colors"
             >
               مواصلة التسوق
             </button>
@@ -339,13 +339,13 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
   if (cart.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-right">
-        <div className="bg-[#F8FAFC] rounded-3xl p-12 text-center border border-slate-100 space-y-4">
-          <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto" />
-          <h2 className="text-lg font-black text-[#0F172A]">سلة التسوق فارغة</h2>
-          <p className="text-xs text-slate-500">لم تقم بإضافة أي منتجات بعد، ابدأ بتصفح ملحقات الآيباد.</p>
+        <div className="bg-white rounded-3xl p-12 text-center border border-ph-border space-y-4">
+          <ShoppingBag className="w-12 h-12 text-ph-muted mx-auto" />
+          <h2 className="text-lg font-black text-ph-ink">سلة التسوق فارغة</h2>
+          <p className="text-xs text-ph-muted">لم تقم بإضافة أي منتجات بعد، ابدأ بتصفح ملحقات الآيباد.</p>
           <button
             onClick={() => onNavigate('products')}
-            className="bg-[#2EC4B6] text-white text-xs font-bold px-5 py-2.5 rounded-xl"
+            className="bg-ph-brand text-white text-xs font-bold px-5 py-2.5 rounded-xl"
           >
             استكشف المنتجات
           </button>
@@ -360,7 +360,7 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-4">
         {outOfStockLines.length > 0 && (
-          <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 text-xs rounded-xl flex items-center gap-2">
+          <div className="p-3 bg-red-50 border border-red-200 text-[#DC2626] text-xs rounded-xl flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>بعض القطع تجاوزت الكمية المتاحة في المخزون. يرجى تعديل الكميات قبل إتمام الطلب.</span>
           </div>
@@ -368,12 +368,12 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
         {cart.map((item) => (
           <div
             key={`${item.product.id}-${item.selectedColor}`}
-            className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex gap-4"
+            className="bg-white p-4 rounded-2xl border border-ph-border shadow-sm flex gap-4"
           >
             <img
               src={item.product.image}
               alt={item.product.name}
-              className="w-20 h-20 rounded-xl object-cover bg-slate-50"
+              className="w-20 h-20 rounded-xl object-cover bg-white"
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
               }}
@@ -381,24 +381,24 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-[#0F172A] truncate">{item.product.name}</h3>
+                  <h3 className="text-sm font-bold text-ph-ink truncate">{item.product.name}</h3>
                   {item.selectedColor && (
-                    <span className="text-[11px] text-slate-400">اللون: {item.selectedColor}</span>
+                    <span className="text-[11px] text-ph-muted">اللون: {item.selectedColor}</span>
                   )}
                 </div>
                 <button
                   onClick={() => onRemoveItem(item.product.id, item.selectedColor)}
-                  className="text-slate-300 hover:text-rose-500 transition-colors"
+                  className="text-ph-muted hover:text-red-600 transition-colors"
                   aria-label="حذف"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-1">
+                <div className="flex items-center gap-2 border border-ph-border rounded-lg px-1">
                   <button
                     onClick={() => onUpdateQty(item.product.id, item.selectedColor, -1)}
-                    className="p-1.5 text-slate-500 hover:text-[#0F172A]"
+                    className="p-1.5 text-ph-muted hover:text-ph-ink"
                     aria-label="تقليل"
                   >
                     <Minus className="w-3.5 h-3.5" />
@@ -406,13 +406,13 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
                   <span className="text-xs font-bold w-6 text-center">{item.quantity}</span>
                   <button
                     onClick={() => onUpdateQty(item.product.id, item.selectedColor, 1)}
-                    className="p-1.5 text-slate-500 hover:text-[#0F172A]"
+                    className="p-1.5 text-ph-muted hover:text-ph-ink"
                     aria-label="زيادة"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <span className="text-sm font-black text-[#0F172A]">
+                <span className="text-sm font-black text-ph-ink">
                   {item.product.price * item.quantity} ₪
                 </span>
               </div>
@@ -421,7 +421,7 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
         ))}
         <button
           onClick={() => onClearCart()}
-          className="text-xs text-slate-400 hover:text-rose-500 font-bold"
+          className="text-xs text-ph-muted hover:text-red-600 font-bold"
         >
           تفريغ السلة بالكامل
         </button>
@@ -429,25 +429,25 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
 
       {/* Summary */}
       <div className="lg:col-span-1">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-6 space-y-4 sticky top-24">
-          <h3 className="text-sm font-black text-[#0F172A]">ملخص السلة</h3>
-          <div className="space-y-2 text-xs text-slate-600">
+        <div className="bg-white rounded-2xl border border-ph-border shadow-lg p-6 space-y-4 sticky top-24">
+          <h3 className="text-sm font-black text-ph-ink">ملخص السلة</h3>
+          <div className="space-y-2 text-xs text-ph-muted">
             <div className="flex justify-between"><span>المجموع الفرعي</span><span className="font-bold">{subtotal} ₪</span></div>
             <div className="flex justify-between"><span>رسوم التوصيل</span><span className="font-bold">{cart.length ? 'يُحسب عند تحديد المدينة' : '0 ₪'}</span></div>
           </div>
-          <div className="border-t border-slate-100 pt-3 flex justify-between text-sm font-black text-[#0F172A]">
+          <div className="border-t border-ph-border pt-3 flex justify-between text-sm font-black text-ph-ink">
             <span>الإجمالي التقديري</span><span>{subtotal} ₪</span>
           </div>
           <button
             onClick={() => setStep('checkout')}
             disabled={outOfStockLines.length > 0}
-            className="w-full bg-[#0F172A] hover:bg-[#2EC4B6] disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+            className="w-full bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
           >
             <span>متابعة إتمام الطلب</span>
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#2EC4B6]" />
+          <div className="flex items-center justify-center gap-1.5 text-[11px] text-ph-muted">
+            <ShieldCheck className="w-3.5 h-3.5 text-ph-brand" />
             <span>دفع آمن ومشفّر</span>
           </div>
         </div>
@@ -464,12 +464,12 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
           <div className="p-4 bg-[#0F172A] text-white rounded-2xl flex items-center justify-between gap-3">
             <div className="text-xs">
               <p className="font-bold">تحتاج إلى تسجيل الدخول لإتمام الطلب</p>
-              <p className="text-white/70 mt-0.5">سلة مشترياتك محفوظة وتُزامن مع حسابك تلقائياً.</p>
+              <p className="text-ph-muted mt-0.5">سلة مشترياتك محفوظة وتُزامن مع حسابك تلقائياً.</p>
             </div>
             <button
               type="button"
               onClick={() => onNavigate('login')}
-              className="bg-[#2EC4B6] text-white text-xs font-bold px-4 py-2 rounded-xl shrink-0"
+              className="bg-ph-brand hover:bg-ph-brand-hover text-white text-xs font-bold px-4 py-2 rounded-xl shrink-0 transition-colors"
             >
               تسجيل الدخول
             </button>
@@ -477,42 +477,42 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
         )}
 
         {errorMsg && (
-          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 text-xs rounded-xl">{errorMsg}</div>
+          <div className="p-3 bg-red-50 border border-red-200 text-[#DC2626] text-xs rounded-xl font-medium">{errorMsg}</div>
         )}
 
         {/* Delivery info */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-          <h3 className="text-sm font-black text-[#0F172A] flex items-center gap-1.5">
-            <MapPin className="w-4 h-4 text-[#2EC4B6]" /> بيانات التوصيل
+        <div className="bg-white rounded-2xl border border-ph-border shadow-sm p-6 space-y-4">
+          <h3 className="text-sm font-black text-ph-ink flex items-center gap-1.5">
+            <MapPin className="w-4 h-4 text-ph-brand" /> بيانات التوصيل
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">الاسم الكامل</label>
+              <label className="text-xs font-bold text-ph-ink block mb-1">الاسم الكامل</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#2EC4B6] focus:bg-white"
+                className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-ph-brand focus:bg-white"
                 placeholder="الاسم كما سيظهر على الشحنة"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">رقم الهاتف *</label>
+              <label className="text-xs font-bold text-ph-ink block mb-1">رقم الهاتف *</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#2EC4B6] focus:bg-white text-left dir-ltr"
+                className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-ph-brand focus:bg-white text-left dir-ltr"
                 placeholder="0599123456"
               />
-              {phoneError && <p className="text-[11px] text-rose-500 mt-1">{phoneError}</p>}
+              {phoneError && <p className="text-[11px] text-[#DC2626] font-medium mt-1">{phoneError}</p>}
             </div>
             <div>
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">المحافظة / المدينة *</label>
+              <label className="text-xs font-bold text-ph-ink block mb-1">المحافظة / المدينة *</label>
               <select
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#2EC4B6] focus:bg-white"
+                className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-ph-brand focus:bg-white"
               >
                 <option value="">اختر المدينة</option>
                 {cityOptions.map((c) => (
@@ -523,35 +523,35 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-[#0F172A] block mb-1">العنوان التفصيلي *</label>
+              <label className="text-xs font-bold text-ph-ink block mb-1">العنوان التفصيلي *</label>
               <input
                 type="text"
                 value={street}
                 onChange={(e) => setStreet(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#2EC4B6] focus:bg-white"
+                className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-ph-brand focus:bg-white"
                 placeholder="الشارع، رقم المبنى، علامة مميزة"
               />
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold text-[#0F172A] block mb-1">ملاحظات على الطلب (اختياري)</label>
+            <label className="text-xs font-bold text-ph-ink block mb-1">ملاحظات على الطلب (اختياري)</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#2EC4B6] focus:bg-white resize-none"
+              className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-ph-brand focus:bg-white resize-none"
               placeholder="أي تعليمات خاصة للتوصيل"
             />
           </div>
         </div>
 
         {/* Payment methods — only what the store actually supports */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-3">
-          <h3 className="text-sm font-black text-[#0F172A] flex items-center gap-1.5">
-            <Wallet className="w-4 h-4 text-[#2EC4B6]" /> طريقة الدفع
+        <div className="bg-white rounded-2xl border border-ph-border shadow-sm p-6 space-y-3">
+          <h3 className="text-sm font-black text-ph-ink flex items-center gap-1.5">
+            <Wallet className="w-4 h-4 text-ph-brand" /> طريقة الدفع
           </h3>
           {paymentMethods.length === 0 ? (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-ph-muted">
               <Loader2 className="w-4 h-4 animate-spin" /> جارٍ تحميل طرق الدفع المتاحة…
             </div>
           ) : (
@@ -560,7 +560,7 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
                 <label
                   key={m.id}
                   className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                    paymentMethod === m.id ? 'border-[#2EC4B6] bg-[#2EC4B6]/5' : 'border-slate-200 hover:bg-slate-50'
+                    paymentMethod === m.id ? 'border-ph-brand bg-ph-border' : 'border-ph-border hover:bg-white'
                   }`}
                 >
                   <input
@@ -569,11 +569,11 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
                     value={m.id}
                     checked={paymentMethod === m.id}
                     onChange={() => setPaymentMethod(m.id)}
-                    className="mt-0.5 accent-[#2EC4B6]"
+                    className="mt-0.5 accent-ph-brand"
                   />
                   <div className="text-xs">
-                    <p className="font-bold text-[#0F172A]">{m.nameAr}</p>
-                    {m.description && <p className="text-slate-500 mt-0.5">{m.description}</p>}
+                    <p className="font-bold text-ph-ink">{m.nameAr}</p>
+                    {m.description && <p className="text-ph-muted mt-0.5">{m.description}</p>}
                   </div>
                 </label>
               ))}
@@ -583,20 +583,20 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
 
         {/* Coupon + Gift card */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
-            <h3 className="text-sm font-black text-[#0F172A] flex items-center gap-1.5">
-              <Tag className="w-4 h-4 text-[#2EC4B6]" /> كود الخصم
+          <div className="bg-white rounded-2xl border border-ph-border shadow-sm p-5 space-y-3">
+            <h3 className="text-sm font-black text-ph-ink flex items-center gap-1.5">
+              <Tag className="w-4 h-4 text-ph-brand" /> كود الخصم
             </h3>
             {coupon ? (
-              <div className="flex items-center justify-between bg-[#2EC4B6]/10 rounded-xl px-3 py-2.5">
+              <div className="flex items-center justify-between bg-ph-border rounded-xl px-3 py-2.5">
                 <div className="text-xs">
-                  <p className="font-bold text-[#0F172A]">{coupon.couponCode}</p>
-                  <p className="text-[#2EC4B6]">
+                  <p className="font-bold text-ph-ink">{coupon.couponCode}</p>
+                  <p className="text-ph-brand">
                     {coupon.discount > 0 ? `خصم ${coupon.discount} ₪` : ''}
                     {coupon.freeShipping ? ' + توصيل مجاني' : ''}
                   </p>
                 </div>
-                <button type="button" onClick={handleRemoveCoupon} className="text-slate-400 hover:text-rose-500">
+                <button type="button" onClick={handleRemoveCoupon} className="text-ph-muted hover:text-red-500">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -607,45 +607,45 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
                   value={couponCodeInput}
                   onChange={(e) => setCouponCodeInput(e.target.value)}
                   disabled={!currentUser}
-                  className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#2EC4B6] focus:bg-white disabled:opacity-60"
+                  className="flex-1 bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-ph-brand focus:bg-white disabled:opacity-60"
                   placeholder={currentUser ? 'مثال: PADHOUSE10' : 'سجّل الدخول أولاً'}
                 />
                 <button
                   type="button"
                   onClick={handleApplyCoupon}
                   disabled={!currentUser || couponBusy}
-                  className="bg-[#0F172A] hover:bg-[#2EC4B6] disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+                  className="bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
                 >
                   {couponBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'تطبيق'}
                 </button>
               </div>
             )}
-            {couponError && <p className="text-[11px] text-rose-500">{couponError}</p>}
+            {couponError && <p className="text-[11px] text-[#DC2626] font-medium">{couponError}</p>}
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
-            <h3 className="text-sm font-black text-[#0F172A] flex items-center gap-1.5">
-              <Gift className="w-4 h-4 text-[#2EC4B6]" /> بطاقة الهدايا
+          <div className="bg-white rounded-2xl border border-ph-border shadow-sm p-5 space-y-3">
+            <h3 className="text-sm font-black text-ph-ink flex items-center gap-1.5">
+              <Gift className="w-4 h-4 text-ph-brand" /> بطاقة الهدايا
             </h3>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={giftCardInput}
                 onChange={(e) => setGiftCardInput(e.target.value)}
-                className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#2EC4B6] focus:bg-white"
+                className="flex-1 bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-ph-brand focus:bg-white"
                 placeholder="أدخل كود البطاقة"
               />
               <button
                 type="button"
                 onClick={handleCheckGiftCard}
                 disabled={giftCardBusy}
-                className="bg-white border border-slate-200 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+                className="bg-white border border-ph-border hover:bg-white px-4 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
               >
                 {giftCardBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'تحقق'}
               </button>
             </div>
             {giftCard && (
-              <p className={`text-[11px] ${giftCard.valid ? 'text-[#2EC4B6]' : 'text-rose-500'}`}>
+              <p className={`text-[11px] font-medium ${giftCard.valid ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
                 {giftCard.valid
                   ? `رصيد متاح: ${giftCard.balance} ₪ — يُخصم عند تأكيد الطلب`
                   : giftCard.message || 'البطاقة غير صالحة'}
@@ -656,28 +656,28 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
 
         {/* Policies (سياسات الاستبدال والاسترجاع والضمان) */}
         {policies && (
-          <div className="bg-[#F8FAFC] rounded-2xl border border-slate-100 p-6 space-y-4">
-            <h3 className="text-sm font-black text-[#0F172A] flex items-center gap-1.5">
-              <RotateCcw className="w-4 h-4 text-[#2EC4B6]" /> سياسات المتجر
+          <div className="bg-white rounded-2xl border border-ph-border p-6 space-y-4">
+            <h3 className="text-sm font-black text-ph-ink flex items-center gap-1.5">
+              <RotateCcw className="w-4 h-4 text-ph-brand" /> سياسات المتجر
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div>
-                <p className="font-bold text-[#0F172A] mb-1">{policies.exchange.titleAr}</p>
-                <p className="text-slate-500 leading-relaxed">{policies.exchange.summaryAr}</p>
+                <p className="font-bold text-ph-ink mb-1">{policies.exchange.titleAr}</p>
+                <p className="text-ph-muted leading-relaxed">{policies.exchange.summaryAr}</p>
               </div>
               <div>
-                <p className="font-bold text-[#0F172A] mb-1">{policies.return.titleAr}</p>
-                <p className="text-slate-500 leading-relaxed">{policies.return.summaryAr}</p>
+                <p className="font-bold text-ph-ink mb-1">{policies.return.titleAr}</p>
+                <p className="text-ph-muted leading-relaxed">{policies.return.summaryAr}</p>
               </div>
               <div>
-                <p className="font-bold text-[#0F172A] mb-1">{policies.warranty.titleAr}</p>
-                <p className="text-slate-500 leading-relaxed">{policies.warranty.summaryAr}</p>
+                <p className="font-bold text-ph-ink mb-1">{policies.warranty.titleAr}</p>
+                <p className="text-ph-muted leading-relaxed">{policies.warranty.summaryAr}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => onNavigate('refund_policy')}
-              className="text-[11px] font-bold text-[#2EC4B6] hover:underline"
+              className="text-[11px] font-bold text-ph-brand hover:underline"
             >
               اقرأ السياسات كاملة
             </button>
@@ -687,20 +687,20 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
 
       {/* Order summary */}
       <div className="lg:col-span-1">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-6 space-y-4 sticky top-24">
-          <h3 className="text-sm font-black text-[#0F172A]">ملخص الطلب</h3>
+        <div className="bg-white rounded-2xl border border-ph-border shadow-lg p-6 space-y-4 sticky top-24">
+          <h3 className="text-sm font-black text-ph-ink">ملخص الطلب</h3>
           <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
             {cart.map((item) => (
               <div key={`${item.product.id}-${item.selectedColor}`} className="flex justify-between items-start gap-2 text-xs">
-                <span className="text-slate-600 leading-snug">
+                <span className="text-ph-muted leading-snug">
                   {item.product.name}
                   {item.selectedColor ? ` (${item.selectedColor})` : ''} × {item.quantity}
                 </span>
-                <span className="font-bold text-[#0F172A] shrink-0">{item.product.price * item.quantity} ₪</span>
+                <span className="font-bold text-ph-ink shrink-0">{item.product.price * item.quantity} ₪</span>
               </div>
             ))}
           </div>
-          <div className="border-t border-slate-100 pt-3 space-y-2 text-xs text-slate-600">
+          <div className="border-t border-ph-border pt-3 space-y-2 text-xs text-ph-muted">
             <div className="flex justify-between"><span>المجموع الفرعي</span><span className="font-bold">{subtotal} ₪</span></div>
             <div className="flex justify-between items-center">
               <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5" /> رسوم التوصيل</span>
@@ -709,19 +709,19 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
               </span>
             </div>
             {quote?.etaDays && (
-              <div className="flex justify-between text-slate-400"><span>مدة التوصيل المتوقعة</span><span>{quote.etaDays} يوم</span></div>
+              <div className="flex justify-between text-ph-muted"><span>مدة التوصيل المتوقعة</span><span>{quote.etaDays} يوم</span></div>
             )}
             {discount > 0 && (
-              <div className="flex justify-between text-[#2EC4B6]"><span>الخصم</span><span className="font-bold">-{discount} ₪</span></div>
+              <div className="flex justify-between text-ph-brand"><span>الخصم</span><span className="font-bold">-{discount} ₪</span></div>
             )}
           </div>
-          <div className="border-t border-slate-100 pt-3 flex justify-between text-base font-black text-[#0F172A]">
+          <div className="border-t border-ph-border pt-3 flex justify-between text-base font-black text-ph-ink">
             <span>الإجمالي</span><span>{total} ₪</span>
           </div>
           <button
             type="submit"
             disabled={placing || !currentUser}
-            className="w-full bg-[#0F172A] hover:bg-[#2EC4B6] disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
           >
             {placing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             <span>{placing ? 'جارٍ تأكيد الطلب…' : 'تأكيد الطلب'}</span>
@@ -729,7 +729,7 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
           <button
             type="button"
             onClick={() => setStep('cart')}
-            className="w-full text-xs font-bold text-slate-500 hover:text-[#0F172A]"
+            className="w-full text-xs font-bold text-ph-muted hover:text-ph-ink"
           >
             العودة إلى السلة
           </button>
@@ -740,22 +740,22 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 text-right space-y-6">
-      <div className="border-b border-slate-100 pb-4 flex items-center justify-between flex-wrap gap-3">
+      <div className="border-b border-ph-border pb-4 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-black text-[#0F172A]">
+          <h1 className="text-2xl font-black text-ph-ink">
             {step === 'cart' ? 'سلة التسوق' : 'إتمام الطلب'}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-ph-muted mt-1">
             {step === 'cart'
               ? 'راجع القطع المختارة قبل إتمام عملية الشراء'
               : 'أكمل بيانات التوصيل واختر طريقة الدفع المناسبة'}
           </p>
         </div>
         <div className="flex items-center gap-2 text-[11px] font-bold">
-          <span className={`px-3 py-1 rounded-full ${step === 'cart' ? 'bg-[#0F172A] text-white' : 'bg-slate-100 text-slate-500'}`}>
+          <span className={`px-3 py-1 rounded-full ${step === 'cart' ? 'bg-ph-brand text-white' : 'bg-ph-background text-ph-muted'}`}>
             1. السلة
           </span>
-          <span className={`px-3 py-1 rounded-full ${step === 'checkout' ? 'bg-[#0F172A] text-white' : 'bg-slate-100 text-slate-500'}`}>
+          <span className={`px-3 py-1 rounded-full ${step === 'checkout' ? 'bg-ph-brand text-white' : 'bg-ph-background text-ph-muted'}`}>
             2. الدفع
           </span>
         </div>

@@ -113,15 +113,15 @@ class _ProductDetailsState extends State<ProductDetails> {
                 onTap: () => setState(() => widget.store.toggleWishlist(product.id)),
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
+                    boxShadow: [BoxShadow(color: AppColors.cardShadow, blurRadius: 6)],
                   ),
                   child: PhIcon(
                     isWishlisted ? LucideIcons.heartCrack : LucideIcons.heart,
                     size: 18,
-                    color: isWishlisted ? Colors.red : AppColors.navy,
+                    color: isWishlisted ? AppColors.error : AppColors.navy,
                   ),
                 ),
               ),
@@ -141,7 +141,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                       width: _galleryPage == i ? 18 : 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: _galleryPage == i ? AppColors.turquoise : Colors.white.withValues(alpha: 0.6),
+                        color: _galleryPage == i ? AppColors.turquoise : AppColors.borderLight,
                         borderRadius: BorderRadius.circular(99),
                       ),
                     );
@@ -162,7 +162,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.turquoise.withValues(alpha: 0.1),
+                      color: AppColors.mintLight,
                       borderRadius: BorderRadius.circular(99),
                       border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.3)),
                     ),
@@ -222,7 +222,7 @@ class _ProductDetailsState extends State<ProductDetails> {
               // ── Rating row ─────────────────────────────────────────
               Row(
                 children: [
-                  const PhIcon(LucideIcons.star, size: 14, color: Color(0xFFFFB800)),
+                  const PhIcon(LucideIcons.star, size: 14, color: AppColors.starGold),
                   const SizedBox(width: 4),
                   Text('${product.rating}',
                       style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
@@ -244,7 +244,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                     ChoiceChip(
                       label: Text(item),
                       selected: color == item,
-                      selectedColor: AppColors.turquoise.withValues(alpha: 0.12),
+                      selectedColor: AppColors.turquoise.withValues(alpha: 0.15),
                       labelStyle: TextStyle(
                           color: color == item ? AppColors.turquoise : AppColors.navy,
                           fontWeight: FontWeight.w700),
@@ -351,7 +351,7 @@ class _QtyButton extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: enabled ? AppColors.turquoise.withValues(alpha: 0.1) : AppColors.offWhite,
+          color: enabled ? AppColors.turquoise.withValues(alpha: 0.12) : AppColors.offWhite,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: enabled ? AppColors.turquoise : AppColors.borderLight),
         ),
@@ -784,11 +784,7 @@ class _TrackingState extends State<_Tracking> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.turquoise, Color(0xFF1FA99F)],
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-            ),
+            color: AppColors.turquoise,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
@@ -799,7 +795,7 @@ class _TrackingState extends State<_Tracking> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('تتبع الشحنة المباشر',
-                      style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700)),
+                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
                   Text(store.activeTrackingOrderId,
                       style: const TextStyle(
                           color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
@@ -1035,7 +1031,7 @@ class _Orders extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: _isDone(order.status)
                                 ? AppColors.successBg
-                                : AppColors.turquoise.withValues(alpha: 0.1),
+                                : AppColors.turquoise.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(99),
                           ),
                           child: Text(
@@ -1245,26 +1241,26 @@ class _Support extends StatelessWidget {
         // WhatsApp
         const _SupportCard(
           icon: LucideIcons.phone,
-          iconColor: Color(0xFF128C7E),
-          bgColor: Color(0x1425D366),
+          iconColor: AppColors.turquoise,
+          bgColor: AppColors.offWhite,
           title: 'محادثة واتساب فورية',
           subtitle: 'إجابات فورية وتنسيق مع فريقنا في رام الله',
           value: '+970 59 900 0000',
           trailing: LucideIcons.externalLink,
-          trailingColor: Color(0xFF128C7E),
+          trailingColor: AppColors.turquoise,
         ),
         const SizedBox(height: 10),
 
         // Instagram
         const _SupportCard(
           icon: LucideIcons.globe,
-          iconColor: Color(0xFFE1306C),
-          bgColor: Color(0x14E1306C),
+          iconColor: AppColors.turquoise,
+          bgColor: AppColors.offWhite,
           title: 'صفحتنا على إنستغرام',
           subtitle: 'تابعنا للعروض الحصرية والجديد',
           value: '@padhouse.ps',
           trailing: LucideIcons.externalLink,
-          trailingColor: Color(0xFFE1306C),
+          trailingColor: AppColors.turquoise,
         ),
         const SizedBox(height: 10),
 
@@ -1285,9 +1281,9 @@ class _Support extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.turquoise.withValues(alpha: 0.07),
+            color: AppColors.offWhiteAlt,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.2)),
+            border: Border.all(color: AppColors.borderLight),
           ),
           child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1377,7 +1373,7 @@ class _Notifications extends StatelessWidget {
     ),
     _NotifItem(
       icon: LucideIcons.tag,
-      iconColor: Color(0xFFE1306C),
+      iconColor: AppColors.turquoise,
       title: 'عرض خاص: خصم ١٥٪ على الكيبوردات',
       body: 'استخدم كود KEYBOARD15 لتوفير حتى ٢٤ شيكل على أفضل لوحات المفاتيح.',
       time: 'منذ ساعتين',
@@ -1427,7 +1423,7 @@ class _Notifications extends StatelessWidget {
                 border: Border.all(
                     color: item.read
                         ? AppColors.borderLight
-                        : AppColors.turquoise.withValues(alpha: 0.2)),
+                        : AppColors.turquoise.withValues(alpha: 0.25)),
               ),
               padding: const EdgeInsets.all(14),
               child: Row(
@@ -1437,7 +1433,7 @@ class _Notifications extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: item.iconColor.withValues(alpha: 0.1),
+                      color: AppColors.offWhiteAlt,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(child: PhIcon(item.icon, size: 18, color: item.iconColor)),
@@ -1536,9 +1532,9 @@ class _AddressesState extends State<_Addresses> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.turquoise.withValues(alpha: 0.07),
+            color: AppColors.offWhiteAlt,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.25)),
+            border: Border.all(color: AppColors.borderLight),
           ),
           child: Row(
             children: [
@@ -1653,11 +1649,7 @@ class _Settings extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.navy, Color(0xFF1E3A5F)],
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-            ),
+            color: AppColors.navy,
             borderRadius: BorderRadius.circular(16),
           ),
           child: const Column(
@@ -1668,7 +1660,7 @@ class _Settings extends StatelessWidget {
               SizedBox(height: 4),
               Text('متجرك المتخصص في ملحقات الآيباد الأصلية',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  style: TextStyle(color: Colors.white, fontSize: 13)),
               SizedBox(height: 8),
               Text('فلسطين • توصيل لجميع المحافظات',
                   style: TextStyle(
@@ -1701,7 +1693,7 @@ class _SettingsTile extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: AppColors.turquoise.withValues(alpha: 0.1),
+          color: AppColors.offWhiteAlt,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Center(child: PhIcon(icon, size: 17, color: AppColors.turquoise)),

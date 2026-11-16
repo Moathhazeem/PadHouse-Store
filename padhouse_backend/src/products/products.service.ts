@@ -10,6 +10,11 @@ const CATALOG_INCLUDE = {
   reviews: { select: { rating: true } },
 };
 
+const IMAGE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const IMAGE_CACHE_MAX_ENTRIES = 48;
+const imageCache = new Map<string, { image: { buffer: Buffer; contentType: string }; expiresAt: number }>();
+const imageFetches = new Map<string, Promise<{ buffer: Buffer; contentType: string }>>();
+
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
@@ -33,27 +38,52 @@ export class ProductsService {
       throw new BadRequestException('مصدر الصورة غير مسموح');
     }
 
-    try {
-      const response = await axios.get<ArrayBuffer>(imageUrl.toString(), {
-        responseType: 'arraybuffer',
-        timeout: 10000,
-        maxRedirects: 0,
-        maxContentLength: 8 * 1024 * 1024,
-        headers: {
-          Accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif',
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        },
-      });
-      const contentType = String(response.headers['content-type'] || '').split(';')[0].toLowerCase();
-      if (!['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
-        throw new BadGatewayException('مصدر الصورة لم يُرجع ملف صورة صالحاً');
-      }
-      return { buffer: Buffer.from(response.data), contentType };
-    } catch (error) {
-      if (error instanceof BadGatewayException) throw error;
-      throw new BadGatewayException('تعذر تحميل الصورة من مصدرها');
+    const cacheKey = imageUrl.toString();
+    const cached = imageCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      imageCache.delete(cacheKey);
+      imageCache.set(cacheKey, cached);
+      return cached.image;
     }
+    if (cached) imageCache.delete(cacheKey);
+
+    const inFlight = imageFetches.get(cacheKey);
+    if (inFlight) return inFlight;
+
+    const fetchPromise = (async () => {
+      try {
+        const response = await axios.get<ArrayBuffer>(cacheKey, {
+          responseType: 'arraybuffer',
+          timeout: 10000,
+          maxRedirects: 0,
+          maxContentLength: 8 * 1024 * 1024,
+          headers: {
+            Accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif',
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          },
+        });
+        const contentType = String(response.headers['content-type'] || '').split(';')[0].toLowerCase();
+        if (!['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
+          throw new BadGatewayException('مصدر الصورة لم يُرجع ملف صورة صالحاً');
+        }
+        const image = { buffer: Buffer.from(response.data), contentType };
+        imageCache.set(cacheKey, { image, expiresAt: Date.now() + IMAGE_CACHE_TTL_MS });
+        if (imageCache.size > IMAGE_CACHE_MAX_ENTRIES) {
+          const oldestKey = imageCache.keys().next().value;
+          if (oldestKey) imageCache.delete(oldestKey);
+        }
+        return image;
+      } catch (error) {
+        if (error instanceof BadGatewayException) throw error;
+        throw new BadGatewayException('تعذر تحميل الصورة من مصدرها');
+      } finally {
+        imageFetches.delete(cacheKey);
+      }
+    })();
+
+    imageFetches.set(cacheKey, fetchPromise);
+    return fetchPromise;
   }
 
 async findAll(query: {

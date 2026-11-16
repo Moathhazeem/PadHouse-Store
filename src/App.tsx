@@ -245,9 +245,11 @@ export default function App() {
           // Skip lines that can no longer be fulfilled (out of stock / removed).
         }
       }
-      await refreshBackendCart();
-      await refreshBackendOrders();
-      await refreshBackendWishlist();
+      await Promise.all([
+        refreshBackendCart(),
+        refreshBackendOrders(),
+        refreshBackendWishlist(),
+      ]);
     },
     [refreshBackendCart, refreshBackendOrders, refreshBackendWishlist],
   );
@@ -415,8 +417,7 @@ export default function App() {
    */
   const handleOrderPlaced = async (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev.filter((o) => o.id !== newOrder.id)]);
-    await refreshBackendCart();
-    await refreshBackendOrders();
+    await Promise.all([refreshBackendCart(), refreshBackendOrders()]);
   };
 
   // Track order cancellation in progress
@@ -431,7 +432,7 @@ export default function App() {
     try {
       await cancelOrderApi(order.id);
       showToast(`تم إلغاء الطلب (${orderIdentifier}) بنجاح واسترجاع المخزون`);
-      await refreshBackendOrders();
+      void refreshBackendOrders();
       // Also refresh product catalog so restored stock is immediately reflected in UI
       const updatedProducts = await fetchProductsApi();
       if (updatedProducts && updatedProducts.length > 0) {
@@ -450,12 +451,12 @@ export default function App() {
     <div
       dir="rtl"
       lang="ar"
-      className="min-h-screen w-full bg-[#FFFFFF] text-[#0F172A] font-['Tajawal','IBM_Plex_Sans_Arabic',sans-serif] flex flex-col selection:bg-[#2EC4B6]/20"
+      className="min-h-screen w-full bg-ph-background text-ph-ink font-sans flex flex-col selection:bg-ph-accent/15"
     >
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#0F172A] text-white px-5 py-3 rounded-full shadow-2xl border border-[#2EC4B6]/40 text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-3">
-          <CheckCircle2 className="w-4 h-4 text-[#2EC4B6]" />
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#0F172A] text-white px-5 py-3 rounded-full shadow-2xl border border-ph-brand/40 text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-3">
+          <CheckCircle2 className="w-4 h-4 text-ph-brand" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -514,27 +515,27 @@ export default function App() {
         {/* 3. Categories Hub Page */}
         {activePage === 'categories' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 text-right">
-            <div className="mb-8 border-b border-slate-100 pb-4">
-              <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A]">أقسام وتصنيفات المتجر</h1>
-              <p className="text-xs text-slate-500 mt-1">تصفح أقسام ملحقات الآيباد المعتمدة مع الضمان والتوافق</p>
+            <div className="mb-8 border-b border-ph-border pb-4">
+              <h1 className="text-2xl sm:text-3xl font-black text-ph-ink">أقسام وتصنيفات المتجر</h1>
+              <p className="text-xs text-ph-muted mt-1">تصفح أقسام ملحقات الآيباد المعتمدة مع الضمان والتوافق</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {OFFICIAL_CATEGORIES.filter((c) => c.id !== 'all').map((cat) => (
                 <div
                   key={cat.id}
                   onClick={() => navigateTo('products', { category: cat.id })}
-                  className="bg-[#F8FAFC] hover:bg-white p-6 rounded-3xl border border-slate-100 hover:border-[#2EC4B6]/40 hover:shadow-xl transition-all duration-300 cursor-pointer space-y-3 group"
+                  className="bg-white hover:bg-white p-6 rounded-3xl border border-ph-border hover:border-ph-brand/40 hover:shadow-xl transition-all duration-300 cursor-pointer space-y-3 group"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-white group-hover:bg-[#2EC4B6] text-[#0F172A] group-hover:text-white flex items-center justify-center font-bold text-base shadow-xs transition-colors">
+                  <div className="w-12 h-12 rounded-2xl bg-white group-hover:bg-ph-brand text-ph-ink group-hover:text-white flex items-center justify-center font-bold text-base shadow-xs transition-colors">
                     {cat.name.slice(0, 2)}
                   </div>
-                  <h3 className="text-base font-black text-[#0F172A] group-hover:text-[#2EC4B6] transition-colors">
+                  <h3 className="text-base font-black text-ph-ink group-hover:text-ph-brand transition-colors">
                     {cat.name}
                   </h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <p className="text-xs text-ph-muted leading-relaxed">
                     {cat.description}
                   </p>
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-[#2EC4B6] pt-2">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-ph-brand pt-2">
                     <span>تصفح المنتجات</span>
                     <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                   </span>
@@ -576,18 +577,18 @@ export default function App() {
         {/* 6. Wishlist Page */}
         {activePage === 'wishlist' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 text-right">
-            <div className="mb-8 border-b border-slate-100 pb-4">
-              <h1 className="text-2xl font-black text-[#0F172A]">قائمة المنتجات المفضلة</h1>
-              <p className="text-xs text-slate-500 mt-1">القطع التي قمت بحفظها لشرائها لاحقاً</p>
+            <div className="mb-8 border-b border-ph-border pb-4">
+              <h1 className="text-2xl font-black text-ph-ink">قائمة المنتجات المفضلة</h1>
+              <p className="text-xs text-ph-muted mt-1">القطع التي قمت بحفظها لشرائها لاحقاً</p>
             </div>
 
             {wishlistIds.length === 0 ? (
-              <div className="bg-[#F8FAFC] rounded-2xl p-12 text-center border border-slate-100 space-y-3">
-                <Heart className="w-10 h-10 text-slate-300 mx-auto" />
-                <p className="text-sm font-bold text-[#0F172A]">قائمة المفضلة فارغة حالياً</p>
+              <div className="bg-white rounded-2xl p-12 text-center border border-ph-border space-y-3">
+                <Heart className="w-10 h-10 text-ph-muted mx-auto" />
+                <p className="text-sm font-bold text-ph-ink">قائمة المفضلة فارغة حالياً</p>
                 <button
                   onClick={() => navigateTo('products')}
-                  className="bg-[#2EC4B6] text-white text-xs font-bold px-4 py-2 rounded-xl"
+                  className="bg-ph-brand text-white text-xs font-bold px-4 py-2 rounded-xl"
                 >
                   استكشف المنتجات
                 </button>
@@ -619,7 +620,7 @@ export default function App() {
               const guestCart = cart;
               setCurrentUser(u);
               showToast(`أهلاً بك ${u.name}!`);
-              await adoptSessionForUser(guestCart);
+              void adoptSessionForUser(guestCart);
               navigateTo('home');
             }}
             onNavigate={navigateTo}
@@ -647,15 +648,15 @@ export default function App() {
         {/* 9. Orders History */}
         {activePage === 'orders' && (
           <div className="max-w-4xl mx-auto px-4 py-10 text-right space-y-6">
-            <div className="border-b border-slate-100 pb-4 flex items-center justify-between gap-3">
+            <div className="border-b border-ph-border pb-4 flex items-center justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-black text-[#0F172A]">سجل طلباتي</h1>
-                <p className="text-xs text-slate-500 mt-1">متابعة كافة الطلبات السابقة وحالات التوصيل</p>
+                <h1 className="text-2xl font-black text-ph-ink">سجل طلباتي</h1>
+                <p className="text-xs text-ph-muted mt-1">متابعة كافة الطلبات السابقة وحالات التوصيل</p>
               </div>
               {currentUser && (
                 <button
                   onClick={refreshBackendOrders}
-                  className="bg-white border border-slate-200 text-[#0F172A] text-xs font-bold px-4 py-2 rounded-xl hover:bg-slate-50 transition-colors"
+                  className="bg-white border border-ph-border text-ph-ink text-xs font-bold px-4 py-2 rounded-xl hover:bg-white transition-colors"
                 >
                   تحديث
                 </button>
@@ -663,54 +664,54 @@ export default function App() {
             </div>
 
             {orders.length === 0 ? (
-              <div className="bg-[#F8FAFC] rounded-2xl p-10 text-center border border-slate-100">
-                <p className="text-xs text-slate-400">لا توجد طلبات مسجلة حتى الآن.</p>
+              <div className="bg-white rounded-2xl p-10 text-center border border-ph-border">
+                <p className="text-xs text-ph-muted">لا توجد طلبات مسجلة حتى الآن.</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {orders.map((o) => (
                   <div
                     key={o.id}
-                    className="bg-white p-6 rounded-2xl border border-slate-100 shadow-md space-y-4"
+                    className="bg-white p-6 rounded-2xl border border-ph-border shadow-md space-y-4"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-ph-border">
                       <div>
-                        <span className="font-mono text-sm font-bold text-[#0F172A]">{o.orderNumber || o.id}</span>
-                        <span className="text-xs text-slate-400 block mt-0.5">{o.date}</span>
+                        <span className="font-mono text-sm font-bold text-ph-ink">{o.orderNumber || o.id}</span>
+                        <span className="text-xs text-ph-muted block mt-0.5">{o.date}</span>
                       </div>
-                      <span className="bg-[#2EC4B6]/10 text-[#2EC4B6] font-bold text-xs px-3 py-1 rounded-full self-start sm:self-auto">
+                      <span className="bg-ph-border text-ph-brand font-bold text-xs px-3 py-1 rounded-full self-start sm:self-auto">
                         {o.status}
                       </span>
                     </div>
 
                     <div className="space-y-2">
                       {o.items.map((it, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-xs text-slate-600">
+                        <div key={idx} className="flex justify-between items-center text-xs text-ph-muted">
                           <span>{it.product.name} ({it.color}) × {it.quantity}</span>
-                          <span className="font-bold text-[#0F172A]">{it.price * it.quantity} ₪</span>
+                          <span className="font-bold text-ph-ink">{it.price * it.quantity} ₪</span>
                         </div>
                       ))}
                     </div>
 
-                    <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row gap-2 justify-between sm:items-center text-xs">
-                      <span className="text-slate-500">العنوان: {o.city} — {o.address}</span>
+                    <div className="pt-3 border-t border-ph-border flex flex-col sm:flex-row gap-2 justify-between sm:items-center text-xs">
+                      <span className="text-ph-muted">العنوان: {o.city} — {o.address}</span>
                       <div className="flex items-center gap-3 self-end sm:self-auto">
                         {(o.statusCode === 'PENDING' || o.status === 'طلب جديد') && (
                           <button
                             disabled={cancellingOrderId === o.id}
                             onClick={() => handleCancelOrder(o)}
-                            className="text-rose-500 font-bold hover:underline disabled:opacity-50"
+                            className="text-[#DC2626] font-bold hover:underline disabled:opacity-50"
                           >
                             {cancellingOrderId === o.id ? 'جاري الإلغاء...' : 'إلغاء الطلب'}
                           </button>
                         )}
                         <button
                           onClick={() => navigateTo('tracking', { orderId: o.orderNumber || o.id })}
-                          className="text-[#2EC4B6] font-bold hover:underline"
+                          className="text-ph-brand font-bold hover:underline"
                         >
                           تتبع الطلب
                         </button>
-                        <span className="font-black text-sm text-[#0F172A]">المجموع: {o.total} ₪</span>
+                        <span className="font-black text-sm text-ph-ink">المجموع: {o.total} ₪</span>
                       </div>
                     </div>
                   </div>

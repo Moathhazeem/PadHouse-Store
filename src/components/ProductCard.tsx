@@ -1,6 +1,7 @@
-import React from 'react';
-import { Heart, ShoppingBag, Star, Check } from 'lucide-react';
-import { Product } from '../types';
+import React, { useState } from 'react';
+import { Heart, PackageOpen, ShoppingBag, Star } from 'lucide-react';
+import type { Product } from '../types';
+import { Button, CompatibilityBadge } from './ui';
 
 interface ProductCardProps {
   product: Product;
@@ -17,148 +18,127 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onAddToCart,
   onToggleWishlist,
 }) => {
+  const [imageFailed, setImageFailed] = useState(false);
   const discountPercent =
     product.originalPrice > product.price
       ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
       : 0;
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.onerror = null;
-    e.currentTarget.src = 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80';
-  };
-
   return (
-    <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-[0_1px_3px_rgba(15,23,42,0.04)] hover:shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:border-slate-200 transition-all duration-300 flex flex-col justify-between overflow-hidden">
-      {/* Top Media & Badges */}
-      <div className="relative w-full aspect-square bg-[#F8FAFC] overflow-hidden">
-        {/* Badges: Discount & Stock */}
-        <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-1.5 items-end">
+    <article className="ph-product-card group flex flex-col">
+      <div className="ph-product-media">
+        <div className="absolute end-2.5 top-2.5 z-10 flex flex-col items-end gap-1.5">
           {discountPercent > 0 && (
-            <span className="bg-[#2EC4B6] text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow-xs">
+            <span className="rounded-full bg-ph-brand px-2 py-1 text-[11px] font-bold text-white">
               خصم {discountPercent}%
             </span>
           )}
           {product.stock <= 0 && (
-            <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+            <span className="rounded-full bg-ph-error px-2 py-1 text-[10px] font-bold text-white">
               نفدت الكمية
             </span>
           )}
           {product.stock > 0 && product.stock <= product.minThreshold && (
-            <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs">
-              المتبقي {product.stock} فقط!
+            <span className="rounded-full bg-ph-warning px-2 py-1 text-[10px] font-bold text-white">
+              المتبقي {product.stock} فقط
             </span>
           )}
         </div>
 
-        {/* Wishlist Button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleWishlist(product.id);
-          }}
-          className={`absolute top-2.5 left-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-xs ${
-            isWishlisted
-              ? 'bg-rose-50 text-rose-500'
-              : 'bg-white/90 text-slate-400 hover:text-rose-500 hover:bg-white'
+          type="button"
+          onClick={() => onToggleWishlist(product.id)}
+          className={`absolute start-2.5 top-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-ph-border bg-white shadow-sm transition-colors hover:text-ph-error focus-visible:outline-offset-2 ${
+            isWishlisted ? 'text-ph-error' : 'text-ph-muted'
           }`}
-          title="أضف للمفضلة"
+          aria-label={isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+          aria-pressed={isWishlisted}
         >
-          <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500' : ''}`} />
+          <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
         </button>
 
-        {/* Product Image */}
-        <div
+        <button
+          type="button"
           onClick={() => onSelect(product)}
-          className="w-full h-full cursor-pointer overflow-hidden flex items-center justify-center p-4"
+          className="flex h-full w-full items-center justify-center p-2 text-center focus-visible:outline-offset-[-3px]"
+          aria-label={`عرض ${product.name}`}
         >
-          <img
-            src={product.image}
-            alt={product.name}
-            onError={handleImageError}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out"
-            loading="lazy"
-          />
-        </div>
+          {imageFailed || !product.image ? (
+            <span className="flex h-full w-full items-center justify-center text-ph-muted" aria-hidden="true">
+              <PackageOpen className="h-12 w-12" strokeWidth={1.25} />
+            </span>
+          ) : (
+            <img
+              src={product.image}
+              alt={product.name}
+              onError={() => setImageFailed(true)}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-contain p-4 transition-transform duration-300 group-hover:scale-[1.035]"
+            />
+          )}
+        </button>
       </div>
 
-      {/* Product Content Details */}
-      <div className="p-4 flex-1 flex flex-col justify-between">
+      <div className="ph-product-content">
         <div>
-          {/* Compatibility Tag */}
-          <div className="flex items-center justify-between gap-1 mb-1.5">
-            <span className="text-[11px] font-semibold text-[#2EC4B6] truncate max-w-[170px]">
-              {product.compatibility}
-            </span>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-amber-500">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>{product.rating.toFixed(1)}</span>
-              <span className="text-slate-400 font-normal">({product.reviewsCount})</span>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <CompatibilityBadge>
+              <span className="truncate" dir="auto">{product.compatibility}</span>
+            </CompatibilityBadge>
+            <div className="flex shrink-0 items-center gap-1 text-xs font-semibold text-ph-ink" aria-label={`التقييم ${product.rating} من 5`}>
+              <Star className="h-3.5 w-3.5 fill-[#F59E0B] text-[#F59E0B]" aria-hidden="true" />
+              <span className="ph-ltr">{product.rating.toFixed(1)}</span>
+              <span className="text-ph-muted font-normal">({product.reviewsCount})</span>
             </div>
-          </div>
-
-          {/* Product Title */}
-          <h3
-            onClick={() => onSelect(product)}
-            className="text-sm font-bold text-[#0F172A] line-clamp-2 leading-snug cursor-pointer group-hover:text-[#2EC4B6] transition-colors mb-2 text-right"
-            title={product.name}
-          >
-            {product.name}
-          </h3>
-
-          {/* Available Colors Indicator */}
-          {product.colors && product.colors.length > 0 && (
-            <div className="flex items-center gap-1.5 mb-3">
-              <span className="text-[10px] text-slate-400 font-medium">الألوان:</span>
-              <div className="flex items-center gap-1">
-                {product.colors.slice(0, 3).map((col, idx) => (
-                  <span
-                    key={idx}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium"
-                  >
-                    {col}
-                  </span>
-                ))}
-                {product.colors.length > 3 && (
-                  <span className="text-[10px] text-slate-400 font-bold">
-                    +{product.colors.length - 3}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Pricing and Cart Action */}
-        <div className="pt-2 border-t border-slate-50 flex items-center justify-between gap-2 mt-2">
-          <div className="flex flex-col text-right">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-base font-black text-[#0F172A]">
-                {product.price}
-              </span>
-              <span className="text-xs font-bold text-[#0F172A]">₪</span>
-            </div>
-            {product.originalPrice > product.price && (
-              <span className="text-[11px] text-slate-400 line-through">
-                {product.originalPrice} ₪
-              </span>
-            )}
           </div>
 
           <button
+            type="button"
+            onClick={() => onSelect(product)}
+            className="ph-product-title w-full text-start hover:text-ph-accent"
+            title={product.name}
+            dir="auto"
+          >
+            {product.name}
+          </button>
+
+          {product.colors?.length > 0 && (
+            <div className="mt-2 flex items-center gap-1.5 overflow-hidden">
+              <span className="shrink-0 text-[11px] text-ph-muted">الألوان:</span>
+              {product.colors.slice(0, 3).map((color, index) => (
+                <span key={`${color}-${index}`} className="truncate rounded-md bg-ph-background px-1.5 py-0.5 text-[10px] font-medium text-ph-muted">
+                  {color}
+                </span>
+              ))}
+              {product.colors.length > 3 && (
+                <span className="shrink-0 text-[10px] font-bold text-ph-muted">+{product.colors.length - 3}</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="ph-product-footer">
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-1.5 font-black text-ph-ink">
+              <span className="ph-ltr text-base">{product.price}</span>
+              <span className="text-xs">₪</span>
+            </div>
+            {product.originalPrice > product.price && (
+              <span className="ph-ltr block text-xs text-ph-muted line-through">{product.originalPrice} ₪</span>
+            )}
+          </div>
+          <Button
+            size="sm"
             onClick={() => onAddToCart(product)}
             disabled={product.stock <= 0}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
-              product.stock > 0
-                ? 'bg-[#0F172A] text-white hover:bg-[#2EC4B6] hover:text-white shadow-xs active:scale-95'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-            }`}
+            className="shrink-0"
           >
-            <ShoppingBag className="w-3.5 h-3.5" />
+            <ShoppingBag className="h-4 w-4" aria-hidden="true" />
             <span>{product.stock > 0 ? 'أضف للسلة' : 'غير متوفر'}</span>
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
-

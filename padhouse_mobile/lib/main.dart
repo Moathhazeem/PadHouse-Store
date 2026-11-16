@@ -49,7 +49,7 @@ class _PadHouseAppState extends ConsumerState<PadHouseApp> {
     return MaterialApp.router(
       title: 'بادهاوس',
       debugShowCheckedModeBanner: false,
-      // Strict White Light Theme with Tajawal globally
+      // IBM Plex Sans Arabic typography throughout the app
       theme: AppTheme.lightTheme(isArabic: true),
       themeMode: ThemeMode.light,
       scrollBehavior: const AppScrollBehavior(),

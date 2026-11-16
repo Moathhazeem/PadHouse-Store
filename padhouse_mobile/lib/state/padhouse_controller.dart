@@ -539,7 +539,7 @@ class PadhouseController extends ChangeNotifier {
       await _persist();
       _notify();
       showToast('أهلاً بك مجدداً ${user?.name ?? ''}!');
-      await syncAuthedData();
+      unawaited(syncAuthedData());
     } catch (e) {
       showToast(_dioMessage(e, fallback: 'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى المحاولة ثانية.'));
     }
@@ -611,7 +611,7 @@ class PadhouseController extends ChangeNotifier {
       await _persist();
       _notify();
       showToast('تم إنشاء الحساب بنجاح! أهلاً بك في بادهاوس');
-      await syncAuthedData();
+      unawaited(syncAuthedData());
     } catch (e) {
       showToast(_dioMessage(e, fallback: 'تعذّر إنشاء الحساب، يرجى المحاولة مرة أخرى'));
     }

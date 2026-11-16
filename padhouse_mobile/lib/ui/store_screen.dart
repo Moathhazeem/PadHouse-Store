@@ -208,7 +208,7 @@ class _CustomerNav extends StatelessWidget {
         _NavItem('الرئيسية', LucideIcons.home, active == CustomerTab.home, () => store.setCustomerTab(CustomerTab.home), const Key('nav-home')),
         _NavItem('التصنيفات', LucideIcons.layoutGrid, active == CustomerTab.categories, () => store.setCustomerTab(CustomerTab.categories), const Key('nav-categories')),
         _NavItem('', LucideIcons.bot, active == CustomerTab.ai, () => store.setCustomerTab(CustomerTab.ai), const Key('nav-ai'), isFab: true),
-        _NavItem('المفضلة', LucideIcons.heart, active == CustomerTab.wishlist, () => store.setCustomerTab(CustomerTab.wishlist), const Key('nav-wishlist'), badge: store.wishlistIds.length),
+        _NavItem('السلة', LucideIcons.shoppingCart, active == CustomerTab.cart, () => store.setCustomerTab(CustomerTab.cart), const Key('nav-cart-bottom'), badge: store.cartCount),
         _NavItem('حسابي', LucideIcons.user, active == CustomerTab.profile, () => store.setCustomerTab(CustomerTab.profile), const Key('nav-profile')),
       ],
     );
@@ -289,7 +289,7 @@ class _FabNavItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.turquoise.withValues(alpha: 0.4),
+                  color: AppColors.navy.withValues(alpha: 0.4),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -347,7 +347,7 @@ class _RegularNavItem extends StatelessWidget {
   Widget _navIcon(_NavItem item, {bool compact = false}) => Container(
         padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 12, vertical: 4),
         decoration: BoxDecoration(
-          color: item.active ? AppColors.turquoise.withValues(alpha: 0.1) : Colors.transparent,
+          color: item.active ? AppColors.turquoise.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Badge(
@@ -414,7 +414,7 @@ class _NavBar extends StatelessWidget {
   Widget _navIcon(_NavItem item, {bool compact = false}) => Container(
         padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 12, vertical: 4),
         decoration: BoxDecoration(
-          color: item.active ? AppColors.turquoise.withValues(alpha: 0.1) : Colors.transparent,
+          color: item.active ? AppColors.turquoise.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Badge(
@@ -788,18 +788,14 @@ class _HomeTab extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              colors: [AppColors.turquoise, AppColors.turquoiseDark],
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-            ),
+            color: AppColors.turquoise,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
                 child: const Text('متجر بادهاوس الرسمي 🇵🇸', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
               ),
               const SizedBox(height: 10),
@@ -907,7 +903,7 @@ class _IpadModelSelector extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 8),
       child: Material(
-        color: active ? AppColors.turquoise.withValues(alpha: 0.1) : AppColors.offWhite,
+        color: active ? AppColors.turquoise.withValues(alpha: 0.12) : AppColors.offWhite,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: active ? null : () => store.selectIpadModel(model),
@@ -917,7 +913,7 @@ class _IpadModelSelector extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: active ? AppColors.turquoise.withValues(alpha: 0.35) : AppColors.borderLight),
+                  color: active ? AppColors.turquoise : AppColors.borderLight),
             ),
             child: Text(label,
                 style: TextStyle(
@@ -975,7 +971,7 @@ class _CategoriesTabState extends State<_CategoriesTab> {
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: AppColors.turquoise.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: AppColors.turquoise.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
                   child: Text('${catProducts.length} منتج', style: const TextStyle(fontSize: 11, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
                 ),
               ],
@@ -1034,7 +1030,7 @@ class _CategoriesTabState extends State<_CategoriesTab> {
                     decoration: BoxDecoration(
                       color: AppColors.turquoise.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.2)),
+                      border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.25)),
                     ),
                     child: PhIcon(categoryIcon(cat.id), color: AppColors.turquoise, size: 24),
                   ),
@@ -1105,7 +1101,7 @@ class _AiTabState extends State<_AiTab> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [AppColors.turquoise, AppColors.turquoiseDark]),
+            color: AppColors.turquoise,
           ),
           child: Row(
             children: [
@@ -1168,7 +1164,7 @@ class _AiTabState extends State<_AiTab> {
                               bottomRight: Radius.circular(16),
                             ),
                             border: Border.all(color: AppColors.borderLight),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)],
+                            boxShadow: [BoxShadow(color: AppColors.navy.withValues(alpha: 0.04), blurRadius: 6)],
                           ),
                           child: const Text(_welcomeMessage, style: TextStyle(fontSize: 13, height: 1.5, color: AppColors.navy)),
                         ),
@@ -1207,7 +1203,7 @@ class _AiTabState extends State<_AiTab> {
                             bottomRight: const Radius.circular(16),
                           ),
                           border: isUser ? null : Border.all(color: AppColors.borderLight),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)],
+                          boxShadow: [BoxShadow(color: AppColors.navy.withValues(alpha: 0.04), blurRadius: 6)],
                         ),
                         child: Text(
                           msg.text,
@@ -1277,7 +1273,7 @@ class _AiTabState extends State<_AiTab> {
                         decoration: BoxDecoration(
                           color: AppColors.turquoise.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.3)),
+                          border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.25)),
                         ),
                         child: Text(chip, style: const TextStyle(fontSize: 12, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
                       ),
@@ -1359,7 +1355,7 @@ class _WishlistTab extends StatelessWidget {
               if (wishlistProducts.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(color: AppColors.turquoise.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: AppColors.turquoise.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
                   child: Text('${wishlistProducts.length} منتج', style: const TextStyle(fontSize: 12, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
                 ),
             ],
@@ -1424,7 +1420,7 @@ class _ProfileTab extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.turquoise.withValues(alpha: 0.1),
+                        color: AppColors.turquoise.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -1445,7 +1441,7 @@ class _ProfileTab extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              gradient: const LinearGradient(colors: [AppColors.navy, Color(0xFF1E3A5F)]),
+              color: AppColors.navy,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1458,7 +1454,7 @@ class _ProfileTab extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text('أنت مسجل كمدير عام للنظام. يمكنك التحكم بالمخزون للـ 21 منتجاً، تحديث حالات الشحن، ورصد أسعار المنافسين.', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 12, height: 1.5)),
+                const Text('أنت مسجل كمدير عام للنظام. يمكنك التحكم بالمخزون للـ 21 منتجاً، تحديث حالات الشحن، ورصد أسعار المنافسين.', style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5)),
                 const SizedBox(height: 12),
                 PrimaryButton(
                   keyId: const Key('enter-admin'),
@@ -1472,6 +1468,7 @@ class _ProfileTab extends StatelessWidget {
         ],
         const SizedBox(height: 14),
         _menuTile(LucideIcons.package, 'طلباتي (${store.orders.length})', () => store.setStack(CustomerStack.orders)),
+        _menuTile(LucideIcons.heart, 'قائمة المفضلة', () => store.setCustomerTab(CustomerTab.wishlist)),
         _menuTile(LucideIcons.mapPin, 'عناويني', () => store.setStack(CustomerStack.addresses)),
         _menuTile(LucideIcons.bell, 'الإشعارات', () => store.setStack(CustomerStack.notifications)),
         _menuTile(LucideIcons.settings, 'الإعدادات', () => store.setStack(CustomerStack.settings)),
@@ -1493,7 +1490,7 @@ class _ProfileTab extends StatelessWidget {
               width: 36,
               height: 36,
               alignment: Alignment.center,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: danger ? AppColors.errorBg : AppColors.offWhiteAlt, borderRadius: BorderRadius.circular(10)),
               child: PhIcon(icon, size: 17, color: color),
             ),
             const SizedBox(width: 12),

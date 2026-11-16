@@ -106,8 +106,8 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-8 text-right">
       <div className="text-center space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A]">تتبع حالة الشحنة والطلب</h1>
-        <p className="text-xs text-slate-500">
+        <h1 className="text-2xl sm:text-3xl font-black text-ph-ink">تتبع حالة الشحنة والطلب</h1>
+        <p className="text-xs text-ph-muted">
           أدخل رقم الطلب لمتابعة مسار شحنتك لحظة بلحظة مع مندوب التوصيل
         </p>
       </div>
@@ -119,12 +119,12 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
           placeholder="أدخل رقم الطلب مثل: PH-2026-1042"
           value={trackingNumber}
           onChange={(e) => setTrackingNumber(e.target.value)}
-          className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#2EC4B6]"
+          className="flex-1 bg-white border border-ph-border rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-ph-brand"
         />
         <button
           type="submit"
           disabled={loading}
-          className="bg-[#0F172A] hover:bg-[#2EC4B6] disabled:opacity-60 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+          className="bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-60 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
         >
           {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
           <span>بحث</span>
@@ -137,7 +137,7 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('login')}
-            className="bg-[#2EC4B6] text-white font-bold px-3 py-1.5 rounded-lg shrink-0"
+            className="bg-ph-brand hover:bg-ph-brand-hover text-white font-bold px-3 py-1.5 rounded-lg shrink-0 transition-colors"
           >
             تسجيل الدخول
           </button>
@@ -145,31 +145,31 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
       )}
 
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-center text-xs text-rose-600 max-w-md mx-auto">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-center text-xs text-[#DC2626] font-medium max-w-md mx-auto">
           {error}
         </div>
       )}
 
       {notFound && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-center text-xs text-amber-700 max-w-md mx-auto">
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-center text-xs text-amber-800 font-medium max-w-md mx-auto">
           لم يتم العثور على طلب بهذا الرقم. تأكد من إدخال رقم الطلب بشكل صحيح.
         </div>
       )}
 
       {order && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-xl space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-ph-border shadow-xl space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-ph-border">
             <div>
-              <span className="text-[11px] text-slate-400">رقم الطلب:</span>
-              <h2 className="text-base font-black text-[#0F172A] font-mono">
+              <span className="text-[11px] text-ph-muted">رقم الطلب:</span>
+              <h2 className="text-base font-black text-ph-ink font-mono">
                 {order.orderNumber || order.id}
               </h2>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-slate-500">{order.date}</span>
+              <span className="text-xs text-ph-muted">{order.date}</span>
               <span
                 className={`text-xs font-bold px-3 py-1 rounded-full ${
-                  isCancelled ? 'bg-rose-100 text-rose-600' : 'bg-[#2EC4B6]/10 text-[#2EC4B6]'
+                  isCancelled ? 'bg-red-50 text-[#DC2626]' : 'bg-emerald-50 text-[#16A34A]'
                 }`}
               >
                 {order.status}
@@ -178,7 +178,7 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
           </div>
 
           {isCancelled ? (
-            <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-600 text-xs">
+            <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-[#DC2626] text-xs font-medium">
               <XCircle className="w-5 h-5 shrink-0" />
               <span>تم إلغاء هذا الطلب. للاستفسار يمكنك التواصل مع الدعم عبر واتساب.</span>
             </div>
@@ -192,7 +192,7 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
                   <div key={st.status} className="flex flex-col items-center text-center space-y-2">
                     <div
                       className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
-                        isPassed ? 'bg-[#2EC4B6] text-white' : 'bg-slate-100 text-slate-400'
+                        isPassed ? 'bg-ph-brand text-white' : 'bg-white text-ph-muted'
                       }`}
                     >
                       {isDone || (isCurrent && st.status === 'DELIVERED') ? (
@@ -203,11 +203,11 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
                         <Package className="w-5 h-5" />
                       )}
                     </div>
-                    <p className={`text-xs font-bold ${isPassed ? 'text-[#0F172A]' : 'text-slate-400'}`}>
+                    <p className={`text-xs font-bold ${isPassed ? 'text-ph-ink' : 'text-ph-muted'}`}>
                       {st.labelAr}
                     </p>
                     {stepDate(st.status) && (
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-ph-muted">
                         {new Date(stepDate(st.status) as string).toLocaleString('ar-EG')}
                       </p>
                     )}
@@ -218,37 +218,37 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
           )}
 
           {/* Order summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-ph-border">
             <div className="space-y-3">
-              <h3 className="text-xs font-black text-[#0F172A] flex items-center gap-1.5">
-                <Package className="w-4 h-4 text-[#2EC4B6]" /> محتويات الطلب
+              <h3 className="text-xs font-black text-ph-ink flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-ph-brand" /> محتويات الطلب
               </h3>
               {order.items.map((it, idx) => (
-                <div key={idx} className="flex justify-between items-center text-xs text-slate-600">
+                <div key={idx} className="flex justify-between items-center text-xs text-ph-muted">
                   <span>
                     {it.product.name}
                     {it.color ? ` (${it.color})` : ''} × {it.quantity}
                   </span>
-                  <span className="font-bold text-[#0F172A]">{it.price * it.quantity} ₪</span>
+                  <span className="font-bold text-ph-ink">{it.price * it.quantity} ₪</span>
                 </div>
               ))}
-              <div className="pt-2 border-t border-slate-100 flex justify-between text-sm font-black text-[#0F172A]">
+              <div className="pt-2 border-t border-ph-border flex justify-between text-sm font-black text-ph-ink">
                 <span>الإجمالي</span>
                 <span>{order.total} ₪</span>
               </div>
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-xs font-black text-[#0F172A] flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-[#2EC4B6]" /> بيانات التوصيل والدفع
+              <h3 className="text-xs font-black text-ph-ink flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-ph-brand" /> بيانات التوصيل والدفع
               </h3>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-ph-muted">
                 {order.customerName && <span className="block">{order.customerName}</span>}
                 <span className="block">{order.city} — {order.address}</span>
                 {order.customerPhone && <span className="block dir-ltr text-left">{order.customerPhone}</span>}
               </p>
-              <p className="text-xs text-slate-600 flex items-center gap-1.5">
-                <Truck className="w-3.5 h-3.5 text-[#2EC4B6]" />
+              <p className="text-xs text-ph-muted flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5 text-ph-brand" />
                 <span>طريقة الدفع: {order.paymentMethod}</span>
               </p>
               <a
@@ -257,7 +257,7 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2EC4B6] hover:underline"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-ph-brand hover:underline"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
                 <span>استفسار عبر واتساب</span>
@@ -266,8 +266,8 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
           </div>
 
           {/* Lifecycle reference */}
-          <div className="pt-4 border-t border-slate-100">
-            <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+          <div className="pt-4 border-t border-ph-border">
+            <p className="text-[11px] text-ph-muted flex items-center gap-1.5">
               <AlertCircle className="w-3.5 h-3.5" />
               <span>
                 مراحل الطلب المعتمدة: {statuses.filter((s) => s.status !== 'CANCELLED').map((s) => s.labelAr).join(' • ')}

@@ -1,49 +1,53 @@
 import 'package:flutter/material.dart';
 
-/// Centralized brand colors for PadHouse
-/// Specialized Palestinian E-Commerce Store for iPad Accessories
-/// STRICT WHITE LIGHT THEME
+/// PadHouse palette and functional colors shared by the mobile UI.
 class AppColors {
   AppColors._();
 
-  // Primary Background: Pure White
-  static const Color primaryBackground = Color(0xFFFFFFFF);
-  static const Color surfaceWhite = Color(0xFFFFFFFF);
+  static const Color white = Color(0xFFFFFFFF);
+  static const Color turquoise = Color(0xFF1CA89E);
+  static const Color forest = Color(0xFF0F3D3A);
 
-  // Secondary Background: Off-White
+  // Surfaces
+  static const Color primaryBackground = Color(0xFFF8FAFC);
+  static const Color surfaceWhite = white;
   static const Color secondaryBackground = Color(0xFFF8FAFC);
   static const Color offWhite = Color(0xFFF8FAFC);
-  static const Color offWhiteAlt = Color(0xFFF1F5F9);
+  static const Color offWhiteAlt = Color(0xFFF8FAFC);
 
-  // Primary Brand Color: PadHouse Turquoise #2EC4B6
-  static const Color turquoise = Color(0xFF2EC4B6);
-  static const Color turquoiseLight = Color(0xFF5CE1D6);
-  static const Color turquoiseDark = Color(0xFF1EA89B);
-  static const Color turquoiseHover = Color(0xFF26B2A5);
+  // Brand aliases retained for existing widgets.
+  static const Color emerald = turquoise;
+  static const Color mint = turquoise;
+  static const Color evergreen = Color(0xFF0F172A);
+  static const Color mintLight = Color(0xFFF8FAFC);
+  static const Color turquoiseLight = mintLight;
+  static const Color turquoiseDark = turquoise;
+  static const Color turquoiseHover = turquoise;
 
-  // Secondary Brand Color: PadHouse Navy #0F172A
+  // Charcoal typography; forest is reserved for footer sections.
   static const Color navy = Color(0xFF0F172A);
   static const Color navyLight = Color(0xFF1E293B);
   static const Color navyMuted = Color(0xFF334155);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF64748B);
+  static const Color textTertiary = Color(0xFF94A3B8);
+  static const Color textOnEmerald = white;
+  static const Color textOnTurquoise = white;
 
-  // Typography Colors
-  static const Color textPrimary = Color(0xFF0F172A); // Navy #0F172A
-  static const Color textSecondary = Color(0xFF64748B); // Muted Gray
-  static const Color textTertiary = Color(0xFF94A3B8); // Light Slate
-  static const Color textOnTurquoise = Color(0xFFFFFFFF); // White on buttons
-
-  // Borders & Dividers
-  static const Color borderLight = Color(0xFFE8EDF2); // Light Gray
-  static const Color borderFocus = Color(0xFF00A896); // Turquoise
+  // Soft borders and elevation.
+  static const Color borderLight = Color(0xFFE2E8F0);
+  static const Color cardShadow = Color(0x0A0F172A);
+  static const Color borderFocus = turquoise;
   static const Color divider = Color(0xFFF1F5F9);
 
-  // Semantic & Feedback Colors
-  static const Color success = Color(0xFF10B981); // Emerald
-  static const Color successBg = Color(0xFFECFDF5);
-  static const Color warning = Color(0xFFF59E0B); // Amber
+  // Functional states keep their familiar meanings.
+  static const Color success = Color(0xFF16A34A);
+  static const Color successBg = Color(0xFFF0FDF4);
+  static const Color warning = Color(0xFFF59E0B);
   static const Color warningBg = Color(0xFFFFFBEB);
-  static const Color error = Color(0xFFEF4444); // Crimson
+  static const Color error = Color(0xFFDC2626);
   static const Color errorBg = Color(0xFFFEF2F2);
-  static const Color info = Color(0xFF3B82F6); // Blue
-  static const Color infoBg = Color(0xFFEFF6FF);
+  static const Color info = turquoise;
+  static const Color infoBg = Color(0xFFF0FDFA);
+  static const Color starGold = Color(0xFFF59E0B);
 }
