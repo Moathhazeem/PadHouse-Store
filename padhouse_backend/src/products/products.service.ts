@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { mapCatalogProduct } from './product.mapper';
 
@@ -12,6 +13,44 @@ const CATALOG_INCLUDE = {
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
+
+  async fetchProductImage(sourceUrl: string): Promise<{ buffer: Buffer; contentType: string }> {
+    let imageUrl: URL;
+    try {
+      imageUrl = new URL(sourceUrl);
+    } catch {
+      throw new BadRequestException('رابط الصورة غير صالح');
+    }
+
+    if (
+      imageUrl.protocol !== 'https:' ||
+      !['padhouse.ps', 'www.padhouse.ps'].includes(imageUrl.hostname) ||
+      (imageUrl.port !== '' && imageUrl.port !== '443') ||
+      imageUrl.username !== '' ||
+      imageUrl.password !== '' ||
+      !imageUrl.pathname.startsWith('/wp-content/uploads/')
+    ) {
+      throw new BadRequestException('مصدر الصورة غير مسموح');
+    }
+
+    try {
+      const response = await axios.get<ArrayBuffer>(imageUrl.toString(), {
+        responseType: 'arraybuffer',
+        timeout: 10000,
+        maxRedirects: 0,
+        maxContentLength: 8 * 1024 * 1024,
+        headers: { Accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif' },
+      });
+      const contentType = String(response.headers['content-type'] || '').split(';')[0].toLowerCase();
+      if (!['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
+        throw new BadGatewayException('مصدر الصورة لم يُرجع ملف صورة صالحاً');
+      }
+      return { buffer: Buffer.from(response.data), contentType };
+    } catch (error) {
+      if (error instanceof BadGatewayException) throw error;
+      throw new BadGatewayException('تعذر تحميل الصورة من مصدرها');
+    }
+  }
 
 async findAll(query: {
     category?: string;

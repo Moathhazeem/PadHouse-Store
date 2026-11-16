@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Secure API client configured with Dio, JWT rotation, and retry policies
@@ -6,12 +7,19 @@ class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:4000/api/v1',
-  );
+  static const String _configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static final String baseUrl = _resolveBaseUrl();
   static const String fallbackRemoteUrl = 'https://api.padhouse.ps/api/v1';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
+
+  static String _resolveBaseUrl() {
+    if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
+    final host = Uri.base.host;
+    if (kIsWeb && const {'localhost', '127.0.0.1', '::1'}.contains(host)) {
+      return Uri(scheme: 'http', host: host, port: 4000, path: '/api/v1').toString();
+    }
+    return fallbackRemoteUrl;
+  }
 
   late final Dio _dio = _createDio();
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query, StreamableFile } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 
@@ -6,6 +6,13 @@ import { ProductsService } from './products.service';
 @Controller('products')
 export class ProductsController {
   constructor(private productsService: ProductsService) {}
+
+  @Get('image')
+  @Header('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800')
+  async getProductImage(@Query('url') url: string): Promise<StreamableFile> {
+    const image = await this.productsService.fetchProductImage(url);
+    return new StreamableFile(image.buffer, { type: image.contentType });
+  }
 
   @ApiOperation({ summary: 'تصفح قائمة المنتجات مع الفلترة والبحث' })
   @ApiQuery({ name: 'category', required: false })

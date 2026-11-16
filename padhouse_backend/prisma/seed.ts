@@ -158,6 +158,14 @@ async function main() {
         salePrice: p.originalPrice > p.price ? p.price : null,
         ipadCompatibility: JSON.stringify([p.compatibility]),
         categoryId,
+        images: {
+          deleteMany: { isPrimary: true },
+          create: {
+            url: p.image,
+            isPrimary: true,
+            displayOrder: 0,
+          },
+        },
       },
       create: {
         id: p.id,

@@ -485,7 +485,7 @@ class PadhouseController extends ChangeNotifier {
 
   String? login(String email, String password) {
     final emailTrim = email.trim().toLowerCase();
-    final passTrim = password.trim();
+    final passTrim = password;
     if (emailTrim.isEmpty || !emailTrim.contains('@')) return 'يرجى إدخال بريد إلكتروني صالح';
     if (passTrim.isEmpty) return 'يرجى إدخال كلمة المرور';
 
@@ -553,7 +553,7 @@ class PadhouseController extends ChangeNotifier {
     required String password,
   }) {
     final emailTrim = email.trim().toLowerCase();
-    final passTrim = password.trim();
+    final passTrim = password;
     if (name.trim().isEmpty) return 'يرجى كتابة الاسم الكامل';
     if (emailTrim.isEmpty || !emailTrim.contains('@')) return 'يرجى إدخال بريد إلكتروني صالح';
     if (passTrim.length < 6) return 'كلمة المرور يجب أن لا تقل عن 6 خانات';
