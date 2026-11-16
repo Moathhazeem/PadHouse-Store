@@ -16,7 +16,12 @@ class CustomerStackBody extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (store.customerStack) {
       case CustomerStack.productDetails:
-        return ProductDetails(store: store, product: store.selectedProduct);
+        final product = store.selectedProduct;
+        return product == null
+            ? const Center(
+                child: Text(
+                    'تعذّر تحميل المنتج. حدّث قائمة المنتجات ثم حاول مجدداً.'))
+            : ProductDetails(store: store, product: product);
       case CustomerStack.checkout:
         return CheckoutView(store: store);
       case CustomerStack.orderConfirmation:
@@ -102,7 +107,8 @@ class _ProductDetailsState extends State<ProductDetails> {
                 controller: _pageCtrl,
                 itemCount: gallery.length,
                 onPageChanged: (i) => setState(() => _galleryPage = i),
-                itemBuilder: (_, i) => NetImage(url: gallery[i], height: 260, radius: 0),
+                itemBuilder: (_, i) =>
+                    NetImage(url: gallery[i], height: 260, radius: 0),
               ),
             ),
             // Wishlist toggle
@@ -110,13 +116,16 @@ class _ProductDetailsState extends State<ProductDetails> {
               top: 12,
               right: 12,
               child: GestureDetector(
-                onTap: () => setState(() => widget.store.toggleWishlist(product.id)),
+                onTap: () =>
+                    setState(() => widget.store.toggleWishlist(product.id)),
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: AppColors.cardShadow, blurRadius: 6)],
+                    boxShadow: [
+                      BoxShadow(color: AppColors.cardShadow, blurRadius: 6)
+                    ],
                   ),
                   child: PhIcon(
                     isWishlisted ? LucideIcons.heartCrack : LucideIcons.heart,
@@ -141,7 +150,9 @@ class _ProductDetailsState extends State<ProductDetails> {
                       width: _galleryPage == i ? 18 : 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: _galleryPage == i ? AppColors.turquoise : AppColors.borderLight,
+                        color: _galleryPage == i
+                            ? AppColors.turquoise
+                            : AppColors.borderLight,
                         borderRadius: BorderRadius.circular(99),
                       ),
                     );
@@ -160,28 +171,40 @@ class _ProductDetailsState extends State<ProductDetails> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.mintLight,
                       borderRadius: BorderRadius.circular(99),
-                      border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: AppColors.turquoise.withValues(alpha: 0.3)),
                     ),
                     child: Text('متوافق: ${product.compatibility}',
-                        style: const TextStyle(fontSize: 11, color: AppColors.turquoise, fontWeight: FontWeight.w800)),
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.turquoise,
+                            fontWeight: FontWeight.w800)),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: product.stock > 0 ? AppColors.successBg : AppColors.errorBg,
+                      color: product.stock > 0
+                          ? AppColors.successBg
+                          : AppColors.errorBg,
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      product.stock > 0 ? 'متوفر (${product.stock})' : 'نفدت الكمية',
+                      product.stock > 0
+                          ? 'متوفر (${product.stock})'
+                          : 'نفدت الكمية',
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
-                          color: product.stock > 0 ? AppColors.success : AppColors.error),
+                          color: product.stock > 0
+                              ? AppColors.success
+                              : AppColors.error),
                     ),
                   ),
                 ],
@@ -190,30 +213,46 @@ class _ProductDetailsState extends State<ProductDetails> {
 
               // ── Product name ───────────────────────────────────────
               Text(product.name,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.navy)),
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.navy)),
               const SizedBox(height: 8),
 
               // ── Price row ──────────────────────────────────────────
               Row(
                 children: [
-                  Text('${product.price} ₪',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.navy)),
+                  Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: Text('${product.price} ₪',
+                        style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.navy)),
+                  ),
                   const SizedBox(width: 8),
                   if (product.originalPrice > product.price)
-                    Text('${product.originalPrice} ₪',
-                        style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textTertiary,
-                            decoration: TextDecoration.lineThrough)),
+                    Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Text('${product.originalPrice} ₪',
+                          style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textTertiary,
+                              decoration: TextDecoration.lineThrough)),
+                    ),
                   const SizedBox(width: 8),
                   if (discount > 0)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
-                          color: AppColors.error, borderRadius: BorderRadius.circular(99)),
-                      child: Text('-$discount%',
+                          color: AppColors.turquoise,
+                          borderRadius: BorderRadius.circular(99)),
+                      child: Text('خصم $discount%',
                           style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11)),
                     ),
                 ],
               ),
@@ -222,19 +261,23 @@ class _ProductDetailsState extends State<ProductDetails> {
               // ── Rating row ─────────────────────────────────────────
               Row(
                 children: [
-                  const PhIcon(LucideIcons.star, size: 14, color: AppColors.starGold),
+                  const PhIcon(LucideIcons.star,
+                      size: 14, color: AppColors.starGold),
                   const SizedBox(width: 4),
                   Text('${product.rating}',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 13)),
                   const SizedBox(width: 4),
                   Text('(${product.reviewsCount} تقييم)',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary)),
                 ],
               ),
               const SizedBox(height: 14),
 
               // ── Colors ────────────────────────────────────────────
-              const Text('اللون / المظهر', style: TextStyle(fontWeight: FontWeight.w800)),
+              const Text('اللون / المظهر',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -244,12 +287,17 @@ class _ProductDetailsState extends State<ProductDetails> {
                     ChoiceChip(
                       label: Text(item),
                       selected: color == item,
-                      selectedColor: AppColors.turquoise.withValues(alpha: 0.15),
+                      selectedColor:
+                          AppColors.turquoise.withValues(alpha: 0.15),
                       labelStyle: TextStyle(
-                          color: color == item ? AppColors.turquoise : AppColors.navy,
+                          color: color == item
+                              ? AppColors.turquoise
+                              : AppColors.navy,
                           fontWeight: FontWeight.w700),
                       side: BorderSide(
-                          color: color == item ? AppColors.turquoise : AppColors.borderLight),
+                          color: color == item
+                              ? AppColors.turquoise
+                              : AppColors.borderLight),
                       onSelected: (_) => setState(() => color = item),
                     ),
                 ],
@@ -259,7 +307,8 @@ class _ProductDetailsState extends State<ProductDetails> {
               // ── Quantity stepper ──────────────────────────────────
               Row(
                 children: [
-                  const Text('الكمية', style: TextStyle(fontWeight: FontWeight.w800)),
+                  const Text('الكمية',
+                      style: TextStyle(fontWeight: FontWeight.w800)),
                   const Spacer(),
                   _QtyButton(
                     icon: LucideIcons.minus,
@@ -269,7 +318,8 @@ class _ProductDetailsState extends State<ProductDetails> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text('$qty',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w900)),
                   ),
                   _QtyButton(
                     icon: LucideIcons.plus,
@@ -282,10 +332,16 @@ class _ProductDetailsState extends State<ProductDetails> {
 
               // ── Description ───────────────────────────────────────
               const Text('وصف المنتج',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.navy)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      color: AppColors.navy)),
               const SizedBox(height: 6),
               Text(product.description,
-                  style: const TextStyle(fontSize: 13, height: 1.7, color: AppColors.textSecondary)),
+                  style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.7,
+                      color: AppColors.textSecondary)),
               const SizedBox(height: 20),
 
               // ── CTA Buttons ───────────────────────────────────────
@@ -307,9 +363,10 @@ class _ProductDetailsState extends State<ProductDetails> {
                   widget.store.toggleWishlist(product.id);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(widget.store.wishlistIds.contains(product.id)
-                          ? 'تمت الإضافة للمفضلة'
-                          : 'تمت الإزالة من المفضلة'),
+                      content: Text(
+                          widget.store.wishlistIds.contains(product.id)
+                              ? 'تمت الإضافة للمفضلة'
+                              : 'تمت الإزالة من المفضلة'),
                       duration: const Duration(seconds: 2),
                     ),
                   );
@@ -320,12 +377,14 @@ class _ProductDetailsState extends State<ProductDetails> {
                   size: 16,
                   color: AppColors.turquoise,
                 ),
-                label: Text(isWishlisted ? 'إزالة من المفضلة' : 'إضافة للمفضلة'),
+                label:
+                    Text(isWishlisted ? 'إزالة من المفضلة' : 'إضافة للمفضلة'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.turquoise,
                   side: const BorderSide(color: AppColors.turquoise),
                   minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 24),
@@ -338,7 +397,8 @@ class _ProductDetailsState extends State<ProductDetails> {
 }
 
 class _QtyButton extends StatelessWidget {
-  const _QtyButton({required this.icon, required this.enabled, required this.onTap});
+  const _QtyButton(
+      {required this.icon, required this.enabled, required this.onTap});
   final IconData icon;
   final bool enabled;
   final VoidCallback onTap;
@@ -351,12 +411,17 @@ class _QtyButton extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: enabled ? AppColors.turquoise.withValues(alpha: 0.12) : AppColors.offWhite,
+          color: enabled
+              ? AppColors.turquoise.withValues(alpha: 0.12)
+              : AppColors.offWhite,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: enabled ? AppColors.turquoise : AppColors.borderLight),
+          border: Border.all(
+              color: enabled ? AppColors.turquoise : AppColors.borderLight),
         ),
         child: Center(
-          child: PhIcon(icon, size: 16, color: enabled ? AppColors.turquoise : AppColors.textTertiary),
+          child: PhIcon(icon,
+              size: 16,
+              color: enabled ? AppColors.turquoise : AppColors.textTertiary),
         ),
       ),
     );
@@ -403,7 +468,9 @@ class _CheckoutViewState extends State<CheckoutView> {
     final cartProducts = store.cart
         .map((line) => (
               line: line,
-              product: store.products.where((p) => p.id == line.productId).firstOrNull,
+              product: store.products
+                  .where((p) => p.id == line.productId)
+                  .firstOrNull,
             ))
         .where((e) => e.product != null)
         .toList();
@@ -424,18 +491,26 @@ class _CheckoutViewState extends State<CheckoutView> {
       children: [
         // ── Header ─────────────────────────────────────────────────
         const Text('إتمام الطلب',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.navy)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.navy)),
         const SizedBox(height: 14),
 
         // ── Cart Summary ───────────────────────────────────────────
-        const Text('ملخص السلة', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+        const Text('ملخص السلة',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
         const SizedBox(height: 8),
         for (final entry in cartProducts)
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Row(
               children: [
-                NetImage(url: entry.product!.image, width: 44, height: 44, radius: 8),
+                NetImage(
+                    url: entry.product!.image,
+                    width: 44,
+                    height: 44,
+                    radius: 8),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -444,27 +519,40 @@ class _CheckoutViewState extends State<CheckoutView> {
                       Text(entry.product!.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                      Text('${entry.line.quantity} × ${entry.product!.price} ₪ · ${entry.line.selectedColor}',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 12)),
+                      Text(
+                          '${entry.line.quantity} × ${entry.product!.price} ₪ · ${entry.line.selectedColor}',
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
                 Text('${entry.product!.price * entry.line.quantity} ₪',
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w900, fontSize: 13)),
               ],
             ),
           ),
         const Divider(height: 20),
 
         // ── Delivery Form ──────────────────────────────────────────
-        const Text('بيانات التوصيل', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+        const Text('بيانات التوصيل',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
         const SizedBox(height: 10),
         const FieldLabel('الاسم الكامل للمستلم'),
-        IconField(icon: LucideIcons.user, child: TextField(controller: name, decoration: bareInput('الاسم الكامل'))),
+        IconField(
+            icon: LucideIcons.user,
+            child: TextField(
+                controller: name, decoration: bareInput('الاسم الكامل'))),
         const SizedBox(height: 10),
         const FieldLabel('رقم الهاتف (واتساب للتنسيق)'),
-        IconField(icon: LucideIcons.phone, child: TextField(controller: phone, keyboardType: TextInputType.phone, decoration: bareInput('+970'))),
+        IconField(
+            icon: LucideIcons.phone,
+            child: TextField(
+                controller: phone,
+                keyboardType: TextInputType.phone,
+                decoration: bareInput('+970'))),
         const SizedBox(height: 10),
         const FieldLabel('مدينة التوصيل'),
         IconField(
@@ -493,11 +581,13 @@ class _CheckoutViewState extends State<CheckoutView> {
         const FieldLabel('العنوان التفصيلي / أقرب معلم'),
         TextField(
             controller: street,
-            decoration: const InputDecoration(hintText: 'الحي، الشارع، أقرب معلم')),
+            decoration:
+                const InputDecoration(hintText: 'الحي، الشارع، أقرب معلم')),
         const SizedBox(height: 14),
 
         // ── Payment Method ─────────────────────────────────────────
-        const Text('طريقة الدفع', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+        const Text('طريقة الدفع',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
         const SizedBox(height: 8),
         // Render the real, enabled methods from `GET /delivery/payment-methods`.
         for (final method in _paymentOptions(store))
@@ -516,7 +606,8 @@ class _CheckoutViewState extends State<CheckoutView> {
             children: [
               _summaryRow('المجموع الفرعي', '$subtotal ₪'),
               _summaryRow('رسوم التوصيل', '$delivery ₪'),
-              if (discount > 0) _summaryRow('الخصم', '-$discount ₪', color: AppColors.success),
+              if (discount > 0)
+                _summaryRow('الخصم', '-$discount ₪', color: AppColors.success),
               const Divider(height: 16),
               _summaryRow('الإجمالي', '$total ₪', bold: true, big: true),
             ],
@@ -532,15 +623,20 @@ class _CheckoutViewState extends State<CheckoutView> {
             decoration: BoxDecoration(
               color: AppColors.errorBg,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.error.withValues(alpha: 0.35)),
+              border:
+                  Border.all(color: AppColors.error.withValues(alpha: 0.35)),
             ),
             child: Row(
               children: [
-                const PhIcon(LucideIcons.alertCircle, size: 16, color: AppColors.error),
+                const PhIcon(LucideIcons.alertCircle,
+                    size: 16, color: AppColors.error),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(store.lastOrderError!,
-                      style: const TextStyle(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
                 ),
               ],
             ),
@@ -554,7 +650,9 @@ class _CheckoutViewState extends State<CheckoutView> {
           label: 'تأكيد وإرسال الطلب • $total ₪',
           icon: LucideIcons.checkCircle2,
           onPressed: () {
-            if (name.text.trim().isEmpty || phone.text.trim().isEmpty || street.text.trim().isEmpty) {
+            if (name.text.trim().isEmpty ||
+                phone.text.trim().isEmpty ||
+                street.text.trim().isEmpty) {
               store.showToast('يرجى إكمال بيانات التوصيل');
               return;
             }
@@ -606,15 +704,20 @@ class _CheckoutViewState extends State<CheckoutView> {
         onTap: () => setState(() => payment = id),
         child: Row(
           children: [
-            PhIcon(icon, size: 18, color: selected ? AppColors.turquoise : AppColors.textTertiary),
+            PhIcon(icon,
+                size: 18,
+                color: selected ? AppColors.turquoise : AppColors.textTertiary),
             const SizedBox(width: 10),
             Expanded(
                 child: Text(label,
                     style: TextStyle(
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                        color: selected ? AppColors.turquoise : AppColors.navy))),
+                        fontWeight:
+                            selected ? FontWeight.w800 : FontWeight.w600,
+                        color:
+                            selected ? AppColors.turquoise : AppColors.navy))),
             PhIcon(selected ? LucideIcons.checkCircle2 : LucideIcons.circle,
-                size: 18, color: selected ? AppColors.turquoise : AppColors.textTertiary),
+                size: 18,
+                color: selected ? AppColors.turquoise : AppColors.textTertiary),
           ],
         ),
       ),
@@ -658,7 +761,8 @@ class _ConfirmationState extends State<_Confirmation>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
     _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
     _ctrl.forward();
   }
@@ -684,17 +788,25 @@ class _ConfirmationState extends State<_Confirmation>
               height: 80,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: AppColors.successBg, borderRadius: BorderRadius.circular(20)),
-              child: const PhIcon(LucideIcons.checkCircle2, size: 40, color: AppColors.success),
+                  color: AppColors.successBg,
+                  borderRadius: BorderRadius.circular(20)),
+              child: const PhIcon(LucideIcons.checkCircle2,
+                  size: 40, color: AppColors.success),
             ),
           ),
           const SizedBox(height: 16),
           const Text('تم تأكيد طلبك بنجاح!',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.navy)),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.navy)),
           const SizedBox(height: 8),
           Text(
             'رقم الطلب: #${store.lastPlacedOrder?.id ?? ''}',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.turquoise),
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.turquoise),
           ),
           const SizedBox(height: 6),
           const Text(
@@ -711,13 +823,15 @@ class _ConfirmationState extends State<_Confirmation>
           const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () => store.setStack(null),
-            icon: const PhIcon(LucideIcons.shoppingBag, size: 16, color: AppColors.navy),
+            icon: const PhIcon(LucideIcons.shoppingBag,
+                size: 16, color: AppColors.navy),
             label: const Text('متابعة التسوق'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.navy,
               side: const BorderSide(color: AppColors.borderLight),
               minimumSize: const Size(double.infinity, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],
@@ -759,7 +873,8 @@ class _TrackingState extends State<_Tracking> {
     if (store.orderStatuses.isEmpty) return _fallbackSteps;
     final list = [
       for (final s in store.orderStatuses)
-        if (s.status != 'CANCELLED' && s.status != 'CANCELED') (s.status, s.labelAr),
+        if (s.status != 'CANCELLED' && s.status != 'CANCELED')
+          (s.status, s.labelAr),
     ];
     return list.isEmpty ? _fallbackSteps : list;
   }
@@ -774,7 +889,8 @@ class _TrackingState extends State<_Tracking> {
     final steps = _timelineSteps(store);
     final status = order?.status;
     final isCancelled = status == 'CANCELLED' || status == 'CANCELED';
-    final matchedIndex = status == null ? -1 : steps.indexWhere((s) => s.$1 == status);
+    final matchedIndex =
+        status == null ? -1 : steps.indexWhere((s) => s.$1 == status);
     final currentStep = matchedIndex < 0 ? 0 : matchedIndex;
 
     return ListView(
@@ -795,14 +911,21 @@ class _TrackingState extends State<_Tracking> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('تتبع الشحنة المباشر',
-                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
                   Text(store.activeTrackingOrderId,
                       style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16)),
                   if (status != null)
                     Text(store.statusLabel(status),
                         style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12)),
                 ],
               ),
             ],
@@ -812,13 +935,17 @@ class _TrackingState extends State<_Tracking> {
 
         // ── Timeline stepper (RTL) ─────────────────────────────────
         const Text('مسار الطلب',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.navy)),
+            style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                color: AppColors.navy)),
         const SizedBox(height: 10),
         if (isCancelled)
           SoftCard(
             child: Row(
               children: [
-                const PhIcon(LucideIcons.xCircle, size: 18, color: AppColors.error),
+                const PhIcon(LucideIcons.xCircle,
+                    size: 18, color: AppColors.error),
                 const SizedBox(width: 10),
                 Text(store.statusLabel('CANCELLED'),
                     style: const TextStyle(
@@ -839,20 +966,28 @@ class _TrackingState extends State<_Tracking> {
         // ── Order info card ────────────────────────────────────────
         if (order != null) ...[
           const Text('معلومات الطلب',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.navy)),
+              style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  color: AppColors.navy)),
           const SizedBox(height: 8),
           SoftCard(
             child: Column(
               children: [
                 _infoRow(LucideIcons.user, 'العميل', order.customerName),
-                _infoRow(LucideIcons.mapPin, 'العنوان', '${order.city} - ${order.address}'),
-                _infoRow(LucideIcons.creditCard, 'الدفع', _paymentLabel(order.paymentMethod)),
+                _infoRow(LucideIcons.mapPin, 'العنوان',
+                    '${order.city} - ${order.address}'),
+                _infoRow(LucideIcons.creditCard, 'الدفع',
+                    _paymentLabel(order.paymentMethod)),
               ],
             ),
           ),
           const SizedBox(height: 10),
           const Text('أصناف الطلب',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.navy)),
+              style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  color: AppColors.navy)),
           const SizedBox(height: 8),
           for (final item in order.items)
             Padding(
@@ -860,14 +995,18 @@ class _TrackingState extends State<_Tracking> {
               child: SoftCard(
                 child: Row(
                   children: [
-                    const PhIcon(LucideIcons.package, size: 16, color: AppColors.turquoise),
+                    const PhIcon(LucideIcons.package,
+                        size: 16, color: AppColors.turquoise),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(item.name.isNotEmpty ? item.name : item.productId,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                      child: Text(
+                          item.name.isNotEmpty ? item.name : item.productId,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 12)),
                     ),
                     Text('${item.quantity} قطع',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12)),
                   ],
                 ),
               ),
@@ -899,10 +1038,13 @@ class _TrackingState extends State<_Tracking> {
         children: [
           PhIcon(icon, size: 15, color: AppColors.turquoise),
           const SizedBox(width: 8),
-          Text('$label: ', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Text('$label: ',
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary)),
           Expanded(
               child: Text(value,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w700),
                   overflow: TextOverflow.ellipsis)),
         ],
       ),
@@ -950,15 +1092,20 @@ class _TrackStep extends StatelessWidget {
                 ),
                 child: Center(
                   child: isDone
-                      ? const PhIcon(LucideIcons.check, size: 14, color: Colors.white)
+                      ? const PhIcon(LucideIcons.check,
+                          size: 14, color: Colors.white)
                       : isCurrent
-                          ? const PhIcon(LucideIcons.clock, size: 13, color: Colors.white)
+                          ? const PhIcon(LucideIcons.clock,
+                              size: 13, color: Colors.white)
                           : null,
                 ),
               ),
               if (!isLast)
                 Expanded(
-                  child: Container(width: 2, color: isDone ? AppColors.turquoise : AppColors.borderLight),
+                  child: Container(
+                      width: 2,
+                      color:
+                          isDone ? AppColors.turquoise : AppColors.borderLight),
                 ),
             ],
           ),
@@ -996,7 +1143,10 @@ class _Orders extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         const Text('سجل الطلبات',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.navy)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.navy)),
         const SizedBox(height: 10),
         if (store.orders.isEmpty)
           _EmptyState(
@@ -1020,14 +1170,17 @@ class _Orders extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const PhIcon(LucideIcons.package, color: AppColors.turquoise, size: 18),
+                        const PhIcon(LucideIcons.package,
+                            color: AppColors.turquoise, size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(order.id,
-                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900, fontSize: 14)),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: _isDone(order.status)
                                 ? AppColors.successBg
@@ -1050,21 +1203,27 @@ class _Orders extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const PhIcon(LucideIcons.calendar, size: 13, color: AppColors.textTertiary),
+                        const PhIcon(LucideIcons.calendar,
+                            size: 13, color: AppColors.textTertiary),
                         const SizedBox(width: 4),
                         Text(order.date,
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.textSecondary)),
                         const SizedBox(width: 10),
-                        const PhIcon(LucideIcons.layers, size: 13, color: AppColors.textTertiary),
+                        const PhIcon(LucideIcons.layers,
+                            size: 13, color: AppColors.textTertiary),
                         const SizedBox(width: 4),
                         Text('${order.items.length} أصناف',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.textSecondary)),
                         const Spacer(),
                         Text('${order.total} ₪',
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w900, fontSize: 15)),
                       ],
                     ),
-                    if (order.status == 'PENDING' || order.status == 'طلب جديد') ...[
+                    if (order.status == 'PENDING' ||
+                        order.status == 'طلب جديد') ...[
                       const SizedBox(height: 8),
                       const Divider(color: AppColors.borderLight, height: 1),
                       const SizedBox(height: 6),
@@ -1078,16 +1237,22 @@ class _Orders extends StatelessWidget {
                                     context: context,
                                     builder: (ctx) => AlertDialog(
                                       title: const Text('تأكيد إلغاء الطلب',
-                                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                                      content: Text('هل أنت متأكد من رغبتك في إلغاء الطلب رقم ${order.id}؟'),
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 16)),
+                                      content: Text(
+                                          'هل أنت متأكد من رغبتك في إلغاء الطلب رقم ${order.id}؟'),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.of(ctx).pop(false),
+                                          onPressed: () =>
+                                              Navigator.of(ctx).pop(false),
                                           child: const Text('تراجع'),
                                         ),
                                         FilledButton(
-                                          onPressed: () => Navigator.of(ctx).pop(true),
-                                          style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+                                          onPressed: () =>
+                                              Navigator.of(ctx).pop(true),
+                                          style: FilledButton.styleFrom(
+                                              backgroundColor: AppColors.error),
                                           child: const Text('نعم، إلغاء الطلب'),
                                         ),
                                       ],
@@ -1100,12 +1265,17 @@ class _Orders extends StatelessWidget {
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.error,
                             visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                           ),
-                          icon: const PhIcon(LucideIcons.xCircle, size: 14, color: AppColors.error),
+                          icon: const PhIcon(LucideIcons.xCircle,
+                              size: 14, color: AppColors.error),
                           label: Text(
-                            store.isCancellingOrder ? 'جاري الإلغاء...' : 'إلغاء الطلب',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                            store.isCancellingOrder
+                                ? 'جاري الإلغاء...'
+                                : 'إلغاء الطلب',
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w800),
                           ),
                         ),
                       ),
@@ -1142,15 +1312,19 @@ class _EmptyState extends StatelessWidget {
           children: [
             PhIcon(icon, size: 48, color: AppColors.borderLight),
             const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            Text(title,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 6),
             Text(subtitle,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 13)),
             if (onTap != null && ctaLabel != null) ...[
               const SizedBox(height: 14),
               FilledButton(
                 onPressed: onTap,
-                style: FilledButton.styleFrom(backgroundColor: AppColors.turquoise),
+                style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.turquoise),
                 child: Text(ctaLabel!),
               ),
             ],
@@ -1169,12 +1343,16 @@ class _Wishlist extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = store.products.where((p) => store.wishlistIds.contains(p.id)).toList();
+    final items =
+        store.products.where((p) => store.wishlistIds.contains(p.id)).toList();
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         const Text('قائمة المفضلة',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.navy)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.navy)),
         const SizedBox(height: 10),
         if (items.isEmpty)
           const _EmptyState(
@@ -1190,7 +1368,8 @@ class _Wishlist extends StatelessWidget {
                 onTap: () => store.openProduct(product),
                 child: Row(
                   children: [
-                    NetImage(url: product.image, width: 48, height: 48, radius: 10),
+                    NetImage(
+                        url: product.image, width: 48, height: 48, radius: 10),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -1199,14 +1378,19 @@ class _Wishlist extends StatelessWidget {
                           Text(product.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.w800)),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w800)),
                           Text('${product.price} ₪',
-                              style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.turquoise)),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.turquoise)),
                         ],
                       ),
                     ),
                     FilledButton(
-                      onPressed: product.stock > 0 ? () => store.addToCart(product) : null,
+                      onPressed: product.stock > 0
+                          ? () => store.addToCart(product)
+                          : null,
                       style: FilledButton.styleFrom(
                           backgroundColor: AppColors.turquoise,
                           visualDensity: VisualDensity.compact),
@@ -1232,7 +1416,10 @@ class _Support extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         const Text('خدمة العملاء والدعم',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.navy)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.navy)),
         const SizedBox(height: 4),
         const Text('نحن هنا لمساعدتك في أي وقت',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
@@ -1290,10 +1477,13 @@ class _Support extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  PhIcon(LucideIcons.clock, size: 15, color: AppColors.turquoise),
+                  PhIcon(LucideIcons.clock,
+                      size: 15, color: AppColors.turquoise),
                   SizedBox(width: 6),
                   Text('أوقات العمل',
-                      style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.turquoise)),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.turquoise)),
                 ],
               ),
               SizedBox(height: 8),
@@ -1342,11 +1532,16 @@ class _SupportCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: TextStyle(fontWeight: FontWeight.w800, color: iconColor, fontSize: 14)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: iconColor,
+                        fontSize: 14)),
                 Text(subtitle,
-                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.textSecondary)),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(value,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -1398,16 +1593,21 @@ class _Notifications extends StatelessWidget {
           children: [
             const Text('مركز التنبيهات',
                 style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.navy)),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.navy)),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                  color: AppColors.turquoise, borderRadius: BorderRadius.circular(99)),
+                  color: AppColors.turquoise,
+                  borderRadius: BorderRadius.circular(99)),
               child: Text(
                 '${_items.where((n) => !n.read).length}',
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900),
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900),
               ),
             ),
           ],
@@ -1418,7 +1618,9 @@ class _Notifications extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 10),
             child: Container(
               decoration: BoxDecoration(
-                color: item.read ? Colors.white : AppColors.turquoise.withValues(alpha: 0.05),
+                color: item.read
+                    ? Colors.white
+                    : AppColors.turquoise.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                     color: item.read
@@ -1436,7 +1638,9 @@ class _Notifications extends StatelessWidget {
                       color: AppColors.offWhiteAlt,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Center(child: PhIcon(item.icon, size: 18, color: item.iconColor)),
+                    child: Center(
+                        child:
+                            PhIcon(item.icon, size: 18, color: item.iconColor)),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1448,7 +1652,9 @@ class _Notifications extends StatelessWidget {
                             Expanded(
                               child: Text(item.title,
                                   style: TextStyle(
-                                      fontWeight: item.read ? FontWeight.w700 : FontWeight.w900,
+                                      fontWeight: item.read
+                                          ? FontWeight.w700
+                                          : FontWeight.w900,
                                       fontSize: 13)),
                             ),
                             if (!item.read)
@@ -1456,17 +1662,21 @@ class _Notifications extends StatelessWidget {
                                 width: 8,
                                 height: 8,
                                 decoration: const BoxDecoration(
-                                    color: AppColors.turquoise, shape: BoxShape.circle),
+                                    color: AppColors.turquoise,
+                                    shape: BoxShape.circle),
                               ),
                           ],
                         ),
                         const SizedBox(height: 4),
                         Text(item.body,
                             style: const TextStyle(
-                                fontSize: 12, color: AppColors.textSecondary, height: 1.5)),
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                height: 1.5)),
                         const SizedBox(height: 4),
                         Text(item.time,
-                            style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                            style: const TextStyle(
+                                fontSize: 11, color: AppColors.textTertiary)),
                       ],
                     ),
                   ),
@@ -1522,7 +1732,10 @@ class _AddressesState extends State<_Addresses> {
       padding: const EdgeInsets.all(16),
       children: [
         const Text('عنوان التوصيل',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.navy)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.navy)),
         const SizedBox(height: 4),
         const Text('العنوان المحفوظ لطلباتك القادمة',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
@@ -1538,20 +1751,25 @@ class _AddressesState extends State<_Addresses> {
           ),
           child: Row(
             children: [
-              const PhIcon(LucideIcons.mapPin, color: AppColors.turquoise, size: 20),
+              const PhIcon(LucideIcons.mapPin,
+                  color: AppColors.turquoise, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(city,
-                        style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.navy)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.navy)),
                     Text(widget.store.checkoutStreet,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
-              const PhIcon(LucideIcons.checkCircle2, color: AppColors.turquoise, size: 18),
+              const PhIcon(LucideIcons.checkCircle2,
+                  color: AppColors.turquoise, size: 18),
             ],
           ),
         ),
@@ -1559,7 +1777,10 @@ class _AddressesState extends State<_Addresses> {
 
         // Edit form
         const Text('تعديل العنوان',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.navy)),
+            style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                color: AppColors.navy)),
         const SizedBox(height: 10),
         const FieldLabel('المدينة'),
         IconField(
@@ -1584,7 +1805,8 @@ class _AddressesState extends State<_Addresses> {
         TextField(
             controller: street,
             maxLines: 2,
-            decoration: const InputDecoration(hintText: 'الحي، الشارع، أقرب معلم')),
+            decoration:
+                const InputDecoration(hintText: 'الحي، الشارع، أقرب معلم')),
         const SizedBox(height: 20),
         PrimaryButton(
           label: 'حفظ العنوان',
@@ -1614,7 +1836,10 @@ class _Settings extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         const Text('الإعدادات',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.navy)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.navy)),
         const SizedBox(height: 20),
 
         // App version
@@ -1656,7 +1881,9 @@ class _Settings extends StatelessWidget {
             children: [
               Text('بادهاوس',
                   style: TextStyle(
-                      color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900)),
               SizedBox(height: 4),
               Text('متجرك المتخصص في ملحقات الآيباد الأصلية',
                   textAlign: TextAlign.center,
@@ -1664,7 +1891,9 @@ class _Settings extends StatelessWidget {
               SizedBox(height: 8),
               Text('فلسطين • توصيل لجميع المحافظات',
                   style: TextStyle(
-                      color: AppColors.turquoise, fontSize: 12, fontWeight: FontWeight.w700)),
+                      color: AppColors.turquoise,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
             ],
           ),
         ),
@@ -1696,12 +1925,16 @@ class _SettingsTile extends StatelessWidget {
           color: AppColors.offWhiteAlt,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Center(child: PhIcon(icon, size: 17, color: AppColors.turquoise)),
+        child:
+            Center(child: PhIcon(icon, size: 17, color: AppColors.turquoise)),
       ),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-      subtitle: Text(value, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+      title: Text(label,
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+      subtitle: Text(value,
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
       trailing: onTap != null
-          ? const PhIcon(LucideIcons.chevronLeft, size: 16, color: AppColors.textTertiary)
+          ? const PhIcon(LucideIcons.chevronLeft,
+              size: 16, color: AppColors.textTertiary)
           : null,
       onTap: onTap,
     );
@@ -1738,7 +1971,8 @@ class _Overview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sales = store.orders.fold<int>(0, (sum, order) => sum + order.total);
-    final stock = store.products.fold<int>(0, (sum, product) => sum + product.stock);
+    final stock =
+        store.products.fold<int>(0, (sum, product) => sum + product.stock);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -1751,10 +1985,13 @@ class _Overview extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                  color: AppColors.successBg, borderRadius: BorderRadius.circular(999)),
+                  color: AppColors.successBg,
+                  borderRadius: BorderRadius.circular(999)),
               child: const Text('مباشر',
                   style: TextStyle(
-                      color: AppColors.success, fontWeight: FontWeight.w800, fontSize: 11)),
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11)),
             ),
           ],
         ),
@@ -1763,11 +2000,14 @@ class _Overview extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _kpi(LucideIcons.dollarSign, 'المبيعات الإجمالية', '$sales ₪', '+18.4% نمو'),
-            _kpi(LucideIcons.shoppingBag, 'الطلبات المسجلة', '${store.orders.length}', 'طلب مؤكد'),
-            _kpi(LucideIcons.layers, 'إجمالي المخزون', '$stock قطعة', 'وحدات متاحة'),
-            _kpi(LucideIcons.package, 'المنتجات النشطة', '${store.products.length} صنفاً',
-                'كتالوج رسمي'),
+            _kpi(LucideIcons.dollarSign, 'المبيعات الإجمالية', '$sales ₪',
+                '+18.4% نمو'),
+            _kpi(LucideIcons.shoppingBag, 'الطلبات المسجلة',
+                '${store.orders.length}', 'طلب مؤكد'),
+            _kpi(LucideIcons.layers, 'إجمالي المخزون', '$stock قطعة',
+                'وحدات متاحة'),
+            _kpi(LucideIcons.package, 'المنتجات النشطة',
+                '${store.products.length} صنفاً', 'كتالوج رسمي'),
           ],
         ),
         const SizedBox(height: 12),
@@ -1775,7 +2015,8 @@ class _Overview extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('حالة الكتالوج الرسمي', style: TextStyle(fontWeight: FontWeight.w800)),
+              Text('حالة الكتالوج الرسمي',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
               SizedBox(height: 8),
               Text('قلم بادهاوس (120 ₪) — 18 قطعة متوفرة'),
               Text('شاشة ملمس الورق (50 ₪) — 12 قطعة متوفرة'),
@@ -1796,11 +2037,17 @@ class _Overview extends StatelessWidget {
           children: [
             PhIcon(icon, color: AppColors.turquoise, size: 16),
             const SizedBox(height: 6),
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.textSecondary)),
+            Text(value,
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
             Text(hint,
                 style: const TextStyle(
-                    fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w700)),
+                    fontSize: 11,
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w700)),
           ],
         ),
       ),
@@ -1824,16 +2071,20 @@ class _ProductsAdmin extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('كتالوج المنتجات الرسمي',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   Text('المنتجات الرسمية المعتمدة',
-                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary)),
                 ],
               ),
             ),
             FilledButton.icon(
               onPressed: () => showProductEditor(context, store, null),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.turquoise),
-              icon: const PhIcon(LucideIcons.plus, size: 14, color: Colors.white),
+              style:
+                  FilledButton.styleFrom(backgroundColor: AppColors.turquoise),
+              icon:
+                  const PhIcon(LucideIcons.plus, size: 14, color: Colors.white),
               label: const Text('إضافة منتج'),
             ),
           ],
@@ -1845,7 +2096,8 @@ class _ProductsAdmin extends StatelessWidget {
             child: SoftCard(
               child: Row(
                 children: [
-                  NetImage(url: product.image, width: 42, height: 42, radius: 10),
+                  NetImage(
+                      url: product.image, width: 42, height: 42, radius: 10),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
@@ -1854,8 +2106,10 @@ class _ProductsAdmin extends StatelessWidget {
                         Text(product.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
-                        Text('المخزون: ${product.stock} قطعة • ${product.price} ₪',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 12)),
+                        Text(
+                            'المخزون: ${product.stock} قطعة • ${product.price} ₪',
                             style: const TextStyle(
                                 fontSize: 11, color: AppColors.textSecondary)),
                       ],
@@ -1863,7 +2117,8 @@ class _ProductsAdmin extends StatelessWidget {
                   ),
                   TextButton.icon(
                     onPressed: () => showProductEditor(context, store, product),
-                    icon: const PhIcon(LucideIcons.settings, size: 14, color: AppColors.turquoise),
+                    icon: const PhIcon(LucideIcons.settings,
+                        size: 14, color: AppColors.turquoise),
                     label: const Text('تعديل'),
                   ),
                 ],
@@ -1902,7 +2157,8 @@ class _Inventory extends StatelessWidget {
                         Text(product.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 12)),
                         Text('الحد الأدنى: ${product.minThreshold} قطع',
                             style: const TextStyle(
                                 fontSize: 11, color: AppColors.textSecondary)),
@@ -1910,7 +2166,8 @@ class _Inventory extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: product.stock <= product.minThreshold
                           ? AppColors.errorBg
@@ -1972,11 +2229,15 @@ class _AdminOrders extends StatelessWidget {
                         DropdownMenuItem(value: status, child: Text(status))
                     ],
                     onChanged: (value) {
-                      if (value != null) store.updateOrderStatus(order.id, value);
+                      if (value != null) {
+                        store.updateOrderStatus(order.id, value);
+                      }
                     },
                   ),
-                  Text('${order.city} • ${order.items.length} أصناف • ${order.total} ₪',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  Text(
+                      '${order.city} • ${order.items.length} أصناف • ${order.total} ₪',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary)),
                 ],
               ),
             ),
@@ -2026,14 +2287,17 @@ class _AiTabState extends State<_AiTab> {
         const SizedBox(height: 10),
         for (final message in store.aiChat)
           Align(
-            alignment:
-                message.sender == 'user' ? Alignment.centerLeft : Alignment.centerRight,
+            alignment: message.sender == 'user'
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
             child: Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(10),
               constraints: const BoxConstraints(maxWidth: 280),
               decoration: BoxDecoration(
-                color: message.sender == 'user' ? AppColors.turquoise : Colors.white,
+                color: message.sender == 'user'
+                    ? AppColors.turquoise
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                     color: message.sender == 'user'
@@ -2042,7 +2306,9 @@ class _AiTabState extends State<_AiTab> {
               ),
               child: Text(message.text,
                   style: TextStyle(
-                      color: message.sender == 'user' ? Colors.white : AppColors.navy,
+                      color: message.sender == 'user'
+                          ? Colors.white
+                          : AppColors.navy,
                       fontSize: 12,
                       height: 1.45)),
             ),
@@ -2051,7 +2317,8 @@ class _AiTabState extends State<_AiTab> {
           const Padding(
             padding: EdgeInsets.only(bottom: 8),
             child: Text('جاري تحليل قاعدة بيانات الكتالوج...',
-                style: TextStyle(color: AppColors.turquoise, fontWeight: FontWeight.w700)),
+                style: TextStyle(
+                    color: AppColors.turquoise, fontWeight: FontWeight.w700)),
           ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -2061,7 +2328,8 @@ class _AiTabState extends State<_AiTab> {
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
                   child: ActionChip(
-                    avatar: const PhIcon(LucideIcons.sparkles, size: 14, color: AppColors.turquoise),
+                    avatar: const PhIcon(LucideIcons.sparkles,
+                        size: 14, color: AppColors.turquoise),
                     label: Text(item),
                     onPressed: () => store.sendAi(item),
                   ),
@@ -2079,7 +2347,8 @@ class _AiTabState extends State<_AiTab> {
                         hintText: 'اسأل عن مبيعات أو مخزون أي صنف...'))),
             const SizedBox(width: 8),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppColors.turquoise),
+              style:
+                  FilledButton.styleFrom(backgroundColor: AppColors.turquoise),
               onPressed: () {
                 store.aiPrompt = prompt.text;
                 store.sendAi();
@@ -2115,15 +2384,20 @@ Future<void> showProductEditor(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(controller: name, decoration: const InputDecoration(labelText: 'اسم المنتج')),
+                  TextField(
+                      controller: name,
+                      decoration:
+                          const InputDecoration(labelText: 'اسم المنتج')),
                   TextField(
                       controller: price,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'السعر (₪)')),
+                      decoration:
+                          const InputDecoration(labelText: 'السعر (₪)')),
                   TextField(
                       controller: stock,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'الكمية بالمخزون')),
+                      decoration:
+                          const InputDecoration(labelText: 'الكمية بالمخزون')),
                   DropdownButton<String>(
                     value: category,
                     isExpanded: true,
@@ -2131,7 +2405,8 @@ Future<void> showProductEditor(
                       for (final cat in officialCategories.skip(1))
                         DropdownMenuItem(value: cat.id, child: Text(cat.name)),
                     ],
-                    onChanged: (value) => setLocal(() => category = value ?? category),
+                    onChanged: (value) =>
+                        setLocal(() => category = value ?? category),
                   ),
                   TextField(
                       controller: compatibility,
@@ -2141,7 +2416,8 @@ Future<void> showProductEditor(
             ),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('إلغاء')),
               FilledButton(
                 onPressed: () {
                   store.editingProduct = product;

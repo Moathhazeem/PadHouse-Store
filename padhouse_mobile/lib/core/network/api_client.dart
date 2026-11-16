@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kDebugMode, kIsWeb, TargetPlatform;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Secure API client configured with Dio, JWT rotation, and retry policies
@@ -7,7 +8,10 @@ class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
-  static const String _configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static const String _configuredBaseUrl =
+      String.fromEnvironment('API_BASE_URL');
+  static const String skipAuthorizationExtra = 'padhouse.skipAuthorization';
+  static const String localDevelopmentBaseUrl = 'http://localhost:4000/api/v1';
   static final String baseUrl = _resolveBaseUrl();
   static const String fallbackRemoteUrl = 'https://api.padhouse.ps/api/v1';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
@@ -16,8 +20,16 @@ class ApiClient {
     if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
     final host = Uri.base.host;
     if (kIsWeb && const {'localhost', '127.0.0.1', '::1'}.contains(host)) {
-      return Uri(scheme: 'http', host: host, port: 4000, path: '/api/v1').toString();
+      return Uri(scheme: 'http', host: host, port: 4000, path: '/api/v1')
+          .toString();
     }
+    // Android emulators use 10.0.2.2 to reach the development host's loopback.
+    if (kDebugMode &&
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:4000/api/v1';
+    }
+    if (kDebugMode) return localDevelopmentBaseUrl;
     return fallbackRemoteUrl;
   }
 
@@ -25,17 +37,20 @@ class ApiClient {
     final uri = Uri.tryParse(value.trim());
     if (uri == null || value.trim().isEmpty) return '';
 
-    if (const {'padhouse.ps', 'www.padhouse.ps'}.contains(uri.host.toLowerCase())) {
+    if (const {'padhouse.ps', 'www.padhouse.ps'}
+        .contains(uri.host.toLowerCase())) {
       final sourceUrl = uri.replace(scheme: 'https').toString();
       final apiBase = baseUrl.replaceFirst(RegExp(r'/+$'), '');
       return '$apiBase/products/image?url=${Uri.encodeComponent(sourceUrl)}';
     }
 
     if (uri.hasScheme) return uri.toString();
-    return Uri.parse(baseUrl).replace(
-      path: uri.path,
-      query: uri.hasQuery ? uri.query : null,
-    ).toString();
+    return Uri.parse(baseUrl)
+        .replace(
+          path: uri.path,
+          query: uri.hasQuery ? uri.query : null,
+        )
+        .toString();
   }
 
   late final Dio _dio = _createDio();
@@ -58,6 +73,9 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          if (options.extra[skipAuthorizationExtra] == true) {
+            return handler.next(options);
+          }
           final token = await _storage.read(key: 'access_token');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -76,14 +94,18 @@ class ApiClient {
                   data: {'refreshToken': refreshToken},
                 );
 
-                final newAccessToken = response.data?['accessToken']?.toString();
-                final newRefreshToken = response.data?['refreshToken']?.toString();
+                final newAccessToken =
+                    response.data?['accessToken']?.toString();
+                final newRefreshToken =
+                    response.data?['refreshToken']?.toString();
 
                 if (newAccessToken != null) {
-                  await _storage.write(key: 'access_token', value: newAccessToken);
+                  await _storage.write(
+                      key: 'access_token', value: newAccessToken);
                 }
                 if (newRefreshToken != null) {
-                  await _storage.write(key: 'refresh_token', value: newRefreshToken);
+                  await _storage.write(
+                      key: 'refresh_token', value: newRefreshToken);
                 }
 
                 // Retry original failed request with updated token

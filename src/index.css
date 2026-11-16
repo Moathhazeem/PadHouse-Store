@@ -142,6 +142,35 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+.ph-reveal {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+  transition: opacity 480ms cubic-bezier(0.2, 0.7, 0.2, 1), transform 560ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--ph-reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.ph-reveal--visible { opacity: 1; transform: translate3d(0, 0, 0); }
+.ph-stagger-item { transition: opacity 420ms ease, transform 520ms cubic-bezier(0.2, 0.7, 0.2, 1); transition-delay: calc(var(--ph-stagger-index, 0) * 55ms); }
+.ph-stagger-reveal .ph-stagger-item { opacity: 0; transform: translate3d(0, 12px, 0); }
+.ph-stagger-reveal.ph-reveal--visible .ph-stagger-item { opacity: 1; transform: translate3d(0, 0, 0); }
+.ph-product-card { transition: transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 240ms ease; }
+.ph-product-card:hover { transform: translate3d(0, -4px, 0); box-shadow: var(--ph-shadow-raised); }
+.ph-product-card:active { transform: translate3d(0, -1px, 0) scale(0.99); }
+.ph-product-media { overflow: hidden; }
+.ph-product-media img { will-change: transform; }
+.ph-button:active:not(:disabled) { transform: scale(0.97); }
+@keyframes ph-cart-bounce { 0%, 100% { transform: scale(1); } 35% { transform: scale(1.28); } 65% { transform: scale(0.92); } }
+.ph-cart-badge { animation: ph-cart-bounce 420ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes ph-drawer-in { from { opacity: 0; transform: translate3d(0, -10px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+.ph-drawer-enter { animation: ph-drawer-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both; backdrop-filter: blur(16px); }
+@keyframes ph-popover-in { from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.985); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+.ph-popover-enter { transform-origin: top right; animation: ph-popover-in 180ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.ph-modal-backdrop { animation: ph-backdrop-in 180ms ease-out both; backdrop-filter: blur(8px); }
+.ph-modal-panel { animation: ph-modal-in 240ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.ph-chat-panel { transform-origin: bottom left; animation: ph-chat-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@keyframes ph-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ph-modal-in { from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes ph-chat-in { from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.98); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 @layer utilities {
   .scrollbar-none, .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .scrollbar-none::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar { display: none; }

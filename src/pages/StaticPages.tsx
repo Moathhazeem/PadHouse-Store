@@ -3,6 +3,7 @@ import {
   ShieldCheck,
   Truck,
   RotateCcw,
+  CreditCard,
   HelpCircle,
   Phone,
   Mail,
@@ -12,6 +13,7 @@ import {
   Lock,
   ChevronDown
 } from 'lucide-react';
+import { useScrollReveal } from '../components/ui';
 
 interface StaticPagesProps {
   pageType:
@@ -29,6 +31,7 @@ interface StaticPagesProps {
 export const StaticPages: React.FC<StaticPagesProps> = ({ pageType, onNavigate }) => {
   // FAQ questions toggle
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const aboutBenefitsReveal = useScrollReveal<HTMLDivElement>();
 
   const faqs = [
     {
@@ -71,39 +74,56 @@ export const StaticPages: React.FC<StaticPagesProps> = ({ pageType, onNavigate }
               المتجر الفلسطيني المتخصص لملحقات أجهزة الآيباد
             </h1>
             <p className="text-sm text-ph-muted leading-relaxed">
-              تأسس متجر **بادهاوس (PadHouse)** بهدف سد الفجوة في السوق الفلسطيني لملحقات أجهزة Apple iPad الاحترافية، وتوفير بدائل وحلول عالية الجودة بأسعار عادلة تناسب الطلاب، المهندسين، الفنانين والمحترفين.
+              بدأت حكاية بادهاوس في رام الله من حاجة بسيطة: أن يجد مستخدم الآيباد في فلسطين ملحقاً مناسباً لجهازه مع وصف واضح وخدمة محلية موثوقة. نعمل على جمع خيارات عملية للطلاب والمصممين والمهنيين، مع مساعدة العملاء على اختيار القطعة المتوافقة قبل الشراء.
             </p>
           </div>
+          <section className="grid gap-5 border-t border-ph-border pt-7 md:grid-cols-2">
+            <div><h2 className="mb-2 text-sm font-bold text-ph-ink">رسالتنا في فلسطين</h2><p className="text-sm leading-7 text-ph-muted">نسهّل استخدام الآيباد للدراسة والعمل والإبداع عبر ملحقات مختارة بعناية، ومعلومات توافق مفهومة، وخدمة تنطلق من رام الله وتصل إلى مختلف المحافظات بحسب ترتيبات التوصيل المتاحة.</p></div>
+            <div><h2 className="mb-2 text-sm font-bold text-ph-ink">لماذا الملحقات المتخصصة؟</h2><p className="text-sm leading-7 text-ph-muted">اختيار القلم أو الكفر أو لوحة المفاتيح وفق موديل الجهاز يحسّن الكتابة والحماية والإنتاجية، ويقلّل من القطع غير المناسبة. لذلك نوضح الاستخدام والتوافق ونشجع على التحقق من رقم الموديل قبل الطلب.</p></div>
+            <div><h2 className="mb-2 text-sm font-bold text-ph-ink">كيف نراجع الجودة؟</h2><p className="text-sm leading-7 text-ph-muted">نراجع جودة التصنيع والتشطيب، ونجرب الوظائف الأساسية مثل الاقتران والشحن واستجابة الأزرار عند توفر عينات الاختبار، ثم نتحقق من بيانات التوافق والضمان قبل عرض المنتج. تفاصيل كل منتج تبقى مرجع الاختيار النهائي.</p></div>
+            <div><h2 className="mb-2 text-sm font-bold text-ph-ink">محطاتنا</h2><p className="text-sm leading-7 text-ph-muted">من متجر متخصص انطلق من رام الله، إلى كتالوج يضم فئات الأقلام والكفرات ولوحات المفاتيح والحوامل والشحن والحماية، مع خدمة استفسارات تساعد على مطابقة الملحق مع جهاز العميل.</p></div>
+          </section>
+          <div className="grid grid-cols-2 gap-3 border-t border-ph-border pt-6 sm:grid-cols-4">
+            {[['6', 'فئات ملحقات'], ['رام الله', 'نقطة انطلاقنا'], ['iPad', 'توافق موجّه حسب الموديل'], ['12 شهراً', 'مدة الضمان حسب المنتج']].map(([value, label]) => <div key={label} className="rounded-2xl bg-ph-background p-4 text-center"><strong className="block text-lg font-black text-ph-brand">{value}</strong><span className="mt-1 block text-xs text-ph-muted">{label}</span></div>)}
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-4">
-            <div className="p-5 rounded-2xl bg-white border border-ph-border space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-ph-border text-ph-brand flex items-center justify-center font-bold">
-                100%
-              </div>
-              <h3 className="text-xs font-bold text-ph-ink">توافق تام ومجرب</h3>
-              <p className="text-xs text-ph-muted leading-relaxed">
-                كل منتج في بادهاوس يخضع لاختبار دقيق للتأكد من توافقه التام مع أجهزة iPadOS وأبعاد شاشات الآيباد.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white border border-ph-border space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-ph-border text-ph-brand flex items-center justify-center font-bold">
-                12M
-              </div>
-              <h3 className="text-xs font-bold text-ph-ink">ضمان استبدال مباشر</h3>
-              <p className="text-xs text-ph-muted leading-relaxed">
-                نحن نقف خلف جودة منتجاتنا بثقة كاملة ونقدم استبدالاً فورياً دون تعقيدات في حال حدوث أي عيب مصنعي.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white border border-ph-border space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-ph-border text-ph-brand flex items-center justify-center font-bold">
-                48h
-              </div>
-              <h3 className="text-xs font-bold text-ph-ink">توصيل سريع لكل الوطن</h3>
-              <p className="text-xs text-ph-muted leading-relaxed">
-                شبكة توصيل مباشرة تصل إلى باب منزلك في القدس، رام الله، نابلس، الخليل، جنين وكافة القرى والمخيمات.
-              </p>
+          <div>
+            <h2 className="mb-4 text-sm font-bold text-ph-ink">لماذا تختار بادهاوس؟</h2>
+            <div ref={aboutBenefitsReveal.ref} style={aboutBenefitsReveal.style} className={`${aboutBenefitsReveal.className} ph-stagger-reveal grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
+              {[
+                {
+                  icon: Truck,
+                  title: 'توصيل سريع وموثوق',
+                  description: 'توصيل لجميع محافظات الضفة، القدس، وغزة خلال 24-48 ساعة.',
+                },
+                {
+                  icon: ShieldCheck,
+                  title: 'ضمان أصلي حقيقي',
+                  description: 'جميع المنتجات مضمونة مع استبدال فوري في حال أي عيب مصنعي.',
+                },
+                {
+                  icon: RotateCcw,
+                  title: 'استرجاع واستبدال مرن',
+                  description: 'إمكانية استبدال القطع ومراجعة التوافق مع موديل جهازك بكل سهولة.',
+                },
+                {
+                  icon: CreditCard,
+                  title: 'الدفع عند الاستلام',
+                  description: 'ادفع نقداً عند باب منزلك بعد فحص ومعاينة الطرد وسلامته.',
+                },
+              ].map(({ icon: Icon, title, description }, index) => (
+                <article
+                  key={title}
+                  className="ph-stagger-item rounded-2xl border border-ph-border bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                  style={{ '--ph-stagger-index': index } as React.CSSProperties}
+                >
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-ph-surface-soft text-ph-brand">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                  <h3 className="mb-1 text-xs font-bold text-ph-ink">{title}</h3>
+                  <p className="text-xs leading-relaxed text-ph-muted">{description}</p>
+                </article>
+              ))}
             </div>
           </div>
         </div>

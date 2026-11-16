@@ -14,7 +14,18 @@ enum AppMode { customer, admin }
 
 enum CustomerTab { home, categories, search, ai, wishlist, cart, profile }
 
-enum CustomerStack { productDetails, checkout, orderConfirmation, tracking, orders, wishlist, support, notifications, addresses, settings }
+enum CustomerStack {
+  productDetails,
+  checkout,
+  orderConfirmation,
+  tracking,
+  orders,
+  wishlist,
+  support,
+  notifications,
+  addresses,
+  settings
+}
 
 enum AdminTab { overview, products, inventory, orders, ai }
 
@@ -29,9 +40,11 @@ class RegisteredAccount {
   final AppUser user;
   const RegisteredAccount({required this.password, required this.user});
 
-  Map<String, dynamic> toJson() => {'password': password, 'user': user.toJson()};
+  Map<String, dynamic> toJson() =>
+      {'password': password, 'user': user.toJson()};
 
-  factory RegisteredAccount.fromJson(Map<String, dynamic> json) => RegisteredAccount(
+  factory RegisteredAccount.fromJson(Map<String, dynamic> json) =>
+      RegisteredAccount(
         password: json['password'] as String? ?? '',
         user: AppUser.fromJson(Map<String, dynamic>.from(json['user'] as Map)),
       );
@@ -68,7 +81,7 @@ class PadhouseController extends ChangeNotifier {
   CustomerStack? customerStack;
   AdminTab adminTab = AdminTab.overview;
 
-  List<Product> products = officialProducts.map((p) => p).toList();
+  List<Product> products = const [];
   List<ShopOrder> orders = const [];
   List<CartLine> cart = const [];
   List<String> wishlistIds = const [];
@@ -92,6 +105,7 @@ class PadhouseController extends ChangeNotifier {
 
   String aiPrompt = '';
   bool isAiThinking = false;
+  bool isCustomerAiThinking = false;
   // Admin AI chat
   List<ChatMessage> aiChat = const [
     ChatMessage(
@@ -100,9 +114,7 @@ class PadhouseController extends ChangeNotifier {
     ),
   ];
   // Customer AI chat
-  List<ChatMessage> customerAiChat = const [
-    ChatMessage('ai', '👋 مرحباً بك في مساعد بادهاوس الذكي! يمكنني مساعدتك في اختيار أفضل ملحقات الآيباد حسب موديلك واحتياجاتك. اسألني عن أي منتج!'),
-  ];
+  List<ChatMessage> customerAiChat = const [];
 
   String? toastMessage;
 
@@ -135,7 +147,9 @@ class PadhouseController extends ChangeNotifier {
     final u = user;
     if (u == null) return false;
     final role = u.role.toLowerCase();
-    return role == 'admin' || role == 'super_admin' || u.email.toLowerCase() == superAdminEmail;
+    return role == 'admin' ||
+        role == 'super_admin' ||
+        u.email.toLowerCase() == superAdminEmail;
   }
 
   bool get _isLoggedInCustomer => user != null && user!.role != 'guest';
@@ -143,7 +157,8 @@ class PadhouseController extends ChangeNotifier {
   /// Public flag so UI can decide between backend reads and local fallbacks.
   bool get isLoggedInCustomer => _isLoggedInCustomer;
 
-  bool get _isTestEnvironment => WidgetsBinding.instance.runtimeType.toString().contains('Test');
+  bool get _isTestEnvironment =>
+      WidgetsBinding.instance.runtimeType.toString().contains('Test');
 
   @override
   void dispose() {
@@ -162,11 +177,14 @@ class PadhouseController extends ChangeNotifier {
     return null;
   }
 
-  Product get selectedProduct => productById(selectedProductId ?? '') ?? products.first;
+  Product? get selectedProduct =>
+      productById(selectedProductId ?? '') ??
+      (products.isEmpty ? null : products.first);
 
   List<Product> get filteredProducts {
     return products.where((p) {
-      final matchCategory = selectedCategory == 'all' || p.categories.contains(selectedCategory);
+      final matchCategory =
+          selectedCategory == 'all' || p.categories.contains(selectedCategory);
       final q = searchQuery.trim();
       final matchSearch = q.isEmpty ||
           p.name.contains(q) ||
@@ -202,8 +220,12 @@ class PadhouseController extends ChangeNotifier {
 
   int get cartCount => cart.fold(0, (sum, line) => sum + line.quantity);
 
-  int get pendingOrders =>
-      orders.where((o) => o.status == 'PREPARING' || o.status == 'UNDER_REVIEW' || o.status == 'PENDING').length;
+  int get pendingOrders => orders
+      .where((o) =>
+          o.status == 'PREPARING' ||
+          o.status == 'UNDER_REVIEW' ||
+          o.status == 'PENDING')
+      .length;
 
   bool isSyncingWithBackend = false;
 
@@ -215,7 +237,11 @@ class PadhouseController extends ChangeNotifier {
     return _statusLabelFallback[status] ?? status;
   }
 
-  void updateProfile({required String name, required String phone, required String city, required String address}) {
+  void updateProfile(
+      {required String name,
+      required String phone,
+      required String city,
+      required String address}) {
     if (user != null) {
       final updated = AppUser(
         name: name.trim().isEmpty ? user!.name : name.trim(),
@@ -241,11 +267,9 @@ class PadhouseController extends ChangeNotifier {
     _notify();
     try {
       final list = await _api.getProducts();
-      if (list.isNotEmpty) {
-        products = list;
-      }
+      products = list;
     } catch (_) {
-      // Keep the verified Palestinian fallback catalog when offline.
+      products = const [];
     } finally {
       isSyncingWithBackend = false;
       _notify();
@@ -269,10 +293,9 @@ class PadhouseController extends ChangeNotifier {
     _notify();
     try {
       final list = await _api.getProducts(compatibility: model);
-      if (list.isNotEmpty) {
-        products = list;
-        _notify();
-      } else if (model != null && model.isNotEmpty) {
+      products = list;
+      _notify();
+      if (list.isEmpty && model != null && model.isNotEmpty) {
         showToast('لا توجد منتجات متوافقة مع «$model» حالياً');
       }
     } catch (_) {
@@ -367,7 +390,8 @@ class PadhouseController extends ChangeNotifier {
   Future<void> _syncWishlist() async {
     try {
       final list = await _api.getWishlist();
-      wishlistIds = list.map(_productIdOf).where((id) => id.isNotEmpty).toList();
+      wishlistIds =
+          list.map(_productIdOf).where((id) => id.isNotEmpty).toList();
     } catch (_) {}
   }
 
@@ -408,7 +432,10 @@ class PadhouseController extends ChangeNotifier {
       if (rawAccounts != null && rawAccounts.isNotEmpty) {
         final decoded = jsonDecode(rawAccounts) as Map<String, dynamic>;
         accounts = decoded.map(
-          (key, value) => MapEntry(key, RegisteredAccount.fromJson(Map<String, dynamic>.from(value as Map))),
+          (key, value) => MapEntry(
+              key,
+              RegisteredAccount.fromJson(
+                  Map<String, dynamic>.from(value as Map))),
         );
       }
     } catch (_) {}
@@ -426,31 +453,47 @@ class PadhouseController extends ChangeNotifier {
     }
   }
 
-  void sendCustomerAi([String? custom]) {
+  Future<void> sendCustomerAi([String? custom]) async {
     final q = (custom ?? aiPrompt).trim();
-    if (q.isEmpty) return;
-    aiChat = [...aiChat, ChatMessage('user', q)];
-    aiPrompt = '';
-    isAiThinking = true;
+    if (q.isEmpty || isCustomerAiThinking) return;
+    customerAiChat = [...customerAiChat, ChatMessage('user', q)];
+    isCustomerAiThinking = true;
     _notify();
-    Future.delayed(const Duration(milliseconds: 600), () {
-      final lower = q.toLowerCase();
-      String ans;
-      if (lower.contains('قلم') || lower.contains('pencil') || lower.contains('كتابة') || lower.contains('رسم')) {
-        ans = 'نوصي باقتناء قلم PadHouse Pencil الذكي (120 ₪) المزود بتقنية رفض راحة اليد وحساسية الإمالة للتظليل. يتوافق مع كافة أجهزة iPad من 2018 حتى 2026 ومعه ضمان استبدال 12 شهراً.';
-      } else if (lower.contains('كيبورد') || lower.contains('لوحة') || lower.contains('كفر') || lower.contains('حافظة')) {
-        ans = 'لتحويل آيبادك إلى محطة عمل أو لابتوب للدراسة والعمل، كيبورد بادهاوس اللاسلكي مع تاتش باد مدمج وحافظاتنا المغناطيسية توفر حماية 360 درجة وسهولة تنقل فائقة.';
-      } else if (lower.contains('شاشة') || lower.contains('ورق') || lower.contains('paperfeel') || lower.contains('حماية')) {
-        ans = 'لأفضل تجربة كتابة وتدوين ملاحظات تحاكي الورق الطبيعي، ننصح بشاشة PadHouse PaperFeel الأصلية (50 ₪) التي تمنع الوهج وتوفر ملمساً طبيعياً للقلم.';
-      } else if (lower.contains('توصيل') || lower.contains('شحن') || lower.contains('سعر') || lower.contains('دفع')) {
-        ans = 'نوفر توصيلاً سريعاً لكافة مدن الضفة الغربية والقدس والداخل، مع إمكانية الدفع عند الاستلام نقداً أو عبر محفظة PalPay وبنك فلسطين.';
-      } else {
-        ans = 'أهلاً بك في مساعد بادهاوس الذكي للتسوق! يمكنك سؤالي عن توافق الملحقات مع موديل جهازك (Pro, Air, Mini, iPad 10)، أو الاستفسار عن تفاصيل التوصيل والضمان.';
-      }
-      aiChat = [...aiChat, ChatMessage('ai', ans)];
-      isAiThinking = false;
+    final history =
+        customerAiChat.take(max(0, customerAiChat.length - 1)).toList();
+    try {
+      final result = await _api.chatAssistant(
+        message: q,
+        history: history
+            .take(12)
+            .map((message) => {
+                  'role': message.sender == 'user' ? 'user' : 'model',
+                  'content': message.text,
+                })
+            .toList(),
+      );
+      final answer = result['answer']?.toString().trim() ?? '';
+      customerAiChat = [
+        ...customerAiChat,
+        ChatMessage(
+            'ai',
+            answer.isEmpty
+                ? 'لم يصلني رد واضح. هل يمكنك إعادة صياغة سؤالك؟'
+                : answer),
+      ];
+    } catch (error) {
+      customerAiChat = [
+        ...customerAiChat,
+        ChatMessage(
+            'ai',
+            _dioMessage(error,
+                fallback:
+                    'تأخر الرد أو تعذّر الاتصال. يرجى المحاولة مرة أخرى.')),
+      ];
+    } finally {
+      isCustomerAiThinking = false;
       _notify();
-    });
+    }
   }
 
   Future<void> _persist() async {
@@ -486,7 +529,9 @@ class PadhouseController extends ChangeNotifier {
   String? login(String email, String password) {
     final emailTrim = email.trim().toLowerCase();
     final passTrim = password;
-    if (emailTrim.isEmpty || !emailTrim.contains('@')) return 'يرجى إدخال بريد إلكتروني صالح';
+    if (emailTrim.isEmpty || !emailTrim.contains('@')) {
+      return 'يرجى إدخال بريد إلكتروني صالح';
+    }
     if (passTrim.isEmpty) return 'يرجى إدخال كلمة المرور';
 
     // In the offline test harness there is no reachable server, so fall back to
@@ -541,7 +586,9 @@ class PadhouseController extends ChangeNotifier {
       showToast('أهلاً بك مجدداً ${user?.name ?? ''}!');
       unawaited(syncAuthedData());
     } catch (e) {
-      showToast(_dioMessage(e, fallback: 'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى المحاولة ثانية.'));
+      showToast(_dioMessage(e,
+          fallback:
+              'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى المحاولة ثانية.'));
     }
   }
 
@@ -555,7 +602,9 @@ class PadhouseController extends ChangeNotifier {
     final emailTrim = email.trim().toLowerCase();
     final passTrim = password;
     if (name.trim().isEmpty) return 'يرجى كتابة الاسم الكامل';
-    if (emailTrim.isEmpty || !emailTrim.contains('@')) return 'يرجى إدخال بريد إلكتروني صالح';
+    if (emailTrim.isEmpty || !emailTrim.contains('@')) {
+      return 'يرجى إدخال بريد إلكتروني صالح';
+    }
     if (passTrim.length < 6) return 'كلمة المرور يجب أن لا تقل عن 6 خانات';
 
     if (_isTestEnvironment) {
@@ -569,7 +618,10 @@ class PadhouseController extends ChangeNotifier {
         city: city,
         role: 'customer',
       );
-      accounts = {...accounts, emailTrim: RegisteredAccount(password: passTrim, user: created)};
+      accounts = {
+        ...accounts,
+        emailTrim: RegisteredAccount(password: passTrim, user: created)
+      };
       user = created;
       appMode = AppMode.customer;
       checkoutName = created.name;
@@ -613,12 +665,15 @@ class PadhouseController extends ChangeNotifier {
       showToast('تم إنشاء الحساب بنجاح! أهلاً بك في بادهاوس');
       unawaited(syncAuthedData());
     } catch (e) {
-      showToast(_dioMessage(e, fallback: 'تعذّر إنشاء الحساب، يرجى المحاولة مرة أخرى'));
+      showToast(_dioMessage(e,
+          fallback: 'تعذّر إنشاء الحساب، يرجى المحاولة مرة أخرى'));
     }
   }
 
   void _applyApiUser(ApiUser u) {
-    final name = u.fullName.trim().isNotEmpty ? u.fullName.trim() : u.email.split('@').first;
+    final name = u.fullName.trim().isNotEmpty
+        ? u.fullName.trim()
+        : u.email.split('@').first;
     user = AppUser(
       name: name,
       email: u.email,
@@ -732,19 +787,26 @@ class PadhouseController extends ChangeNotifier {
       showToast('عذراً، هذه القطعة نفدت من المخزون حالياً');
       return;
     }
-    final col = color ?? (product.colors.isNotEmpty ? product.colors.first : '');
+    final col =
+        color ?? (product.colors.isNotEmpty ? product.colors.first : '');
     if (_isLoggedInCustomer) {
       unawaited(_remoteAddToCart(product, col, qty));
       return;
     }
-    final index = cart.indexWhere((item) => item.productId == product.id && item.selectedColor == col);
+    final index = cart.indexWhere(
+        (item) => item.productId == product.id && item.selectedColor == col);
     if (index >= 0) {
       cart = [
         for (var i = 0; i < cart.length; i++)
-          i == index ? cart[i].copyWith(quantity: cart[i].quantity + qty) : cart[i],
+          i == index
+              ? cart[i].copyWith(quantity: cart[i].quantity + qty)
+              : cart[i],
       ];
     } else {
-      cart = [...cart, CartLine(productId: product.id, quantity: qty, selectedColor: col)];
+      cart = [
+        ...cart,
+        CartLine(productId: product.id, quantity: qty, selectedColor: col)
+      ];
     }
     showToast('تمت إضافة "${product.name}" إلى السلة');
   }
@@ -765,7 +827,8 @@ class PadhouseController extends ChangeNotifier {
   }
 
   void updateCartQty(String productId, String color, int delta) {
-    final index = cart.indexWhere((item) => item.productId == productId && item.selectedColor == color);
+    final index = cart.indexWhere(
+        (item) => item.productId == productId && item.selectedColor == color);
     if (index < 0) return;
     final next = cart[index].quantity + delta;
 
@@ -782,12 +845,16 @@ class PadhouseController extends ChangeNotifier {
     }
 
     if (next <= 0) {
-      cart = cart.where((item) => !(item.productId == productId && item.selectedColor == color)).toList();
+      cart = cart
+          .where((item) =>
+              !(item.productId == productId && item.selectedColor == color))
+          .toList();
     } else {
       cart = cart
-          .map((item) => (item.productId == productId && item.selectedColor == color)
-              ? item.copyWith(quantity: next)
-              : item)
+          .map((item) =>
+              (item.productId == productId && item.selectedColor == color)
+                  ? item.copyWith(quantity: next)
+                  : item)
           .toList();
     }
     _notify();
@@ -810,11 +877,15 @@ class PadhouseController extends ChangeNotifier {
         return;
       }
     }
-    cart = cart.where((item) => !(item.productId == productId && item.selectedColor == color)).toList();
+    cart = cart
+        .where((item) =>
+            !(item.productId == productId && item.selectedColor == color))
+        .toList();
     showToast('تم حذف القطعة من السلة');
   }
 
-  Future<void> _remoteRemoveCartItem(String itemId, {required bool silent}) async {
+  Future<void> _remoteRemoveCartItem(String itemId,
+      {required bool silent}) async {
     try {
       _applyCartSnapshot(await _api.removeCartItem(itemId));
       _notify();
@@ -826,11 +897,15 @@ class PadhouseController extends ChangeNotifier {
 
   void _applyCartSnapshot(CartSnapshot snap) {
     cart = snap.items
-        .map((i) => CartLine(productId: i.productId, quantity: i.quantity, selectedColor: i.color))
+        .map((i) => CartLine(
+            productId: i.productId,
+            quantity: i.quantity,
+            selectedColor: i.color))
         .toList();
     _cartItemIds
       ..clear()
-      ..addEntries(snap.items.map((i) => MapEntry('${i.productId}::${i.color}', i.id)));
+      ..addEntries(
+          snap.items.map((i) => MapEntry('${i.productId}::${i.color}', i.id)));
     _remoteSubtotal = snap.subtotal.round();
     _couponDiscount = snap.discount;
     if (snap.couponCode != null && snap.couponCode!.isNotEmpty) {
@@ -871,7 +946,8 @@ class PadhouseController extends ChangeNotifier {
   Future<void> _remoteWishlistAdd(String productId) async {
     try {
       final list = await _api.addToWishlist(productId);
-      wishlistIds = list.map(_productIdOf).where((id) => id.isNotEmpty).toList();
+      wishlistIds =
+          list.map(_productIdOf).where((id) => id.isNotEmpty).toList();
       _notify();
       showToast('تمت الإضافة إلى المفضلة');
     } catch (e) {
@@ -882,7 +958,8 @@ class PadhouseController extends ChangeNotifier {
   Future<void> _remoteWishlistRemove(String productId) async {
     try {
       final list = await _api.removeFromWishlist(productId);
-      wishlistIds = list.map(_productIdOf).where((id) => id.isNotEmpty).toList();
+      wishlistIds =
+          list.map(_productIdOf).where((id) => id.isNotEmpty).toList();
       _notify();
       showToast('تمت الإزالة من المفضلة');
     } catch (e) {
@@ -914,7 +991,9 @@ class PadhouseController extends ChangeNotifier {
       _couponDiscount = res.discount;
       couponApplied = res.applied || res.discount > 0;
       _notify();
-      showToast(couponApplied ? 'تم تطبيق الخصم بقيمة ${res.discount.round()} ₪' : (res.message ?? 'كود الخصم غير صحيح'));
+      showToast(couponApplied
+          ? 'تم تطبيق الخصم بقيمة ${res.discount.round()} ₪'
+          : (res.message ?? 'كود الخصم غير صحيح'));
     } catch (e) {
       couponApplied = false;
       _couponDiscount = 0;
@@ -962,7 +1041,8 @@ class PadhouseController extends ChangeNotifier {
       _notify();
       showToast('تم تأكيد طلبك بنجاح! رقم الإرسالية: ${order.id}');
     } catch (e) {
-      lastOrderError = _dioMessage(e, fallback: 'تعذّر إنشاء الطلب، يرجى المحاولة مرة أخرى');
+      lastOrderError =
+          _dioMessage(e, fallback: 'تعذّر إنشاء الطلب، يرجى المحاولة مرة أخرى');
       _notify();
       showToast(lastOrderError!);
     }
@@ -986,11 +1066,17 @@ class PadhouseController extends ChangeNotifier {
     if (rawItems is List) {
       for (final raw in rawItems.whereType<Map<dynamic, dynamic>>()) {
         final item = Map<String, dynamic>.from(raw);
-        final product = item['product'] is Map ? Map<String, dynamic>.from(item['product'] as Map) : const <String, dynamic>{};
-        final variant = item['variant'] is Map ? Map<String, dynamic>.from(item['variant'] as Map) : const <String, dynamic>{};
+        final product = item['product'] is Map
+            ? Map<String, dynamic>.from(item['product'] as Map)
+            : const <String, dynamic>{};
+        final variant = item['variant'] is Map
+            ? Map<String, dynamic>.from(item['variant'] as Map)
+            : const <String, dynamic>{};
         lines.add(OrderLine(
           productId: item['productId']?.toString() ?? '',
-          name: product['nameAr']?.toString() ?? product['name']?.toString() ?? '',
+          name: product['nameAr']?.toString() ??
+              product['name']?.toString() ??
+              '',
           quantity: _toNum(item['quantity']).toInt(),
           color: variant['colorNameAr']?.toString() ?? '',
           price: _toNum(item['unitPrice']).round(),
@@ -1006,7 +1092,8 @@ class PadhouseController extends ChangeNotifier {
       customerPhone: addr['phone']?.toString() ?? checkoutPhone,
       city: addr['city']?.toString() ?? checkoutCity,
       address: addr['street']?.toString() ?? checkoutStreet,
-      paymentMethod: o['paymentMethod']?.toString() ?? _normalizePayment(checkoutPayment),
+      paymentMethod:
+          o['paymentMethod']?.toString() ?? _normalizePayment(checkoutPayment),
       subtotal: _toNum(o['subtotal']).round(),
       shipping: _toNum(o['shippingFee']).round(),
       discount: _toNum(o['discountTotal']).round(),
@@ -1042,7 +1129,9 @@ class PadhouseController extends ChangeNotifier {
       if (data is Map) {
         final message = data['message'];
         if (message is String && message.isNotEmpty) return message;
-        if (message is List && message.isNotEmpty) return message.first.toString();
+        if (message is List && message.isNotEmpty) {
+          return message.first.toString();
+        }
       }
       final type = error.type;
       if (type == DioExceptionType.connectionError ||
@@ -1063,14 +1152,18 @@ class PadhouseController extends ChangeNotifier {
     try {
       final updatedData = await _api.cancelOrder(orderId, reason: reason);
       final updatedOrder = _mapOrder(updatedData);
-      orders = orders.map((o) => (o.id == orderId || o.id == updatedOrder.id) ? updatedOrder : o).toList();
+      orders = orders
+          .map((o) =>
+              (o.id == orderId || o.id == updatedOrder.id) ? updatedOrder : o)
+          .toList();
       showToast('تم إلغاء الطلب بنجاح واسترجاع المخزون');
       // Refresh backend orders & products to get synchronized inventory
       unawaited(syncAuthedData());
       unawaited(syncWithBackend());
       return true;
     } catch (e) {
-      showToast(_dioMessage(e, fallback: 'تعذّر إلغاء الطلب، يرجى المحاولة لاحقاً'));
+      showToast(
+          _dioMessage(e, fallback: 'تعذّر إلغاء الطلب، يرجى المحاولة لاحقاً'));
       return false;
     } finally {
       isCancellingOrder = false;
@@ -1082,7 +1175,9 @@ class PadhouseController extends ChangeNotifier {
 
   void adjustStock(String productId, int delta) {
     products = products
-        .map((item) => item.id == productId ? item.copyWith(stock: max(0, item.stock + delta)) : item)
+        .map((item) => item.id == productId
+            ? item.copyWith(stock: max(0, item.stock + delta))
+            : item)
         .toList();
     final name = productById(productId)?.name ?? '';
     if (delta > 0) {
@@ -1093,7 +1188,10 @@ class PadhouseController extends ChangeNotifier {
   }
 
   void updateOrderStatus(String orderId, String status) {
-    orders = orders.map((order) => order.id == orderId ? order.copyWith(status: status) : order).toList();
+    orders = orders
+        .map((order) =>
+            order.id == orderId ? order.copyWith(status: status) : order)
+        .toList();
     showToast('تم تحديث حالة الطلب إلى: $status');
   }
 
@@ -1131,7 +1229,8 @@ class PadhouseController extends ChangeNotifier {
         compatibility: compatibility,
         rating: 5,
         reviewsCount: 1,
-        image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
+        image:
+            'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
         description: 'منتج معتمد عالي الجودة متوافق مع أجهزة الآيباد.',
         colors: const ['أسود', 'فضي'],
       );
@@ -1165,11 +1264,17 @@ class PadhouseController extends ChangeNotifier {
     Future.delayed(const Duration(milliseconds: 500), () {
       final lower = q.toLowerCase();
       String ans;
-      if (lower.contains('مخزون') || lower.contains('نقص') || lower.contains('كمية') || q.contains('نواقص')) {
+      if (lower.contains('مخزون') ||
+          lower.contains('نقص') ||
+          lower.contains('كمية') ||
+          q.contains('نواقص')) {
         final low = products.where((p) => p.stock <= p.minThreshold).toList();
         ans =
             '📊 تقرير المخزون الفوري:\nيوجد ${low.length} منتجات تقترب من حد الأمان:\n${low.map((p) => '• ${p.name} (المتبقي: ${p.stock} فقط - الحد الأدنى: ${p.minThreshold})').join('\n')}\n💡 التوصية: إعادة طلب شاشات حماية الورق وكفرات الكيبورد قبل عطلة نهاية الأسبوع.';
-      } else if (lower.contains('سعر') || lower.contains('منافس') || lower.contains('مقارنة') || q.contains('أسعار')) {
+      } else if (lower.contains('سعر') ||
+          lower.contains('منافس') ||
+          lower.contains('مقارنة') ||
+          q.contains('أسعار')) {
         ans =
             '🔍 رصد أسعار السوق الفلسطيني:\n• قلم بادهاوس (120 ₪) منافس بشدة لأقلام آبل الأصلية التي تباع بـ 520 ₪.\n• شاشة حماية الورق PaperFeel تباع بـ 50 ₪ مقابل 65 ₪ لدى المحلات الأخرى.\n💡 التوصية: تقديم عرض حزمة يجمع قلم بادهاوس مع شاشة الورق بـ 150 ₪ لرفع قيمة السلة.';
       } else {
@@ -1184,4 +1289,5 @@ class PadhouseController extends ChangeNotifier {
   }
 }
 
-final padhouseProvider = ChangeNotifierProvider<PadhouseController>((ref) => PadhouseController());
+final padhouseProvider =
+    ChangeNotifierProvider<PadhouseController>((ref) => PadhouseController());

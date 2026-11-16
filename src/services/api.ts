@@ -1,5 +1,4 @@
 import { Order, Product } from '../types';
-import { FALLBACK_PRODUCTS } from '../data/catalog';
 
 const API_BASE_URL =
   (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
@@ -58,6 +57,7 @@ interface RequestOptions {
   body?: unknown;
   auth?: boolean;
   query?: Record<string, string | number | undefined>;
+  signal?: AbortSignal;
 }
 
 let refreshInFlight: Promise<boolean> | null = null;
@@ -91,7 +91,7 @@ async function tryRefresh(): Promise<boolean> {
 }
 
 async function apiFetch<T>(path: string, options: RequestOptions = {}, retry = true): Promise<T> {
-  const { method = 'GET', body, auth = true, query } = options;
+  const { method = 'GET', body, auth = true, query, signal } = options;
 
   let url = `${API_BASE_URL}${path}`;
   if (query) {
@@ -116,6 +116,7 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}, retry = t
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal,
     });
   } catch (err) {
     throw new ApiError('تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.', 0);
@@ -147,6 +148,24 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}, retry = t
   }
 
   return data as T;
+}
+
+export interface AssistantChatTurn {
+  role: 'user' | 'model';
+  content: string;
+}
+
+export async function sendAssistantMessageApi(
+  message: string,
+  history: AssistantChatTurn[],
+  signal?: AbortSignal,
+): Promise<{ answer: string }> {
+  return apiFetch<{ answer: string }>('/ai/chat', {
+    method: 'POST',
+    body: { message, history },
+    auth: false,
+    signal,
+  });
 }
 
 /* ----------------------------- Auth ------------------------------ */
@@ -244,13 +263,11 @@ export async function fetchProductsApi(query?: {
 }): Promise<Product[]> {
   try {
     const data = await apiFetch<any>('/products', { auth: false, query: query as any });
-    if (Array.isArray(data) && data.length > 0) {
-      return data.map(mapBackendProduct);
-    }
-    return FALLBACK_PRODUCTS;
+    if (Array.isArray(data)) return data.map(mapBackendProduct);
+    return [];
   } catch (err) {
-    console.warn('[PadHouse API] Backend unavailable, using verified local catalog fallback', err);
-    return FALLBACK_PRODUCTS;
+    console.warn('[PadHouse API] Backend unavailable; catalog could not be loaded', err);
+    return [];
   }
 }
 

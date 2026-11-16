@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Product, CartItem, Order, AppUser } from './types';
-import { FALLBACK_PRODUCTS, OFFICIAL_CATEGORIES } from './data/catalog';
+import { OFFICIAL_CATEGORIES } from './data/catalog';
 import {
   fetchProductsApi,
   fetchCartApi,
@@ -20,6 +20,7 @@ import {
 } from './services/api';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { AssistantChat } from './components/AssistantChat';
 import { HomePage } from './pages/HomePage';
 import { ProductsPage } from './pages/ProductsPage';
 import { ProductDetailsPage } from './pages/ProductDetailsPage';
@@ -68,8 +69,8 @@ function backendCartToItems(cart: BackendCart | null, products: Product[]): Cart
 
 export default function App() {
   // Products state (loads from backend API, falls back cleanly)
-  const [products, setProducts] = useState<Product[]>(FALLBACK_PRODUCTS);
-  const [selectedProduct, setSelectedProduct] = useState<Product>(FALLBACK_PRODUCTS[0]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -182,9 +183,7 @@ export default function App() {
   // Fetch backend products on mount
   useEffect(() => {
     fetchProductsApi().then((data) => {
-      if (data && data.length > 0) {
-        setProducts(data);
-      }
+      setProducts(data);
     });
   }, []);
 
@@ -546,7 +545,7 @@ export default function App() {
         )}
 
         {/* 4. Product Details */}
-        {activePage === 'product_details' && (
+        {activePage === 'product_details' && selectedProduct && (
           <ProductDetailsPage
             product={selectedProduct}
             allProducts={products}
@@ -746,6 +745,7 @@ export default function App() {
 
       {/* Main Professional E-commerce Footer */}
       <Footer onNavigate={navigateTo} />
+      <AssistantChat />
     </div>
   );
 }

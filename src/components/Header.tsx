@@ -107,6 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
             </form>
           </div>
 
+          <button onClick={() => onNavigate('products')} className="hidden sm:inline-flex shrink-0 items-center rounded-xl border border-ph-brand px-3 py-2 text-xs font-bold text-ph-brand hover:bg-ph-brand hover:text-white">جميع المنتجات</button>
           {/* Actions: Account, Wishlist, Cart */}
           <div className="flex items-center gap-2 sm:gap-4">
             {/* User Account / Profile */}
@@ -130,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
 
                   {userDropdownOpen && (
-                    <div className="absolute left-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-ph-border py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                    <div className="ph-popover-enter absolute left-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-ph-border py-2 z-50">
                       <div className="px-4 py-2 border-b border-ph-border">
                         <p className="text-xs font-bold text-ph-ink">{currentUser.name}</p>
                         <p className="text-[11px] text-ph-muted truncate">{currentUser.email}</p>
@@ -212,7 +213,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="relative">
                 <ShoppingBag className={`w-4 h-4 text-white group-hover:scale-110 transition-transform ${cartSyncing ? 'animate-pulse' : ''}`} />
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-white text-ph-brand text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                  <span key={cartCount} className="ph-cart-badge absolute -top-2 -right-2 bg-white text-ph-brand text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
                     {cartCount}
                   </span>
                 )}
@@ -244,7 +245,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* 3. Desktop Category Navigation Bar */}
-      <nav className="hidden md:block bg-white border-t border-ph-border px-4">
+      {false && <nav className="hidden md:block bg-white border-t border-ph-border px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-1">
             <button
@@ -342,11 +343,11 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
         </div>
-      </nav>
+      </nav>}
 
       {/* 4. Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-ph-border px-4 py-4 space-y-3 animate-in slide-in-from-top-3">
+        <div className="ph-drawer-enter md:hidden bg-white/95 border-t border-ph-border px-4 py-4 space-y-3">
           <div className="flex flex-col space-y-1">
             <button
               onClick={() => {
@@ -393,6 +394,8 @@ export const Header: React.FC<HeaderProps> = ({
             >
               تتبع شحنة
             </button>
+            <button onClick={() => { setMobileMenuOpen(false); onNavigate('about'); }} className="text-right py-2 px-3 text-sm font-bold text-ph-ink hover:bg-white rounded-lg">من نحن</button>
+            <button onClick={() => { setMobileMenuOpen(false); onNavigate('faq'); }} className="text-right py-2 px-3 text-sm font-bold text-ph-ink hover:bg-white rounded-lg">الأسئلة الشائعة</button>
           </div>
 
           <div className="border-t border-ph-border pt-3 flex flex-col space-y-1">

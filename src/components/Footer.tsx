@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  ShieldCheck,
-  Truck,
-  RotateCcw,
-  CreditCard,
-  Phone,
-  Mail,
-  MapPin,
-  Heart,
-  ChevronLeft
-} from 'lucide-react';
+import { Phone, Mail, MapPin, ChevronLeft } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (page: string, params?: any) => void;
@@ -17,61 +7,12 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   return (
-    <footer className="w-full bg-ph-brand-dark text-white pt-14 pb-8 border-t border-ph-border mt-20">
+    <footer className="w-full bg-ph-brand-dark text-white pt-10 pb-6 border-t border-ph-border mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Value Propositions / Trust Badges */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pb-12 border-b border-ph-border">
-          <div className="flex items-start gap-3.5 p-4 rounded-xl bg-ph-brand-dark/60 border border-ph-border">
-            <div className="w-10 h-10 rounded-lg bg-ph-border text-ph-brand flex items-center justify-center shrink-0">
-              <Truck className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-white mb-0.5">توصيل سريع وموثوق</h4>
-              <p className="text-xs text-white/80 leading-relaxed">
-                توصيل لجميع محافظات الضفة، القدس، وغزة خلال 24-48 ساعة.
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-start gap-3.5 p-4 rounded-xl bg-ph-brand-dark/60 border border-ph-border">
-            <div className="w-10 h-10 rounded-lg bg-ph-border text-ph-brand flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-white mb-0.5">ضمان أصلي حقيقي</h4>
-              <p className="text-xs text-white/80 leading-relaxed">
-                جميع المنتجات مضمونة مع استبدال فوري في حال أي عيب مصنعي.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3.5 p-4 rounded-xl bg-ph-brand-dark/60 border border-ph-border">
-            <div className="w-10 h-10 rounded-lg bg-ph-border text-ph-brand flex items-center justify-center shrink-0">
-              <RotateCcw className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-white mb-0.5">استرجاع واستبدال مرن</h4>
-              <p className="text-xs text-white/80 leading-relaxed">
-                إمكانية استبدال القطع ومراجعة التوافق مع موديل جهازك بكل سهولة.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3.5 p-4 rounded-xl bg-ph-brand-dark/60 border border-ph-border">
-            <div className="w-10 h-10 rounded-lg bg-ph-border text-ph-brand flex items-center justify-center shrink-0">
-              <CreditCard className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-white mb-0.5">الدفع عند الاستلام</h4>
-              <p className="text-xs text-white/80 leading-relaxed">
-                ادفع نقداً عند باب منزلك بعد فحص ومعاينة الطرد وسلامته.
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Links & Information Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 py-12 border-b border-ph-border text-right">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 py-8 border-b border-ph-border text-right">
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
@@ -205,7 +146,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         </div>
 
         {/* Bottom Copyright */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-white/80 gap-4">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-white/80 gap-4">
           <p>© {new Date().getFullYear()} بادهاوس (PadHouse Palestine). جميع الحقوق محفوظة.</p>
           <div className="flex items-center gap-4 text-[11px]">
             <span>طرق الدفع المتاحة: الدفع عند الاستلام • بال باي (PalPay) • حوالة بنكية</span>

@@ -1,6 +1,38 @@
-import React, { forwardRef, useId } from 'react';
+import React, { forwardRef, useEffect, useId, useRef, useState } from 'react';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 import { LoaderCircle } from 'lucide-react';
+
+export function useScrollReveal<T extends HTMLElement>(delayMs = 0) {
+  const ref = useRef<T>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || !('IntersectionObserver' in window)) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(element);
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -32px 0px' },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return {
+    ref,
+    className: `ph-reveal${isVisible ? ' ph-reveal--visible' : ''}`,
+    style: { '--ph-reveal-delay': `${delayMs}ms` } as React.CSSProperties,
+  };
+}
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';

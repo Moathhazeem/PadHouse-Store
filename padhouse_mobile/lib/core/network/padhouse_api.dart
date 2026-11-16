@@ -249,6 +249,22 @@ class PadhouseApi {
   Future<List<Map<String, dynamic>>> getFrequentlyBoughtTogether(String productId) async =>
       _asList(await _get('/recommendations/frequently-bought-together/$productId'));
 
+  Future<Map<String, dynamic>> chatAssistant({
+    required String message,
+    required List<Map<String, String>> history,
+  }) async {
+    final response = await _dio.post<dynamic>(
+      '/ai/chat',
+      data: {'message': message, 'history': history},
+      options: Options(
+        extra: {ApiClient.skipAuthorizationExtra: true},
+        sendTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 50),
+      ),
+    );
+    return _asMap(response.data);
+  }
+
   Future<Map<String, dynamic>> getIpadSetup(String model) async =>
       _asMap(await _get('/recommendations/ipad-setup', query: {'model': model}));
 

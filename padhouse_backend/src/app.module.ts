@@ -16,6 +16,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
 import { DeliveryModule } from './delivery/delivery.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { GiftCardsModule } from './gift-cards/gift-cards.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { GiftCardsModule } from './gift-cards/gift-cards.module';
     DeliveryModule,
     LoyaltyModule,
     GiftCardsModule,
+    AiModule,
   ],
   controllers: [],
   providers: [],

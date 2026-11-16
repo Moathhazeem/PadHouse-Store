@@ -49,7 +49,7 @@ IconData categoryIcon(String id) {
     case 'cat_chargers':
       return LucideIcons.zap;
     case 'cat_others':
-      return LucideIcons.package;
+      return LucideIcons.shieldCheck;
     default:
       return LucideIcons.layoutGrid;
   }
@@ -155,6 +155,59 @@ class SoftCard extends StatelessWidget {
   }
 }
 
+class PressScale extends StatefulWidget {
+  const PressScale({super.key, required this.child, this.enabled = true, this.scale = 0.985});
+
+  final Widget child;
+  final bool enabled;
+  final double scale;
+
+  @override
+  State<PressScale> createState() => _PressScaleState();
+}
+
+class _PressScaleState extends State<PressScale> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return Listener(
+      onPointerDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
+      onPointerUp: widget.enabled ? (_) => setState(() => _pressed = false) : null,
+      onPointerCancel: widget.enabled ? (_) => setState(() => _pressed = false) : null,
+      child: AnimatedScale(
+        scale: _pressed && !reduceMotion ? widget.scale : 1,
+        duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class ListEntrance extends StatelessWidget {
+  const ListEntrance({super.key, required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: reduceMotion ? Duration.zero : Duration(milliseconds: 220 + (index % 6) * 35),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(offset: Offset(0, 12 * (1 - value)), child: child),
+      ),
+      child: child,
+    );
+  }
+}
+
 class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.store, required this.product});
 
@@ -165,9 +218,11 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isWishlisted = store.wishlistIds.contains(product.id);
     final outOfStock = product.stock <= 0;
-    final hasDiscount = product.originalPrice > product.price;
+    final discountPercent = product.originalPrice > product.price
+        ? ((product.originalPrice - product.price) / product.originalPrice * 100).round()
+        : 0;
 
-    return Container(
+    return PressScale(child: Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -179,7 +234,7 @@ class ProductCard extends StatelessWidget {
         child: InkWell(
           onTap: () => store.openProduct(product),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: Stack(
@@ -192,16 +247,16 @@ class ProductCard extends StatelessWidget {
                         alignment: Alignment.center,
                         child: const Text('نفدت الكمية',
                             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: AppColors.error)),
-                      )
-                    else if (hasDiscount)
+                      ),
+                    if (discountPercent > 0)
                       Positioned(
                         top: 8,
                         right: 8,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(6)),
-                          child: const Text('خصم',
-                              style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                          decoration: BoxDecoration(color: AppColors.turquoise, borderRadius: BorderRadius.circular(6)),
+                          child: Text('خصم $discountPercent%',
+                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
                         ),
                       ),
                     Positioned(
@@ -230,28 +285,18 @@ class ProductCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(8),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, height: 1.35, color: AppColors.navy),
-                    ),
+                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      Expanded(child: Text(product.name, textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, height: 1.35, color: AppColors.navy))),
+                      const SizedBox(width: 6),
+                      const PhIcon(LucideIcons.star, size: 11, color: AppColors.starGold),
+                      const SizedBox(width: 2),
+                      Text('${product.rating} (${product.reviewsCount})', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+                    ]),
                     const SizedBox(height: 5),
                     CompatibilityBadge(label: product.compatibility),
                     const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        const PhIcon(LucideIcons.star, size: 12, color: AppColors.starGold),
-                        const SizedBox(width: 3),
-                        Text('${product.rating}',
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
-                        const SizedBox(width: 6),
-                        Text('(${product.reviewsCount})',
-                            style: const TextStyle(fontSize: 10, color: AppColors.textTertiary)),
-                      ],
-                    ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
@@ -264,16 +309,19 @@ class ProductCard extends StatelessWidget {
                                 textDirection: TextDirection.ltr,
                                 child: Text('${product.price} ₪', style: AppTypography.latin(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.emerald)),
                               ),
-                              if (hasDiscount) ...[
+                              if (discountPercent > 0) ...[
                                 const SizedBox(width: 4),
                                 Flexible(
-                                  child: Text('${product.originalPrice} ₪',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 10,
-                                          color: AppColors.textTertiary,
-                                          decoration: TextDecoration.lineThrough)),
+                                  child: Directionality(
+                                    textDirection: TextDirection.ltr,
+                                    child: Text('${product.originalPrice} ₪',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.textTertiary,
+                                            decoration: TextDecoration.lineThrough)),
+                                  ),
                                 ),
                               ],
                             ],
@@ -305,7 +353,7 @@ class ProductCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -427,7 +475,7 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return PressScale(enabled: onPressed != null, child: SizedBox(
       width: double.infinity,
       child: FilledButton(
         key: keyId,
@@ -449,7 +497,7 @@ class PrimaryButton extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 

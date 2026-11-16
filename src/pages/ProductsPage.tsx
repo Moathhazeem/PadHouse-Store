@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { SlidersHorizontal, ArrowUpDown, Check, PackageSearch } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, Check, PackageSearch, PenLine, Smartphone, Keyboard, BriefcaseBusiness, Cable, Shield } from 'lucide-react';
 import { Product } from '../types';
 import { OFFICIAL_CATEGORIES } from '../data/catalog';
 import { ProductCard } from '../components/ProductCard';
@@ -30,6 +30,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
   const [sortBy, setSortBy] = useState<'featured' | 'price_low' | 'price_high' | 'rating'>('featured');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [priceRange, setPriceRange] = useState<number>(200);
+  const [minimumRating, setMinimumRating] = useState(0);
 
   // Filtered & Sorted products
   const filteredProducts = useMemo(() => {
@@ -54,7 +55,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
         // Price filter
         const matchPrice = p.price <= priceRange;
 
-        return matchCategory && matchSearch && matchStock && matchPrice;
+        return matchCategory && matchSearch && matchStock && matchPrice && p.rating >= minimumRating;
       })
       .sort((a, b) => {
         if (sortBy === 'price_low') return a.price - b.price;
@@ -62,13 +63,19 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
         if (sortBy === 'rating') return b.rating - a.rating;
         return 0; // featured/default
       });
-  }, [products, selectedCategory, internalSearch, inStockOnly, priceRange, sortBy]);
+  }, [products, selectedCategory, internalSearch, inStockOnly, priceRange, minimumRating, sortBy]);
 
   const activeCategoryTitle =
     OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'جميع المنتجات';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-6 flex gap-2 overflow-x-auto pb-2" aria-label="تصفية حسب القسم">
+        {OFFICIAL_CATEGORIES.map((cat) => {
+          const Icon = ({cat_pens: PenLine, cat_cases: Smartphone, cat_keyboards: Keyboard, cat_stands: BriefcaseBusiness, cat_chargers: Cable, cat_others: Shield, all: PackageSearch} as Record<string, React.ElementType>)[cat.id] || PackageSearch;
+          return <button key={cat.id} onClick={() => onSelectCategory(cat.id)} className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold ${selectedCategory === cat.id ? 'border-ph-brand bg-ph-brand text-white' : 'border-ph-border bg-white text-ph-ink hover:border-ph-brand'}`}><Icon className="h-4 w-4" strokeWidth={1.7}/>{cat.name}</button>;
+        })}
+      </div>
       {/* Top Breadcrumb & Heading */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-ph-border pb-5">
         <div>
@@ -109,19 +116,27 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                 <SlidersHorizontal className="w-4 h-4 text-ph-brand" />
                 تصفية المنتجات
               </span>
-              {(selectedCategory !== 'all' || internalSearch || inStockOnly || priceRange < 200) && (
+              {(selectedCategory !== 'all' || internalSearch || inStockOnly || priceRange < 200 || minimumRating > 0) && (
                 <button
                   onClick={() => {
                     onSelectCategory('all');
                     setInternalSearch('');
                     setInStockOnly(false);
                     setPriceRange(200);
+                    setMinimumRating(0);
                   }}
                   className="text-[11px] font-semibold text-ph-brand hover:underline"
                 >
                   إعادة ضبط
                 </button>
               )}
+            </div>
+
+            <div>
+              <label htmlFor="minimum-rating" className="text-xs font-bold text-ph-ink block mb-2">الحد الأدنى للتقييم</label>
+              <select id="minimum-rating" value={minimumRating} onChange={(event) => setMinimumRating(Number(event.target.value))} className="w-full rounded-xl border border-ph-border bg-white px-3 py-2 text-xs text-ph-ink focus:border-ph-brand">
+                <option value={0}>كل التقييمات</option><option value={4}>4 نجوم فأعلى</option><option value={3}>3 نجوم فأعلى</option>
+              </select>
             </div>
 
             {/* Category Filter */}
@@ -203,7 +218,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredProducts.map((prod) => (
+              {filteredProducts.map((prod, index) => (
                 <ProductCard
                   key={prod.id}
                   product={prod}
@@ -211,6 +226,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                   onSelect={onSelectProduct}
                   onAddToCart={onAddToCart}
                   onToggleWishlist={onToggleWishlist}
+                  revealDelay={(index % 8) * 45}
                 />
               ))}
             </div>

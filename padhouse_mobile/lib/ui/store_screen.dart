@@ -28,11 +28,26 @@ class StoreScreen extends ConsumerWidget {
               children: [
                 _Header(store: store),
                 Expanded(
-                  child: admin
-                      ? AdminBody(store: store)
-                      : store.customerStack != null
-                          ? CustomerStackBody(store: store)
-                          : CustomerTabBody(store: store),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(begin: const Offset(0, 0.025), end: Offset.zero).animate(animation),
+                        child: child,
+                      ),
+                    ),
+                    child: KeyedSubtree(
+                      key: ValueKey('${store.appMode}:${store.customerStack ?? store.customerTab}:${store.adminTab}'),
+                      child: admin
+                          ? AdminBody(store: store)
+                          : store.customerStack != null
+                              ? CustomerStackBody(store: store)
+                              : CustomerTabBody(store: store),
+                    ),
+                  ),
                 ),
                 admin ? _AdminNav(store: store) : _CustomerNav(store: store),
               ],
@@ -567,7 +582,10 @@ class _SearchTabState extends State<_SearchTab> {
                         childAspectRatio: 0.72,
                       ),
                       itemCount: results.length,
-                      itemBuilder: (context, index) => ProductCard(store: store, product: results[index]),
+                      itemBuilder: (context, index) => ListEntrance(
+                        index: index,
+                        child: ProductCard(store: store, product: results[index]),
+                      ),
                     ),
         ),
       ],
@@ -866,7 +884,10 @@ class _HomeTab extends StatelessWidget {
                 mainAxisSpacing: 10,
                 childAspectRatio: 0.72,
               ),
-              itemBuilder: (context, index) => ProductCard(store: store, product: products[index]),
+              itemBuilder: (context, index) => ListEntrance(
+                index: index,
+                child: ProductCard(store: store, product: products[index]),
+              ),
             );
           },
         ),
@@ -989,7 +1010,10 @@ class _CategoriesTabState extends State<_CategoriesTab> {
                       childAspectRatio: 0.72,
                     ),
                     itemCount: catProducts.length,
-                    itemBuilder: (context, index) => ProductCard(store: store, product: catProducts[index]),
+                    itemBuilder: (context, index) => ListEntrance(
+                      index: index,
+                      child: ProductCard(store: store, product: catProducts[index]),
+                    ),
                   ),
           ),
         ],
@@ -1121,7 +1145,7 @@ class _AiTabState extends State<_AiTab> {
                 ],
               ),
               const Spacer(),
-              if (store.isAiThinking)
+              if (store.isCustomerAiThinking)
                 const SizedBox(
                   width: 18,
                   height: 18,
@@ -1135,7 +1159,7 @@ class _AiTabState extends State<_AiTab> {
           child: ListView.builder(
             controller: _scrollController,
             padding: const EdgeInsets.all(14),
-            itemCount: 1 + store.aiChat.length,
+            itemCount: 1 + store.customerAiChat.length,
             itemBuilder: (context, index) {
               if (index == 0) {
                 // Welcome message
@@ -1173,7 +1197,7 @@ class _AiTabState extends State<_AiTab> {
                   ),
                 );
               }
-              final msg = store.aiChat[index - 1];
+              final msg = store.customerAiChat[index - 1];
               final isUser = msg.sender == 'user';
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -1207,6 +1231,9 @@ class _AiTabState extends State<_AiTab> {
                         ),
                         child: Text(
                           msg.text,
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.start,
+                          softWrap: true,
                           style: TextStyle(fontSize: 13, height: 1.5, color: isUser ? Colors.white : AppColors.navy),
                         ),
                       ),
@@ -1219,7 +1246,7 @@ class _AiTabState extends State<_AiTab> {
           ),
         ),
         // AI thinking indicator
-        if (store.isAiThinking)
+        if (store.isCustomerAiThinking)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             child: Row(
@@ -1257,7 +1284,7 @@ class _AiTabState extends State<_AiTab> {
             ),
           ),
         // Suggestion chips
-        if (store.aiChat.length <= 1)
+        if (store.customerAiChat.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             child: SingleChildScrollView(
@@ -1303,7 +1330,9 @@ class _AiTabState extends State<_AiTab> {
                   ),
                   child: TextField(
                     controller: _controller,
-                    decoration: bareInput('اكتب سؤالك هنا...'),
+                    enabled: !store.isCustomerAiThinking,
+                    maxLength: 1200,
+                    decoration: bareInput('اكتب سؤالك هنا...').copyWith(counterText: ''),
                     onSubmitted: _send,
                     textInputAction: TextInputAction.send,
                   ),
@@ -1311,13 +1340,13 @@ class _AiTabState extends State<_AiTab> {
               ),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: () => _send(),
+                onTap: store.isCustomerAiThinking ? null : () => _send(),
                 child: Container(
                   width: 44,
                   height: 44,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: store.isAiThinking ? AppColors.textTertiary : AppColors.turquoise,
+                    color: store.isCustomerAiThinking ? AppColors.textTertiary : AppColors.turquoise,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const PhIcon(LucideIcons.send, size: 18, color: Colors.white),
@@ -1379,7 +1408,10 @@ class _WishlistTab extends StatelessWidget {
                     childAspectRatio: 0.72,
                   ),
                   itemCount: wishlistProducts.length,
-                  itemBuilder: (context, index) => ProductCard(store: store, product: wishlistProducts[index]),
+                  itemBuilder: (context, index) => ListEntrance(
+                    index: index,
+                    child: ProductCard(store: store, product: wishlistProducts[index]),
+                  ),
                 ),
         ),
       ],
@@ -1471,7 +1503,17 @@ class _ProfileTab extends StatelessWidget {
         _menuTile(LucideIcons.heart, 'قائمة المفضلة', () => store.setCustomerTab(CustomerTab.wishlist)),
         _menuTile(LucideIcons.mapPin, 'عناويني', () => store.setStack(CustomerStack.addresses)),
         _menuTile(LucideIcons.bell, 'الإشعارات', () => store.setStack(CustomerStack.notifications)),
-        _menuTile(LucideIcons.settings, 'الإعدادات', () => store.setStack(CustomerStack.settings)),
+            _menuTile(LucideIcons.settings, 'الإعدادات', () => store.setStack(CustomerStack.settings)),
+            _menuTile(LucideIcons.info, 'من نحن', () => showDialog<void>(context: context, builder: (context) => AlertDialog(
+              title: const Text('من نحن'),
+              content: const Text('بادهاوس متجر فلسطيني متخصص بملحقات iPad، انطلق من رام الله لمساعدة الطلاب والمبدعين على اختيار ملحقات مناسبة ومتوافقة مع أجهزتهم.'),
+              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق'))],
+            ))),
+            _menuTile(LucideIcons.circleHelp, 'الأسئلة الشائعة', () => showDialog<void>(context: context, builder: (context) => AlertDialog(
+              title: const Text('الأسئلة الشائعة'),
+              content: const SingleChildScrollView(child: Text('كيف أعرف موديل الآيباد؟ من الإعدادات ← عام ← حول.\n\nكيف أتأكد من التوافق؟ طابق رقم الموديل مع بيانات المنتج أو تواصل مع خدمة العملاء قبل الطلب.\n\nما مدة التوصيل والضمان؟ تختلف حسب المنطقة والمنتج؛ راجع تفاصيل المنتج وسياسة المتجر.')),
+              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق'))],
+            ))),
         _menuTile(LucideIcons.messageSquare, 'خدمة العملاء', () => store.setStack(CustomerStack.support)),
         _menuTile(LucideIcons.logOut, 'تسجيل الخروج', store.logout, danger: true),
       ],

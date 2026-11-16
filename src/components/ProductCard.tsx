@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, PackageOpen, ShoppingBag, Star } from 'lucide-react';
 import type { Product } from '../types';
-import { Button, CompatibilityBadge } from './ui';
+import { Button, CompatibilityBadge, useScrollReveal } from './ui';
 
 interface ProductCardProps {
   product: Product;
@@ -9,6 +9,7 @@ interface ProductCardProps {
   onSelect: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onToggleWishlist: (productId: string) => void;
+  revealDelay?: number;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -17,15 +18,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onSelect,
   onAddToCart,
   onToggleWishlist,
+  revealDelay = 0,
 }) => {
   const [imageFailed, setImageFailed] = useState(false);
+  const reveal = useScrollReveal<HTMLElement>(revealDelay);
   const discountPercent =
     product.originalPrice > product.price
       ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
       : 0;
 
   return (
-    <article className="ph-product-card group flex flex-col">
+    <article ref={reveal.ref} style={reveal.style} className={`${reveal.className} ph-product-card group flex flex-col`}>
       <div className="ph-product-media">
         <div className="absolute end-2.5 top-2.5 z-10 flex flex-col items-end gap-1.5">
           {discountPercent > 0 && (
@@ -82,26 +85,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
       <div className="ph-product-content">
         <div>
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <CompatibilityBadge>
-              <span className="truncate" dir="auto">{product.compatibility}</span>
-            </CompatibilityBadge>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <button type="button" onClick={() => onSelect(product)} className="ph-product-title min-w-0 flex-1 text-right hover:text-ph-accent" title={product.name} dir="auto">{product.name}</button>
             <div className="flex shrink-0 items-center gap-1 text-xs font-semibold text-ph-ink" aria-label={`التقييم ${product.rating} من 5`}>
               <Star className="h-3.5 w-3.5 fill-[#F59E0B] text-[#F59E0B]" aria-hidden="true" />
               <span className="ph-ltr">{product.rating.toFixed(1)}</span>
               <span className="text-ph-muted font-normal">({product.reviewsCount})</span>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => onSelect(product)}
-            className="ph-product-title w-full text-start hover:text-ph-accent"
-            title={product.name}
-            dir="auto"
-          >
-            {product.name}
-          </button>
+          <div className="mb-2 flex justify-end"><CompatibilityBadge><span className="truncate" dir="auto">{product.compatibility}</span></CompatibilityBadge></div>
 
           {product.colors?.length > 0 && (
             <div className="mt-2 flex items-center gap-1.5 overflow-hidden">

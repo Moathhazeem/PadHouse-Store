@@ -8,11 +8,13 @@ import {
   Zap,
   Star,
   CheckCircle2,
-  ChevronLeft
+  ChevronLeft,
+  PenLine, BriefcaseBusiness, Keyboard, Smartphone, Cable, Shield
 } from 'lucide-react';
 import { Product } from '../types';
 import { OFFICIAL_CATEGORIES } from '../data/catalog';
 import { ProductCard } from '../components/ProductCard';
+import { useScrollReveal } from '../components/ui';
 
 interface HomePageProps {
   products: Product[];
@@ -31,6 +33,8 @@ export const HomePage: React.FC<HomePageProps> = ({
   onToggleWishlist,
   onNavigate,
 }) => {
+  const heroReveal = useScrollReveal<HTMLElement>();
+  const categoriesReveal = useScrollReveal<HTMLElement>(80);
   // Best Sellers (e.g. pencil, paperfeel, keyboard cases)
   const bestSellers = products.filter(p => ['prod-01', 'prod-19', 'prod-07', 'prod-06'].includes(p.id));
   const newArrivals = products.filter(p => ['prod-10', 'prod-05', 'prod-13', 'prod-08'].includes(p.id));
@@ -43,7 +47,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="w-full space-y-16 pb-12">
       {/* 1. Hero Section: Premium Modern Apple-Inspired */}
-      <section className="relative overflow-hidden bg-white border-b border-ph-border py-12 md:py-20">
+      <section ref={heroReveal.ref} style={heroReveal.style} className={`${heroReveal.className} relative overflow-hidden bg-white border-b border-ph-border py-12 md:py-20`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             {/* Left Content (RTL -> Right side in visual) */}
@@ -127,7 +131,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* 2. Featured Categories Grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
+      <section ref={categoriesReveal.ref} style={categoriesReveal.style} className={`${categoriesReveal.className} ph-stagger-reveal max-w-7xl mx-auto px-4 sm:px-6`}>
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-ph-ink">تصفح حسب القسم</h2>
@@ -143,15 +147,16 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          {OFFICIAL_CATEGORIES.filter(c => c.id !== 'all').map((cat) => {
+          {OFFICIAL_CATEGORIES.filter(c => c.id !== 'all').map((cat, index) => {
             return (
               <button
                 key={cat.id}
                 onClick={() => onNavigate('products', { category: cat.id })}
-                className="group p-4 rounded-2xl bg-white hover:bg-white border border-ph-border hover:border-ph-border hover:shadow-lg transition-all duration-300 text-center flex flex-col items-center justify-center gap-3"
+                className="ph-stagger-item group p-4 rounded-2xl bg-white hover:bg-white border border-ph-border hover:border-ph-border hover:shadow-lg transition-all duration-300 text-center flex flex-col items-center justify-center gap-3"
+                style={{ '--ph-stagger-index': index } as React.CSSProperties}
               >
                 <div className="w-12 h-12 rounded-xl bg-white shadow-xs group-hover:bg-ph-brand text-ph-ink group-hover:text-white flex items-center justify-center transition-colors">
-                  <span className="font-bold text-sm">{cat.name.slice(0, 2)}</span>
+                  {({cat_pens: PenLine, cat_cases: Smartphone, cat_keyboards: Keyboard, cat_stands: BriefcaseBusiness, cat_chargers: Cable, cat_others: Shield} as Record<string, React.ElementType>)[cat.id] && React.createElement(({cat_pens: PenLine, cat_cases: Smartphone, cat_keyboards: Keyboard, cat_stands: BriefcaseBusiness, cat_chargers: Cable, cat_others: Shield} as Record<string, React.ElementType>)[cat.id], {className: 'h-6 w-6', strokeWidth: 1.6})}
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-ph-ink group-hover:text-ph-brand transition-colors">
@@ -187,7 +192,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {bestSellers.map((prod) => (
+          {bestSellers.map((prod, index) => (
             <ProductCard
               key={prod.id}
               product={prod}
@@ -195,13 +200,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               onSelect={onSelectProduct}
               onAddToCart={() => onAddToCart(prod)}
               onToggleWishlist={onToggleWishlist}
+              revealDelay={index * 55}
             />
           ))}
         </div>
       </section>
 
       {/* 4. Product Bundle & "Frequently Bought Together" Promo */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
+      {penProduct && paperProduct && <section className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="rounded-3xl bg-ph-brand text-white p-6 sm:p-10 border border-ph-border shadow-xl overflow-hidden relative">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-4 text-right">
@@ -211,14 +217,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               <h2 className="text-2xl sm:text-3xl font-black text-white">
                 قلم بادهاوس الذكي + شاشة الورق PaperFeel الأصلية
               </h2>
-              <p className="text-xs sm:text-sm text-ph-muted leading-relaxed max-w-lg">
+              <p className="text-xs sm:text-sm text-white/90 leading-relaxed max-w-lg">
                 احصل على أفضل تجربة تدوين ملاحظات ورسم رقمي بملمس مطابق تماماً للورق الحقيقي، مع قلم ذكي بدقة بكسل فائقة ودعم راحة اليد.
               </p>
 
               <div className="flex items-baseline gap-3 pt-2">
-                <span className="text-3xl font-black text-ph-brand">150 ₪</span>
-                <span className="text-base text-ph-muted line-through">190 ₪</span>
-                <span className="text-xs font-semibold text-ph-brand">توصيل مجاني لكافة المدن</span>
+                <span className="text-3xl font-black text-white">150 ₪</span>
+                <span className="text-base text-white/90 line-through">190 ₪</span>
+                <span className="text-xs font-semibold text-white">توصيل مجاني لكافة المدن</span>
               </div>
 
               <div className="pt-2 flex items-center gap-3">
@@ -234,7 +240,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </button>
                 <button
                   onClick={() => onSelectProduct(penProduct)}
-                  className="text-xs text-ph-muted hover:text-white underline underline-offset-4"
+                  className="text-xs text-white hover:text-white/80 underline underline-offset-4"
                 >
                   تفاصيل المنتجات
                 </button>
@@ -252,7 +258,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* 5. Special Offers & Discounts */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -264,7 +270,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {specialOffers.map((prod) => (
+          {specialOffers.map((prod, index) => (
             <ProductCard
               key={prod.id}
               product={prod}
@@ -272,6 +278,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               onSelect={onSelectProduct}
               onAddToCart={() => onAddToCart(prod)}
               onToggleWishlist={onToggleWishlist}
+              revealDelay={index * 55}
             />
           ))}
         </div>
