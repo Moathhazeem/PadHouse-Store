@@ -21,6 +21,23 @@ class ApiClient {
     return fallbackRemoteUrl;
   }
 
+  static String resolveImageUrl(String value) {
+    final uri = Uri.tryParse(value.trim());
+    if (uri == null || value.trim().isEmpty) return '';
+
+    if (const {'padhouse.ps', 'www.padhouse.ps'}.contains(uri.host.toLowerCase())) {
+      final sourceUrl = uri.replace(scheme: 'https').toString();
+      final apiBase = baseUrl.replaceFirst(RegExp(r'/+$'), '');
+      return '$apiBase/products/image?url=${Uri.encodeComponent(sourceUrl)}';
+    }
+
+    if (uri.hasScheme) return uri.toString();
+    return Uri.parse(baseUrl).replace(
+      path: uri.path,
+      query: uri.hasQuery ? uri.query : null,
+    ).toString();
+  }
+
   late final Dio _dio = _createDio();
 
   Dio get dio => _dio;

@@ -8,6 +8,7 @@ export class ProductsController {
   constructor(private productsService: ProductsService) {}
 
   @Get('image')
+  @Header('Access-Control-Allow-Origin', '*')
   @Header('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800')
   async getProductImage(@Query('url') url: string): Promise<StreamableFile> {
     const image = await this.productsService.fetchProductImage(url);

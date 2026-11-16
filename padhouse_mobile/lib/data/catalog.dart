@@ -82,22 +82,8 @@ class Product {
       imageList = imgs.map((e) => e.toString()).toList();
     }
     final rawImg = json['image']?.toString() ?? (imageList.isNotEmpty ? imageList.first : '');
-    String resolveImage(String value) {
-      final uri = Uri.tryParse(value.trim());
-      if (uri == null || value.trim().isEmpty) return '';
-      if (uri.hasScheme) {
-        if (uri.scheme == 'https' && const {'padhouse.ps', 'www.padhouse.ps'}.contains(uri.host)) {
-          return Uri.parse('${ApiClient.baseUrl}/products/image')
-              .replace(queryParameters: {'url': uri.toString()})
-              .toString();
-        }
-        return uri.toString();
-      }
-      final apiUri = Uri.parse(ApiClient.baseUrl);
-      return apiUri.replace(path: uri.path, query: uri.hasQuery ? uri.query : null).toString();
-    }
-    imageList = imageList.map(resolveImage).where((value) => value.isNotEmpty).toList();
-    final resolvedRawImg = resolveImage(rawImg);
+    imageList = imageList.map(ApiClient.resolveImageUrl).where((value) => value.isNotEmpty).toList();
+    final resolvedRawImg = ApiClient.resolveImageUrl(rawImg);
     if (imageList.isEmpty && resolvedRawImg.isNotEmpty) {
       imageList = [resolvedRawImg];
     }

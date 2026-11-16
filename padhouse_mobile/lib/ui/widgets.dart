@@ -1,13 +1,24 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../core/network/api_client.dart';
 import '../core/theme/app_colors.dart';
 import '../data/catalog.dart';
 import '../state/padhouse_controller.dart';
 
 bool get skipNetworkImages =>
     WidgetsBinding.instance.runtimeType.toString().contains('Test');
+
+String resolveImageUrl(String url) {
+  final value = url.trim();
+  if (kIsWeb && (value.startsWith('https://padhouse.ps/') || value.startsWith('http://padhouse.ps/'))) {
+    final apiBase = ApiClient.baseUrl.replaceFirst(RegExp(r'/+$'), '');
+    return '$apiBase/products/image?url=${Uri.encodeComponent(value)}';
+  }
+  return ApiClient.resolveImageUrl(value);
+}
 
 class PhIcon extends StatelessWidget {
   const PhIcon(this.icon, {super.key, this.size = 18, this.color, this.stroke = 1.75});
@@ -67,9 +78,7 @@ class NetImage extends StatelessWidget {
       );
     }
 
-    final safeUrl = cleanUrl.startsWith('http')
-        ? Uri.encodeFull(cleanUrl)
-        : cleanUrl;
+    final safeUrl = resolveImageUrl(cleanUrl);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),

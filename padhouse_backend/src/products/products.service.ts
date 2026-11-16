@@ -39,7 +39,11 @@ export class ProductsService {
         timeout: 10000,
         maxRedirects: 0,
         maxContentLength: 8 * 1024 * 1024,
-        headers: { Accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif' },
+        headers: {
+          Accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        },
       });
       const contentType = String(response.headers['content-type'] || '').split(';')[0].toLowerCase();
       if (!['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
