@@ -482,6 +482,17 @@ class PadhouseController extends ChangeNotifier {
                 : answer),
       ];
     } catch (error) {
+      if (error is DioException) {
+        debugPrint(
+          '[PadHouse AI] ${error.requestOptions.method} '
+          '${error.requestOptions.uri} failed: '
+          'HTTP ${error.response?.statusCode ?? 'no response'}; '
+          'type=${error.type}; message=${error.message}; '
+          'response=${error.response?.data}',
+        );
+      } else {
+        debugPrint('[PadHouse AI] Unexpected chatbot error: $error');
+      }
       customerAiChat = [
         ...customerAiChat,
         ChatMessage(

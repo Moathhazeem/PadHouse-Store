@@ -258,7 +258,7 @@ class PadhouseApi {
       data: {'message': message, 'history': history},
       options: Options(
         extra: {ApiClient.skipAuthorizationExtra: true},
-        sendTimeout: const Duration(seconds: 10),
+        sendTimeout: const Duration(seconds: 50),
         receiveTimeout: const Duration(seconds: 50),
       ),
     );

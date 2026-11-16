@@ -84,7 +84,8 @@ class ApiClient {
         },
         onError: (DioException error, handler) async {
           // Automatic Refresh Token Rotation on 401 Unauthorized
-          if (error.response?.statusCode == 401) {
+          if (error.response?.statusCode == 401 &&
+              error.requestOptions.extra[skipAuthorizationExtra] != true) {
             final refreshToken = await _storage.read(key: 'refresh_token');
             if (refreshToken != null) {
               try {
