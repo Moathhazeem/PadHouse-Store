@@ -10,34 +10,36 @@ class ApiClient {
 
   static const String _configuredBaseUrl =
       String.fromEnvironment('API_BASE_URL');
-  // Replace the default with the development PC's LAN address when building
-  // for a physical Android device, or pass --dart-define=API_BASE_URL=... .
-  static const String androidLanBaseUrl = 'http://192.168.1.100:4000';
+  /// Production backend (Render). All release / profile builds target this host.
+  static const String productionBaseUrl = 'https://padhouse-store.onrender.com';
   static const String skipAuthorizationExtra = 'padhouse.skipAuthorization';
+  // Local development backend, resolved only in debug builds. Override any host
+  // (e.g. a physical device's LAN address) with --dart-define=API_BASE_URL=... .
   static const String localDevelopmentBaseUrl = 'http://localhost:4000/api/v1';
   static final String baseUrl = _resolveBaseUrl();
-  static const String fallbackRemoteUrl = 'https://api.padhouse.ps/api/v1';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   static String _resolveBaseUrl() {
+    // 1. Explicit override always wins (CI, staging, physical devices).
     if (_configuredBaseUrl.isNotEmpty) {
       return _withApiPrefix(_configuredBaseUrl);
     }
+
+    // 2. Release and profile builds always target the production backend.
+    if (!kDebugMode) {
+      return _withApiPrefix(productionBaseUrl);
+    }
+
+    // 3. Debug builds resolve a local development backend.
     final host = Uri.base.host;
     if (kIsWeb && const {'localhost', '127.0.0.1', '::1'}.contains(host)) {
       return _withApiPrefix(Uri(scheme: 'http', host: host, port: 4000).toString());
     }
     // Android emulators use 10.0.2.2 to reach the development host's loopback.
-    if (kDebugMode &&
-        !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.android) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return _withApiPrefix('http://10.0.2.2:4000');
     }
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return _withApiPrefix(androidLanBaseUrl);
-    }
-    if (kDebugMode) return _withApiPrefix(localDevelopmentBaseUrl);
-    return _withApiPrefix(fallbackRemoteUrl);
+    return _withApiPrefix(localDevelopmentBaseUrl);
   }
 
   static String _withApiPrefix(String value) {
