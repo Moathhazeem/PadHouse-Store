@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -14,12 +13,7 @@ bool get skipNetworkImages =>
     WidgetsBinding.instance.runtimeType.toString().contains('Test');
 
 String resolveImageUrl(String url) {
-  final value = url.trim();
-  if (kIsWeb && (value.startsWith('https://padhouse.ps/') || value.startsWith('http://padhouse.ps/'))) {
-    final apiBase = ApiClient.baseUrl.replaceFirst(RegExp(r'/+$'), '');
-    return '$apiBase/products/image?url=${Uri.encodeComponent(value)}';
-  }
-  return ApiClient.resolveImageUrl(value);
+  return ApiClient.resolveImageUrl(url);
 }
 
 class PhIcon extends StatelessWidget {

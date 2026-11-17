@@ -10,6 +10,9 @@ class ApiClient {
 
   static const String _configuredBaseUrl =
       String.fromEnvironment('API_BASE_URL');
+  // Replace the default with the development PC's LAN address when building
+  // for a physical Android device, or pass --dart-define=API_BASE_URL=... .
+  static const String androidLanBaseUrl = 'http://192.168.1.100:4000';
   static const String skipAuthorizationExtra = 'padhouse.skipAuthorization';
   static const String localDevelopmentBaseUrl = 'http://localhost:4000/api/v1';
   static final String baseUrl = _resolveBaseUrl();
@@ -17,20 +20,31 @@ class ApiClient {
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   static String _resolveBaseUrl() {
-    if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
+    if (_configuredBaseUrl.isNotEmpty) {
+      return _withApiPrefix(_configuredBaseUrl);
+    }
     final host = Uri.base.host;
     if (kIsWeb && const {'localhost', '127.0.0.1', '::1'}.contains(host)) {
-      return Uri(scheme: 'http', host: host, port: 4000, path: '/api/v1')
-          .toString();
+      return _withApiPrefix(Uri(scheme: 'http', host: host, port: 4000).toString());
     }
     // Android emulators use 10.0.2.2 to reach the development host's loopback.
     if (kDebugMode &&
         !kIsWeb &&
         defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:4000/api/v1';
+      return _withApiPrefix('http://10.0.2.2:4000');
     }
-    if (kDebugMode) return localDevelopmentBaseUrl;
-    return fallbackRemoteUrl;
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return _withApiPrefix(androidLanBaseUrl);
+    }
+    if (kDebugMode) return _withApiPrefix(localDevelopmentBaseUrl);
+    return _withApiPrefix(fallbackRemoteUrl);
+  }
+
+  static String _withApiPrefix(String value) {
+    final uri = Uri.parse(value.trim());
+    final path = uri.path.replaceFirst(RegExp(r'/+$'), '');
+    final apiPath = path.endsWith('/api/v1') ? path : '$path/api/v1';
+    return uri.replace(path: apiPath).toString().replaceFirst(RegExp(r'/+$'), '');
   }
 
   static String resolveImageUrl(String value) {
