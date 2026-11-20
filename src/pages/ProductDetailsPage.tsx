@@ -14,6 +14,7 @@ import {
   BellRing,
   MessageCircle,
   Loader2,
+  XCircle,
 } from 'lucide-react';
 import { AppUser, Product } from '../types';
 import { ProductCard } from '../components/ProductCard';
@@ -54,6 +55,8 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
   const [quantity, setQuantity] = useState<number>(1);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews'>('desc');
+  const [heartPopping, setHeartPopping] = useState(false);
+  const [addedRecently, setAddedRecently] = useState(false);
 
   // Verified compatibility (never guessed — comes from the backend product record)
   const compatibilityList = product.compatibilityList || [];
@@ -182,28 +185,35 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         {/* Gallery Column (6 cols) */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="relative w-full aspect-square rounded-3xl bg-white border border-ph-border p-8 flex items-center justify-center overflow-hidden">
+          <div className="relative w-full aspect-square rounded-3xl bg-white border border-ph-border p-8 flex items-center justify-center overflow-hidden group">
             {discountPercent > 0 && (
-              <span className="absolute top-4 right-4 bg-ph-brand text-white text-xs font-black px-3 py-1 rounded-full shadow-xs">
+              <span className="absolute top-4 right-4 bg-ph-brand text-white text-xs font-black px-3 py-1 rounded-full shadow-xs z-10">
                 خصم {discountPercent}%
               </span>
             )}
+            {/* Out-of-stock diagonal ribbon */}
+            {product.stock <= 0 && (
+              <div className="ph-oos-ribbon ph-oos-ribbon--lg" aria-label="نفذت الكمية">
+                نفذت الكمية
+              </div>
+            )}
             <img
+              key={activeImageIndex}
               src={images[activeImageIndex] || product.image}
               alt={product.name}
               onError={handleImageError}
-              className="max-h-full max-w-full object-contain"
+              className="max-h-full max-w-full object-contain transition-all duration-300 hover:scale-105"
             />
           </div>
 
           {images.length > 1 && (
-            <div className="flex gap-3 overflow-x-auto pb-2">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
               {images.map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`w-20 h-20 rounded-2xl bg-white p-2 border-2 transition-all shrink-0 ${
-                    activeImageIndex === idx ? 'border-ph-brand shadow-sm' : 'border-transparent hover:border-ph-border'
+                  className={`w-20 h-20 rounded-2xl bg-white p-2 border-2 transition-all duration-200 shrink-0 hover:scale-105 active:scale-95 ${
+                    activeImageIndex === idx ? 'border-ph-brand shadow-md ring-2 ring-ph-brand/20' : 'border-ph-border/60 hover:border-ph-brand/40'
                   }`}
                 >
                   <img src={img} alt="صورة مصغرة" onError={handleImageError} className="w-full h-full object-contain" />
@@ -288,43 +298,85 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
           {/* Quantity & Cart Actions */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center gap-3">
-              <div className="flex items-center border border-ph-border rounded-xl bg-white p-1">
+              <div
+                className={`flex items-center border border-ph-border rounded-xl bg-white p-1 shadow-2xs ${
+                  product.stock <= 0 ? 'opacity-40 pointer-events-none' : ''
+                }`}
+              >
                 <button
+                  type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-ph-muted hover:bg-white"
+                  disabled={product.stock <= 0}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-ph-muted hover:bg-ph-background hover:text-ph-ink transition-colors active:scale-90"
+                  aria-label="إنقاص الكمية"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="w-10 text-center font-bold text-sm text-ph-ink">{quantity}</span>
+                <span className="w-10 text-center font-bold text-sm text-ph-ink transition-all font-mono">
+                  {product.stock <= 0 ? 0 : quantity}
+                </span>
                 <button
+                  type="button"
                   onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-ph-muted hover:bg-white"
+                  disabled={product.stock <= 0}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-ph-muted hover:bg-ph-background hover:text-ph-ink transition-colors active:scale-90"
+                  aria-label="زيادة الكمية"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               <button
-                onClick={() => onAddToCart(product, selectedColor, quantity)}
+                type="button"
+                onClick={() => {
+                  if (product.stock <= 0) return;
+                  setAddedRecently(true);
+                  setTimeout(() => setAddedRecently(false), 1400);
+                  onAddToCart(product, selectedColor, quantity);
+                }}
                 disabled={product.stock <= 0}
-                className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md ${
-                  product.stock > 0
-                    ? 'bg-ph-brand hover:bg-ph-brand-hover text-white active:scale-98'
-                    : 'bg-ph-background text-ph-muted cursor-not-allowed'
+                className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-md ${
+                  product.stock <= 0
+                    ? 'bg-red-50 text-red-600 border border-red-200 cursor-not-allowed shadow-none'
+                    : addedRecently
+                    ? '!bg-emerald-600 text-white scale-[1.01]'
+                    : 'bg-ph-brand hover:bg-ph-brand-hover text-white active:scale-98 hover:shadow-lg'
                 }`}
+                aria-disabled={product.stock <= 0}
+                title={product.stock <= 0 ? 'المنتج نفد من المستودع حالياً' : 'إضافة إلى سلة المشتريات'}
               >
-                <ShoppingBag className="w-4 h-4 text-white" />
-                <span>{product.stock > 0 ? 'إضافة إلى سلة المشتريات' : 'المنتج غير متوفر حالياً'}</span>
+                {product.stock <= 0 ? (
+                  <>
+                    <XCircle className="w-4 h-4 text-red-600" />
+                    <span>نفذت الكمية — غير متاح حالياً</span>
+                  </>
+                ) : addedRecently ? (
+                  <>
+                    <Check className="w-4 h-4 ph-check-animated" />
+                    <span>تمت الإضافة إلى السلة بنجاح!</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-4 h-4 text-white" />
+                    <span>إضافة إلى سلة المشتريات</span>
+                  </>
+                )}
               </button>
 
               <button
-                onClick={() => onToggleWishlist(product.id)}
-                className={`p-3 rounded-xl border transition-all ${
+                type="button"
+                onClick={() => {
+                  setHeartPopping(true);
+                  setTimeout(() => setHeartPopping(false), 400);
+                  onToggleWishlist(product.id);
+                }}
+                className={`p-3 rounded-xl border transition-all active:scale-90 ${
                   isWishlisted
                     ? 'border-red-200 bg-red-50 text-red-600'
                     : 'border-ph-border text-ph-muted hover:text-red-500 hover:bg-white'
-                }`}
+                } ${heartPopping ? 'ph-heart-bounce' : ''}`}
                 title="أضف للمفضلة"
+                aria-pressed={isWishlisted}
               >
                 <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
               </button>

@@ -14,6 +14,8 @@ export interface CatalogProduct {
   price: number;
   originalPrice: number;
   stock: number;
+  minStock?: number;
+  maxStock?: number;
   minThreshold: number;
   compatibility: string;
   compatibilityList: string[];
@@ -37,15 +39,10 @@ export function mapCatalogProduct(product: any): CatalogProduct {
     }
   }
 
-  let parsedCompatibility: string[] = [];
-  try {
-    parsedCompatibility = JSON.parse(product.ipadCompatibility);
-    if (!Array.isArray(parsedCompatibility)) {
-      parsedCompatibility = [String(product.ipadCompatibility)];
-    }
-  } catch {
-    parsedCompatibility = product.ipadCompatibility ? [String(product.ipadCompatibility)] : [];
-  }
+  // ipadCompatibility is now a native PostgreSQL String[] array
+  const parsedCompatibility: string[] = Array.isArray(product.ipadCompatibility)
+    ? product.ipadCompatibility
+    : [];
 
   const reviews = product.reviews ?? [];
   const reviewsCount = reviews.length;
@@ -66,8 +63,10 @@ export function mapCatalogProduct(product: any): CatalogProduct {
     categoryId: product.categoryId,
     price: Number(product.salePrice || product.basePrice),
     originalPrice: Number(product.basePrice),
-    stock: totalStock,
-    minThreshold,
+    stock: product.stock !== undefined && product.stock !== null ? product.stock : totalStock,
+    minStock: product.minStock ?? minThreshold,
+    maxStock: product.maxStock ?? 100,
+    minThreshold: product.minStock ?? minThreshold,
     compatibility: parsedCompatibility.join(', '),
     compatibilityList: parsedCompatibility,
     warrantyMonths: product.warrantyMonths ?? 0,

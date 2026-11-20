@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   PenLine, BriefcaseBusiness, Keyboard, Smartphone, Cable, Shield
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Product } from '../types';
 import { OFFICIAL_CATEGORIES } from '../data/catalog';
 import { ProductCard } from '../components/ProductCard';
@@ -44,6 +45,13 @@ export const HomePage: React.FC<HomePageProps> = ({
   const penProduct = products.find(p => p.id === 'prod-01') || products[0];
   const paperProduct = products.find(p => p.id === 'prod-19') || products[1];
 
+  // Trust badge stats data
+  const trustStats = [
+    { value: '21+', label: 'ملحق معتمد متوفر', color: 'text-ph-ink' },
+    { value: '100%', label: 'توافق مع iPad', color: 'text-ph-ink' },
+    { value: '12 شهر', label: 'ضمان استبدال مباشر', color: 'text-ph-brand' },
+  ];
+
   return (
     <div className="w-full space-y-16 pb-12">
       {/* 1. Hero Section: Premium Modern Apple-Inspired */}
@@ -68,13 +76,16 @@ export const HomePage: React.FC<HomePageProps> = ({
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
+                {/* Main CTA button with hover/tap animation */}
+                <motion.button
                   onClick={() => onNavigate('products')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   className="bg-ph-brand hover:bg-ph-brand-hover text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-md transition-all flex items-center gap-2 group"
                 >
                   <span>تسوق جميع الملحقات (21 منتج)</span>
                   <ChevronLeft className="w-4 h-4 text-white group-hover:-translate-x-1 transition-transform" />
-                </button>
+                </motion.button>
 
                 <button
                   onClick={() => {
@@ -87,34 +98,42 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </button>
               </div>
 
-              {/* Mini Highlights */}
+              {/* Mini Highlights — staggered whileInView */}
               <div className="grid grid-cols-3 gap-4 pt-6 border-t border-ph-border max-w-lg">
-                <div>
-                  <span className="block text-xl font-black text-ph-ink">21+</span>
-                  <span className="text-xs text-ph-muted font-medium">ملحق معتمد متوفر</span>
-                </div>
-                <div>
-                  <span className="block text-xl font-black text-ph-ink">100%</span>
-                  <span className="text-xs text-ph-muted font-medium">توافق مع iPad</span>
-                </div>
-                <div>
-                  <span className="block text-xl font-black text-ph-brand">12 شهر</span>
-                  <span className="text-xs text-ph-muted font-medium">ضمان استبدال مباشر</span>
-                </div>
+                {trustStats.map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <span className={`block text-xl font-black ${stat.color}`}>{stat.value}</span>
+                    <span className="text-xs text-ph-muted font-medium">{stat.label}</span>
+                  </motion.div>
+                ))}
               </div>
             </div>
 
             {/* Right Media (Hero Product Showcase) */}
             <div className="lg:col-span-5 relative">
               <div className="relative mx-auto w-full max-w-md aspect-square rounded-3xl bg-white p-6 shadow-[0_20px_50px_rgba(15,61,58,0.08)] border border-ph-border flex items-center justify-center">
-                <img
+                {/* Hero image with scale + fade entrance */}
+                <motion.img
                   src="https://padhouse.ps/wp-content/uploads/2024/11/PadHouse-Pencil-Product-Image.jpg"
                   alt="قلم بادهاوس الذكي"
                   className="w-full h-full object-contain hover:scale-105 transition-transform duration-500"
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
                 />
 
-                {/* Floating Product Highlight Tag */}
-                <div className="absolute bottom-6 left-6 right-6 bg-white backdrop-blur-md p-3.5 rounded-2xl border border-ph-border shadow-lg flex items-center justify-between">
+                {/* Floating Product Highlight Tag — gentle float loop */}
+                <motion.div
+                  className="absolute bottom-6 left-6 right-6 bg-white backdrop-blur-md p-3.5 rounded-2xl border border-ph-border shadow-lg flex items-center justify-between"
+                  animate={{ y: [0, -4, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                >
                   <div>
                     <span className="text-xs font-bold text-ph-ink block">PadHouse Pencil</span>
                     <span className="text-[11px] text-ph-muted">حساسية إمالة • رفض راحة اليد</span>
@@ -123,7 +142,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <span className="text-base font-black text-ph-brand">120 ₪</span>
                     <span className="text-[10px] text-ph-muted line-through block">150 ₪</span>
                   </div>
-                </div>
+                </motion.div>
               </div>
             </div>
           </div>
@@ -149,11 +168,13 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {OFFICIAL_CATEGORIES.filter(c => c.id !== 'all').map((cat, index) => {
             return (
-              <button
+              <motion.button
                 key={cat.id}
                 onClick={() => onNavigate('products', { category: cat.id })}
-                className="ph-stagger-item group p-4 rounded-2xl bg-white hover:bg-white border border-ph-border hover:border-ph-border hover:shadow-lg transition-all duration-300 text-center flex flex-col items-center justify-center gap-3"
+                className="ph-stagger-item group p-4 rounded-2xl bg-white hover:bg-white border border-ph-border hover:border-ph-brand/40 hover:shadow-lg transition-all duration-300 text-center flex flex-col items-center justify-center gap-3 cursor-pointer"
                 style={{ '--ph-stagger-index': index } as React.CSSProperties}
+                whileHover={{ scale: 1.03, y: -2 }}
+                whileTap={{ scale: 0.97 }}
               >
                 <div className="w-12 h-12 rounded-xl bg-white shadow-xs group-hover:bg-ph-brand text-ph-ink group-hover:text-white flex items-center justify-center transition-colors">
                   {({cat_pens: PenLine, cat_cases: Smartphone, cat_keyboards: Keyboard, cat_stands: BriefcaseBusiness, cat_chargers: Cable, cat_others: Shield} as Record<string, React.ElementType>)[cat.id] && React.createElement(({cat_pens: PenLine, cat_cases: Smartphone, cat_keyboards: Keyboard, cat_stands: BriefcaseBusiness, cat_chargers: Cable, cat_others: Shield} as Record<string, React.ElementType>)[cat.id], {className: 'h-6 w-6', strokeWidth: 1.6})}
@@ -166,7 +187,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     ملحقات متوافقة
                   </span>
                 </div>
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -175,13 +196,18 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 3. Best Sellers Carousel / Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between mb-8">
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4 }}
+          >
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-ph-brand"></span>
               <h2 className="text-xl sm:text-2xl font-black text-ph-ink">الأكثر طلباً ومبيعاً</h2>
             </div>
             <p className="text-xs sm:text-sm text-ph-muted mt-1">المنتجات الأكثر مراجعة واقتناء من طلاب ومصممي فلسطين</p>
-          </div>
+          </motion.div>
           <button
             onClick={() => onNavigate('products')}
             className="text-xs font-bold text-ph-brand hover:text-ph-brand-hover flex items-center gap-1"
@@ -208,10 +234,16 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* 4. Product Bundle & "Frequently Bought Together" Promo */}
       {penProduct && paperProduct && <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="rounded-3xl bg-ph-brand text-white p-6 sm:p-10 border border-ph-border shadow-xl overflow-hidden relative">
+        <motion.div
+          className="rounded-3xl bg-gradient-to-l from-[#0F3D3A] via-[#1CA89E] to-[#1CA89E] text-white p-6 sm:p-10 border border-ph-border shadow-xl overflow-hidden relative"
+          initial={{ opacity: 0, x: -30 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-4 text-right">
-              <span className="inline-block px-3 py-1 rounded-full bg-ph-border text-ph-brand text-xs font-bold">
+              <span className="inline-block px-3 py-1 rounded-full bg-white/20 text-white backdrop-blur-xs text-xs font-bold">
                 حزمة الطالب والمصمم المتكاملة (وفر 40 ₪)
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-white">
@@ -223,8 +255,8 @@ export const HomePage: React.FC<HomePageProps> = ({
 
               <div className="flex items-baseline gap-3 pt-2">
                 <span className="text-3xl font-black text-white">150 ₪</span>
-                <span className="text-base text-white/90 line-through">190 ₪</span>
-                <span className="text-xs font-semibold text-white">توصيل مجاني لكافة المدن</span>
+                <span className="text-base text-white/80 line-through">190 ₪</span>
+                <span className="text-xs font-semibold text-white/90 bg-white/15 px-2 py-0.5 rounded-md">توصيل مجاني لكافة المدن</span>
               </div>
 
               <div className="pt-2 flex items-center gap-3">
@@ -234,13 +266,13 @@ export const HomePage: React.FC<HomePageProps> = ({
                     onAddToCart(paperProduct);
                     onNavigate('cart');
                   }}
-                  className="bg-ph-brand hover:bg-ph-brand-hover text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl transition-all shadow-md"
+                  className="bg-white hover:bg-white/95 text-ph-ink font-bold text-xs sm:text-sm px-6 py-3.5 rounded-xl transition-all shadow-md active:scale-95 hover:shadow-lg"
                 >
                   أضف الحزمة معاً إلى السلة
                 </button>
                 <button
                   onClick={() => onSelectProduct(penProduct)}
-                  className="text-xs text-white hover:text-white/80 underline underline-offset-4"
+                  className="text-xs text-white/90 hover:text-white underline underline-offset-4"
                 >
                   تفاصيل المنتجات
                 </button>
@@ -248,16 +280,16 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             <div className="lg:col-span-5 flex items-center justify-center gap-4">
-              <div className="w-32 sm:w-40 aspect-square rounded-2xl bg-white p-3 shadow-md flex items-center justify-center">
+              <div className="w-32 sm:w-40 aspect-square rounded-2xl bg-white p-3 shadow-md flex items-center justify-center transition-transform hover:scale-105 duration-300">
                 <img src={penProduct.image} alt="قلم بادهاوس" className="max-h-full object-contain" />
               </div>
-              <span className="text-2xl font-bold text-ph-brand">+</span>
-              <div className="w-32 sm:w-40 aspect-square rounded-2xl bg-white p-3 shadow-md flex items-center justify-center">
+              <span className="text-3xl font-black text-white">+</span>
+              <div className="w-32 sm:w-40 aspect-square rounded-2xl bg-white p-3 shadow-md flex items-center justify-center transition-transform hover:scale-105 duration-300">
                 <img src={paperProduct.image} alt="شاشة PaperFeel" className="max-h-full object-contain" />
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>}
 
       {/* 5. Special Offers & Discounts */}
@@ -372,4 +404,3 @@ export const HomePage: React.FC<HomePageProps> = ({
     </div>
   );
 };
-

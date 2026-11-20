@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto, UpdateOrderStatusDto, ORDER_STATUSES } from './dto/order.dto';
 import { CouponsService } from '../coupons/coupons.service';
 import { LoyaltyService, POINTS_PER_ILS } from '../loyalty/loyalty.service';
 import { GiftCardsService } from '../gift-cards/gift-cards.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   DEFAULT_SHIPPING_FEE,
   PAYMENT_METHODS,
@@ -23,6 +25,7 @@ export class OrdersService {
     private couponsService: CouponsService,
     private loyaltyService: LoyaltyService,
     private giftCardsService: GiftCardsService,
+    private notificationsService: NotificationsService,
   ) {}
 
   /** Canonical lifecycle shared by both platforms. */
@@ -210,6 +213,35 @@ export class OrdersService {
               actorId: userId,
             },
           });
+        }
+
+        // Decrement Product level stock and evaluate low-stock notification
+        const updatedProduct = await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity,
+            },
+          },
+          select: {
+            id: true,
+            nameAr: true,
+            stock: true,
+            minStock: true,
+          },
+        });
+
+        // Trigger notification safely inside transaction if stock < minStock
+        if (updatedProduct.stock < updatedProduct.minStock) {
+          await this.notificationsService.checkAndCreateLowStockNotification(
+            {
+              productId: updatedProduct.id,
+              productNameAr: updatedProduct.nameAr,
+              stock: updatedProduct.stock,
+              minStock: updatedProduct.minStock,
+            },
+            tx,
+          );
         }
       }
 
@@ -455,6 +487,14 @@ export class OrdersService {
               },
             });
           }
+
+          // Restore Product level stock
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: { increment: item.quantity },
+            },
+          });
         }
       }
 
@@ -508,7 +548,7 @@ export class OrdersService {
       const updated = await tx.order.update({
         where: { id: orderId },
         data: {
-          status: dto.status,
+          status: dto.status as OrderStatus,
           // Cash-on-delivery orders are settled when delivered.
           paymentStatus:
             dto.status === 'DELIVERED' && order.paymentMethod === 'CASH_ON_DELIVERY'
@@ -520,7 +560,7 @@ export class OrdersService {
       await tx.orderStatusHistory.create({
         data: {
           orderId,
-          status: dto.status,
+          status: dto.status as OrderStatus,
           notes: dto.notes || `تغيير الحالة إلى ${dto.status}`,
           updatedBy: actorId,
         },

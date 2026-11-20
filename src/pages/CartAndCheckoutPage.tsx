@@ -17,6 +17,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AppUser, CartItem, Order } from '../types';
 import {
   applyCouponApi,
@@ -296,10 +297,20 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
   if (step === 'success' && placedOrder) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-right">
-        <div className="bg-white rounded-3xl p-8 border border-ph-border shadow-xl text-center space-y-5">
-          <div className="w-16 h-16 rounded-full bg-ph-border flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-8 h-8 text-ph-brand" />
-          </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-white rounded-3xl p-8 border border-ph-border shadow-xl text-center space-y-5"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 20, delay: 0.1 }}
+            className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto"
+          >
+            <CheckCircle2 className="w-8 h-8 text-emerald-600 ph-check-animated" />
+          </motion.div>
           <h1 className="text-2xl font-black text-ph-ink">تم استلام طلبك بنجاح</h1>
           <p className="text-xs text-ph-muted">
             رقم الطلب <span className="font-mono font-bold text-ph-ink">{placedOrder.orderNumber || placedOrder.id}</span>
@@ -316,20 +327,22 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
             الحالة الحالية: <span className="font-bold text-ph-ink">{placedOrder.status}</span>
           </p>
           <div className="flex flex-col sm:flex-row gap-2 pt-2">
-            <button
+            <motion.button
+              whileTap={{ scale: 0.98 }}
               onClick={() => onNavigate('tracking', { orderId: placedOrder.orderNumber || placedOrder.id })}
-              className="flex-1 bg-ph-brand hover:bg-ph-brand-hover text-white py-3 rounded-xl font-bold text-xs transition-colors"
+              className="flex-1 bg-ph-brand hover:bg-ph-brand-hover text-white py-3 rounded-xl font-bold text-xs transition-colors shadow-sm"
             >
               تتبع الطلب
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
               onClick={() => onNavigate('products')}
-              className="flex-1 bg-white border border-ph-border text-ph-ink py-3 rounded-xl font-bold text-xs hover:bg-white transition-colors"
+              className="flex-1 bg-white border border-ph-border text-ph-ink py-3 rounded-xl font-bold text-xs hover:bg-ph-background transition-colors"
             >
               مواصلة التسوق
-            </button>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -339,17 +352,26 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
   if (cart.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-right">
-        <div className="bg-white rounded-3xl p-12 text-center border border-ph-border space-y-4">
-          <ShoppingBag className="w-12 h-12 text-ph-muted mx-auto" />
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-3xl p-12 text-center border border-ph-border shadow-xs space-y-4"
+        >
+          <div className="ph-floating flex h-16 w-16 items-center justify-center rounded-2xl bg-ph-background text-ph-brand border border-ph-border mx-auto">
+            <ShoppingBag className="w-8 h-8" />
+          </div>
           <h2 className="text-lg font-black text-ph-ink">سلة التسوق فارغة</h2>
           <p className="text-xs text-ph-muted">لم تقم بإضافة أي منتجات بعد، ابدأ بتصفح ملحقات الآيباد.</p>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onNavigate('products')}
-            className="bg-ph-brand text-white text-xs font-bold px-5 py-2.5 rounded-xl"
+            className="bg-ph-brand hover:bg-ph-brand-hover text-white text-xs font-bold px-6 py-3 rounded-xl shadow-sm transition-all"
           >
             استكشف المنتجات
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
     );
   }
@@ -365,60 +387,71 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
             <span>بعض القطع تجاوزت الكمية المتاحة في المخزون. يرجى تعديل الكميات قبل إتمام الطلب.</span>
           </div>
         )}
-        {cart.map((item) => (
-          <div
-            key={`${item.product.id}-${item.selectedColor}`}
-            className="bg-white p-4 rounded-2xl border border-ph-border shadow-sm flex gap-4"
-          >
-            <img
-              src={item.product.image}
-              alt={item.product.name}
-              className="w-20 h-20 rounded-xl object-cover bg-white"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-              }}
-            />
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-ph-ink truncate">{item.product.name}</h3>
-                  {item.selectedColor && (
-                    <span className="text-[11px] text-ph-muted">اللون: {item.selectedColor}</span>
-                  )}
-                </div>
-                <button
-                  onClick={() => onRemoveItem(item.product.id, item.selectedColor)}
-                  className="text-ph-muted hover:text-red-600 transition-colors"
-                  aria-label="حذف"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 border border-ph-border rounded-lg px-1">
-                  <button
-                    onClick={() => onUpdateQty(item.product.id, item.selectedColor, -1)}
-                    className="p-1.5 text-ph-muted hover:text-ph-ink"
-                    aria-label="تقليل"
+        <AnimatePresence mode="popLayout">
+          {cart.map((item) => (
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+              transition={{ duration: 0.25 }}
+              key={`${item.product.id}-${item.selectedColor}`}
+              className="bg-white p-4 rounded-2xl border border-ph-border shadow-xs hover:shadow-sm transition-shadow flex gap-4"
+            >
+              <img
+                src={item.product.image}
+                alt={item.product.name}
+                className="w-20 h-20 rounded-xl object-contain bg-ph-background p-2"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                }}
+              />
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-ph-ink truncate">{item.product.name}</h3>
+                    {item.selectedColor && (
+                      <span className="text-[11px] text-ph-muted">اللون: {item.selectedColor}</span>
+                    )}
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.15 }}
+                    whileTap={{ scale: 0.88 }}
+                    onClick={() => onRemoveItem(item.product.id, item.selectedColor)}
+                    className="text-ph-muted hover:text-red-600 transition-colors p-1"
+                    aria-label="حذف"
                   >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="text-xs font-bold w-6 text-center">{item.quantity}</span>
-                  <button
-                    onClick={() => onUpdateQty(item.product.id, item.selectedColor, 1)}
-                    className="p-1.5 text-ph-muted hover:text-ph-ink"
-                    aria-label="زيادة"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
+                    <Trash2 className="w-4 h-4" />
+                  </motion.button>
                 </div>
-                <span className="text-sm font-black text-ph-ink">
-                  {item.product.price * item.quantity} ₪
-                </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 border border-ph-border rounded-xl px-1.5 py-0.5 bg-ph-background">
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      onClick={() => onUpdateQty(item.product.id, item.selectedColor, -1)}
+                      className="p-1 text-ph-muted hover:text-ph-ink transition-colors"
+                      aria-label="تقليل"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </motion.button>
+                    <span className="text-xs font-bold w-6 text-center select-none">{item.quantity}</span>
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      onClick={() => onUpdateQty(item.product.id, item.selectedColor, 1)}
+                      className="p-1 text-ph-muted hover:text-ph-ink transition-colors"
+                      aria-label="زيادة"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </motion.button>
+                  </div>
+                  <span className="text-sm font-black text-ph-ink">
+                    {item.product.price * item.quantity} ₪
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            </motion.div>
+          ))}
+        </AnimatePresence>
         <button
           onClick={() => onClearCart()}
           className="text-xs text-ph-muted hover:text-red-600 font-bold"
@@ -438,14 +471,15 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
           <div className="border-t border-ph-border pt-3 flex justify-between text-sm font-black text-ph-ink">
             <span>الإجمالي التقديري</span><span>{subtotal} ₪</span>
           </div>
-          <button
+          <motion.button
+            whileTap={{ scale: 0.98 }}
             onClick={() => setStep('checkout')}
             disabled={outOfStockLines.length > 0}
-            className="w-full bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+            className="w-full bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
           >
             <span>متابعة إتمام الطلب</span>
             <ChevronLeft className="w-4 h-4" />
-          </button>
+          </motion.button>
           <div className="flex items-center justify-center gap-1.5 text-[11px] text-ph-muted">
             <ShieldCheck className="w-3.5 h-3.5 text-ph-brand" />
             <span>دفع آمن ومشفّر</span>
@@ -718,18 +752,19 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
           <div className="border-t border-ph-border pt-3 flex justify-between text-base font-black text-ph-ink">
             <span>الإجمالي</span><span>{total} ₪</span>
           </div>
-          <button
+          <motion.button
+            whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={placing || !currentUser}
-            className="w-full bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             {placing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             <span>{placing ? 'جارٍ تأكيد الطلب…' : 'تأكيد الطلب'}</span>
-          </button>
+          </motion.button>
           <button
             type="button"
             onClick={() => setStep('cart')}
-            className="w-full text-xs font-bold text-ph-muted hover:text-ph-ink"
+            className="w-full text-xs font-bold text-ph-muted hover:text-ph-ink transition-colors"
           >
             العودة إلى السلة
           </button>
@@ -752,16 +787,26 @@ export const CartAndCheckoutPage: React.FC<CartAndCheckoutPageProps> = ({
           </p>
         </div>
         <div className="flex items-center gap-2 text-[11px] font-bold">
-          <span className={`px-3 py-1 rounded-full ${step === 'cart' ? 'bg-ph-brand text-white' : 'bg-ph-background text-ph-muted'}`}>
+          <span className={`px-3 py-1 rounded-full transition-all duration-200 ${step === 'cart' ? 'bg-ph-brand text-white shadow-xs' : 'bg-ph-background text-ph-muted'}`}>
             1. السلة
           </span>
-          <span className={`px-3 py-1 rounded-full ${step === 'checkout' ? 'bg-ph-brand text-white' : 'bg-ph-background text-ph-muted'}`}>
+          <span className={`px-3 py-1 rounded-full transition-all duration-200 ${step === 'checkout' ? 'bg-ph-brand text-white shadow-xs' : 'bg-ph-background text-ph-muted'}`}>
             2. الدفع
           </span>
         </div>
       </div>
 
-      {step === 'cart' ? renderCartStep() : renderCheckoutStep()}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: step === 'checkout' ? -15 : 15 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: step === 'checkout' ? 15 : -15 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {step === 'cart' ? renderCartStep() : renderCheckoutStep()}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 };

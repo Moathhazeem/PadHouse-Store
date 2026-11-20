@@ -107,8 +107,12 @@ class _ProductDetailsState extends State<ProductDetails> {
                 controller: _pageCtrl,
                 itemCount: gallery.length,
                 onPageChanged: (i) => setState(() => _galleryPage = i),
-                itemBuilder: (_, i) =>
-                    NetImage(url: gallery[i], height: 260, radius: 0),
+                itemBuilder: (_, i) => i == 0
+                    ? Hero(
+                        tag: 'product-image-${product.id}',
+                        child: NetImage(url: gallery[i], height: 260, radius: 0),
+                      )
+                    : NetImage(url: gallery[i], height: 260, radius: 0),
               ),
             ),
             // Wishlist toggle
@@ -135,6 +139,13 @@ class _ProductDetailsState extends State<ProductDetails> {
                 ),
               ),
             ),
+            // Out of stock prominent ribbon
+            if (product.stock <= 0)
+              const Positioned(
+                top: 12,
+                left: 12,
+                child: OutOfStockRibbon(fontSize: 12),
+              ),
             // Dots indicator
             if (gallery.length > 1)
               Positioned(
@@ -191,19 +202,32 @@ class _ProductDetailsState extends State<ProductDetails> {
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: product.stock > 0
-                          ? AppColors.successBg
+                          ? (product.isLowStock
+                              ? AppColors.warningBg
+                              : AppColors.successBg)
                           : AppColors.errorBg,
                       borderRadius: BorderRadius.circular(99),
+                      border: Border.all(
+                        color: product.stock > 0
+                            ? (product.isLowStock
+                                ? AppColors.warning
+                                : AppColors.success)
+                            : AppColors.error,
+                      ),
                     ),
                     child: Text(
                       product.stock > 0
-                          ? 'متوفر (${product.stock})'
-                          : 'نفدت الكمية',
+                          ? (product.isLowStock
+                              ? 'مخزون منخفض (${product.stock} متبقية)'
+                              : 'متوفر (${product.stock})')
+                          : 'نفذت الكمية',
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
                           color: product.stock > 0
-                              ? AppColors.success
+                              ? (product.isLowStock
+                                  ? AppColors.warning
+                                  : AppColors.success)
                               : AppColors.error),
                     ),
                   ),
@@ -348,8 +372,8 @@ class _ProductDetailsState extends State<ProductDetails> {
               PrimaryButton(
                 label: product.stock > 0
                     ? 'إضافة إلى السلة • ${product.price * qty} ₪'
-                    : 'نفدت الكمية حالياً',
-                icon: LucideIcons.shoppingBag,
+                    : 'نفذت الكمية حالياً',
+                icon: product.stock > 0 ? LucideIcons.shoppingBag : LucideIcons.slash,
                 onPressed: product.stock > 0
                     ? () {
                         widget.store.addToCart(product, color: color, qty: qty);
@@ -405,23 +429,25 @@ class _QtyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: enabled
-              ? AppColors.turquoise.withValues(alpha: 0.12)
-              : AppColors.offWhite,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: enabled ? AppColors.turquoise : AppColors.borderLight),
-        ),
-        child: Center(
-          child: PhIcon(icon,
-              size: 16,
-              color: enabled ? AppColors.turquoise : AppColors.textTertiary),
+    return PressScale(
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: enabled
+                ? AppColors.turquoise.withValues(alpha: 0.12)
+                : AppColors.offWhite,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: enabled ? AppColors.turquoise : AppColors.borderLight),
+          ),
+          child: Center(
+            child: PhIcon(icon,
+                size: 16,
+                color: enabled ? AppColors.turquoise : AppColors.textTertiary),
+          ),
         ),
       ),
     );
@@ -2011,6 +2037,9 @@ class _Overview extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+        // ── Low-Stock Notifications Section ─────────────────────────────
+        _LowStockNotificationsSection(store: store),
+        const SizedBox(height: 12),
         const SoftCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2053,6 +2082,444 @@ class _Overview extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── Low-Stock Notifications Section & Bottom Sheet ────────────────────────
+
+class _LowStockNotificationsSection extends StatelessWidget {
+  const _LowStockNotificationsSection({required this.store});
+  final PadhouseController store;
+
+  @override
+  Widget build(BuildContext context) {
+    final notifications = store.adminNotifications;
+    final unreadCount = store.adminUnreadNotificationCount;
+
+    return SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: unreadCount > 0
+                      ? AppColors.errorBg
+                      : AppColors.successBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: PhIcon(
+                  unreadCount > 0 ? LucideIcons.alertTriangle : LucideIcons.bellRing,
+                  size: 16,
+                  color: unreadCount > 0 ? AppColors.error : AppColors.success,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'تنبيهات المخزون المنخفض',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                    ),
+                    Text(
+                      'مراقبة فورية لحدود المخزون الأدنى (stock < minStock)',
+                      style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              if (unreadCount > 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '$unreadCount غير مقروء',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  tooltip: 'تحديد الكل كمقروء',
+                  icon: const PhIcon(LucideIcons.checkCheck, size: 16, color: AppColors.turquoise),
+                  onPressed: store.markAllAdminNotificationsAsRead,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (notifications.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              decoration: BoxDecoration(
+                color: AppColors.successBg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+              ),
+              child: const Row(
+                children: [
+                  PhIcon(LucideIcons.checkCircle2, size: 16, color: AppColors.success),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'جميع مستويات المخزون ضمن الحدود الطبيعية ولا توجد تنبيهات نقص حالياً.',
+                      style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            for (final n in notifications.take(4))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: n.isRead ? AppColors.offWhite : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: n.isRead
+                          ? AppColors.borderLight
+                          : AppColors.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: PhIcon(
+                          n.isRead ? LucideIcons.bell : LucideIcons.alertCircle,
+                          size: 15,
+                          color: n.isRead ? AppColors.textTertiary : AppColors.error,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    n.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: n.isRead ? FontWeight.w600 : FontWeight.w800,
+                                      fontSize: 12,
+                                      color: n.isRead ? AppColors.navyLight : AppColors.navy,
+                                    ),
+                                  ),
+                                ),
+                                if (!n.isRead)
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.error,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              n.message,
+                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                if (n.productId != null) ...[
+                                  Builder(builder: (_) {
+                                    final p = store.productById(n.productId!);
+                                    if (p == null) return const SizedBox.shrink();
+                                    return Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.errorBg,
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                                          ),
+                                          child: Text(
+                                            'المخزون: ${p.stock} / الحد: ${p.minStock}',
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.error,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        InkWell(
+                                          onTap: () => store.adjustStock(p.id, 5),
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.turquoise.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: const Row(
+                                              children: [
+                                                PhIcon(LucideIcons.plus, size: 10, color: AppColors.turquoise),
+                                                Text(' +5 توريد',
+                                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.turquoise)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }),
+                                ],
+                                const Spacer(),
+                                if (!n.isRead)
+                                  InkWell(
+                                    onTap: () => store.markAdminNotificationAsRead(n.id),
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                      child: Text(
+                                        'تحديد كمقروء',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.turquoise,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (notifications.length > 4)
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => showLowStockNotificationsBottomSheet(context, store),
+                  icon: const PhIcon(LucideIcons.listFilter, size: 13, color: AppColors.turquoise),
+                  label: Text(
+                    'عرض كامل سجل التنبيهات (${notifications.length})',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.turquoise),
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> showLowStockNotificationsBottomSheet(
+    BuildContext context, PadhouseController store) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return AnimatedBuilder(
+        animation: store,
+        builder: (context, _) {
+          final notifications = store.adminNotifications;
+          final unreadCount = store.adminUnreadNotificationCount;
+
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Grabber handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.borderLight,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+                // Header
+                Row(
+                  children: [
+                    const PhIcon(LucideIcons.bell, size: 20, color: AppColors.turquoise),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'إشعارات انخفاض المخزون (ERP)',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.navy),
+                      ),
+                    ),
+                    if (unreadCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorBg,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '$unreadCount غير مقروء',
+                          style: const TextStyle(
+                            color: AppColors.error,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 6),
+                    if (unreadCount > 0)
+                      FilledButton.tonalIcon(
+                        onPressed: store.markAllAdminNotificationsAsRead,
+                        icon: const PhIcon(LucideIcons.checkCheck, size: 14),
+                        label: const Text('قراءة الكل', style: TextStyle(fontSize: 11)),
+                        style: FilledButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: AppColors.borderLight),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: notifications.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'لا توجد تنبيهات مخزون منخفض حالياً 👍\nجميع المنتجات متوفرة بكميات كافية.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.textSecondary, height: 1.6),
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: notifications.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            final n = notifications[index];
+                            final p = n.productId != null ? store.productById(n.productId!) : null;
+
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: n.isRead ? AppColors.offWhite : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: n.isRead
+                                      ? AppColors.borderLight
+                                      : AppColors.error.withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      PhIcon(
+                                        n.isRead ? LucideIcons.checkCircle2 : LucideIcons.alertTriangle,
+                                        size: 16,
+                                        color: n.isRead ? AppColors.textSecondary : AppColors.error,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          n.title,
+                                          style: TextStyle(
+                                            fontWeight: n.isRead ? FontWeight.w600 : FontWeight.w800,
+                                            fontSize: 13,
+                                            color: AppColors.navy,
+                                          ),
+                                        ),
+                                      ),
+                                      if (!n.isRead)
+                                        TextButton(
+                                          onPressed: () => store.markAdminNotificationAsRead(n.id),
+                                          style: TextButton.styleFrom(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                                          ),
+                                          child: const Text('تحديد كمقروء', style: TextStyle(fontSize: 11)),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    n.message,
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                  ),
+                                  if (p != null) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.errorBg,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            'المخزون: ${p.stock} | الأدنى: ${p.minStock} | الأقصى: ${p.maxStock}',
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.error,
+                                            ),
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        OutlinedButton.icon(
+                                          onPressed: () => store.adjustStock(p.id, 5),
+                                          icon: const PhIcon(LucideIcons.plus, size: 12, color: AppColors.turquoise),
+                                          label: const Text('+5 توريد', style: TextStyle(fontSize: 11)),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.turquoise,
+                                            side: const BorderSide(color: AppColors.turquoise),
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
 }
 
 class _ProductsAdmin extends StatelessWidget {
@@ -2159,7 +2626,7 @@ class _Inventory extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w800, fontSize: 12)),
-                        Text('الحد الأدنى: ${product.minThreshold} قطع',
+                        Text('الحد الأدنى: ${product.minStock} • الأقصى: ${product.maxStock} قطع',
                             style: const TextStyle(
                                 fontSize: 11, color: AppColors.textSecondary)),
                       ],
@@ -2169,7 +2636,7 @@ class _Inventory extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: product.stock <= product.minThreshold
+                      color: product.stock <= product.minStock
                           ? AppColors.errorBg
                           : AppColors.successBg,
                       borderRadius: BorderRadius.circular(8),
@@ -2177,7 +2644,7 @@ class _Inventory extends StatelessWidget {
                     child: Text('${product.stock}',
                         style: TextStyle(
                             fontWeight: FontWeight.w900,
-                            color: product.stock <= product.minThreshold
+                            color: product.stock <= product.minStock
                                 ? AppColors.error
                                 : AppColors.success)),
                   ),
@@ -2367,79 +2834,149 @@ class _AiTabState extends State<_AiTab> {
 
 Future<void> showProductEditor(
     BuildContext context, PadhouseController store, Product? product) async {
-  final name = TextEditingController(text: product?.name ?? '');
-  final price = TextEditingController(text: '${product?.price ?? 50}');
-  final stock = TextEditingController(text: '${product?.stock ?? 20}');
-  final compatibility =
-      TextEditingController(text: product?.compatibility ?? 'جميع أجهزة iPad');
-  var category = product?.categories.first ?? 'cat_pens';
   await showDialog<void>(
     context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setLocal) {
-          return AlertDialog(
-            title: Text(product == null ? 'إضافة منتج جديد' : 'تعديل المنتج'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                      controller: name,
-                      decoration:
-                          const InputDecoration(labelText: 'اسم المنتج')),
-                  TextField(
-                      controller: price,
-                      keyboardType: TextInputType.number,
-                      decoration:
-                          const InputDecoration(labelText: 'السعر (₪)')),
-                  TextField(
-                      controller: stock,
-                      keyboardType: TextInputType.number,
-                      decoration:
-                          const InputDecoration(labelText: 'الكمية بالمخزون')),
-                  DropdownButton<String>(
-                    value: category,
-                    isExpanded: true,
-                    items: [
-                      for (final cat in officialCategories.skip(1))
-                        DropdownMenuItem(value: cat.id, child: Text(cat.name)),
-                    ],
-                    onChanged: (value) =>
-                        setLocal(() => category = value ?? category),
-                  ),
-                  TextField(
-                      controller: compatibility,
-                      decoration: const InputDecoration(labelText: 'التوافق')),
-                ],
+    builder: (context) => _ProductEditorDialog(store: store, product: product),
+  );
+}
+
+class _ProductEditorDialog extends StatefulWidget {
+  const _ProductEditorDialog({required this.store, this.product});
+  final PadhouseController store;
+  final Product? product;
+
+  @override
+  State<_ProductEditorDialog> createState() => _ProductEditorDialogState();
+}
+
+class _ProductEditorDialogState extends State<_ProductEditorDialog> {
+  late final TextEditingController name;
+  late final TextEditingController price;
+  late final TextEditingController stock;
+  late final TextEditingController minStock;
+  late final TextEditingController maxStock;
+  late final TextEditingController compatibility;
+  late String category;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.product;
+    name = TextEditingController(text: p?.name ?? '');
+    price = TextEditingController(text: '${p?.price ?? 50}');
+    stock = TextEditingController(text: '${p?.stock ?? 20}');
+    minStock = TextEditingController(text: '${p?.minStock ?? 5}');
+    maxStock = TextEditingController(text: '${p?.maxStock ?? 100}');
+    compatibility = TextEditingController(text: p?.compatibility ?? 'جميع أجهزة iPad');
+    category = p?.categories.first ?? 'cat_pens';
+  }
+
+  @override
+  void dispose() {
+    name.dispose();
+    price.dispose();
+    stock.dispose();
+    minStock.dispose();
+    maxStock.dispose();
+    compatibility.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.product;
+    return AlertDialog(
+      title: Text(p == null ? 'إضافة منتج جديد' : 'تعديل المنتج'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'اسم المنتج'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: price,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'السعر (₪)'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: stock,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'الكمية الحالية في المخزون (Stock)',
+                helperText: 'الرصيد الفعلي المتوفر بالمستودع',
               ),
             ),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('إلغاء')),
-              FilledButton(
-                onPressed: () {
-                  store.editingProduct = product;
-                  store.saveProduct(
-                    name: name.text.trim(),
-                    price: int.tryParse(price.text) ?? 0,
-                    stock: int.tryParse(stock.text) ?? 0,
-                    category: category,
-                    compatibility: compatibility.text.trim(),
-                  );
-                  Navigator.pop(context);
-                },
-                child: const Text('حفظ'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-  name.dispose();
-  price.dispose();
-  stock.dispose();
-  compatibility.dispose();
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: minStock,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'الحد الأدنى للتنبيه (minStock)',
+                      helperText: 'إرسال تنبيه انخفاض',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: maxStock,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'السعة القصوى (maxStock)',
+                      helperText: 'سقف التخزين المستهدف',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            DropdownButton<String>(
+              value: category,
+              isExpanded: true,
+              items: [
+                for (final cat in officialCategories.skip(1))
+                  DropdownMenuItem(value: cat.id, child: Text(cat.name)),
+              ],
+              onChanged: (value) => setState(() => category = value ?? category),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: compatibility,
+              decoration: const InputDecoration(labelText: 'التوافق مع أجهزة iPad'),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          onPressed: () {
+            widget.store.editingProduct = p;
+            widget.store.saveProduct(
+              name: name.text.trim(),
+              price: int.tryParse(price.text) ?? 0,
+              stock: int.tryParse(stock.text) ?? 0,
+              minStock: int.tryParse(minStock.text) ?? 5,
+              maxStock: int.tryParse(maxStock.text) ?? 100,
+              category: category,
+              compatibility: compatibility.text.trim(),
+            );
+            Navigator.pop(context);
+          },
+          child: const Text('حفظ'),
+        ),
+      ],
+    );
+  }
 }

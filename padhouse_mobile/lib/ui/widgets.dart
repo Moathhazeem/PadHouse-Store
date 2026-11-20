@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -60,7 +61,16 @@ class NetImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = Container(
+    final shimmerPlaceholder = Shimmer.fromColors(
+      baseColor: AppColors.offWhite,
+      highlightColor: AppColors.turquoise.withValues(alpha: 0.15),
+      child: Container(
+        width: width,
+        height: height,
+        color: AppColors.offWhite,
+      ),
+    );
+    final fallbackPlaceholder = Container(
       width: width,
       height: height,
       color: AppColors.offWhite,
@@ -71,7 +81,7 @@ class NetImage extends StatelessWidget {
     if (cleanUrl.isEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: placeholder,
+        child: fallbackPlaceholder,
       );
     }
 
@@ -83,13 +93,23 @@ class NetImage extends StatelessWidget {
         width: width,
         height: height,
         child: skipNetworkImages
-            ? placeholder
+            ? fallbackPlaceholder
             : Image.network(
                 safeUrl,
                 width: width,
                 height: height,
                 fit: fit,
-                errorBuilder: (_, __, ___) => placeholder,
+                errorBuilder: (_, __, ___) => fallbackPlaceholder,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) {
+                    return AnimatedOpacity(
+                      opacity: 1.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: child,
+                    );
+                  }
+                  return shimmerPlaceholder;
+                },
               ),
       ),
     );
@@ -144,7 +164,13 @@ class SoftCard extends StatelessWidget {
     if (onTap == null) return box;
     return Material(
       color: Colors.transparent,
-      child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: box),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: AppColors.turquoise.withValues(alpha: 0.08),
+        highlightColor: AppColors.turquoise.withValues(alpha: 0.04),
+        child: box,
+      ),
     );
   }
 }
@@ -202,6 +228,51 @@ class ListEntrance extends StatelessWidget {
   }
 }
 
+class OutOfStockRibbon extends StatelessWidget {
+  const OutOfStockRibbon({super.key, this.fontSize = 11, this.compact = false});
+
+  final double fontSize;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 12,
+        vertical: compact ? 4 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFDC2626),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFDC2626).withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const PhIcon(LucideIcons.slash, size: 13, color: Colors.white, stroke: 2.2),
+          const SizedBox(width: 5),
+          Text(
+            'نفذت الكمية',
+            textDirection: TextDirection.rtl,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: fontSize,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.store, required this.product});
 
@@ -234,15 +305,28 @@ class ProductCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Container(color: AppColors.offWhite, child: NetImage(url: product.image, width: double.infinity, radius: 0, fit: BoxFit.contain)),
-                    if (outOfStock)
-                      Container(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        alignment: Alignment.center,
-                        child: const Text('نفدت الكمية',
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: AppColors.error)),
+                    Container(
+                      color: AppColors.offWhite,
+                      child: Hero(
+                        tag: 'product-image-${product.id}',
+                        child: NetImage(url: product.image, width: double.infinity, radius: 0, fit: BoxFit.contain),
                       ),
-                    if (discountPercent > 0)
+                    ),
+                    if (outOfStock) ...[
+                      Container(
+                        color: Colors.white.withValues(alpha: 0.72),
+                      ),
+                      const Center(
+                        child: OutOfStockRibbon(fontSize: 12),
+                      ),
+                    ],
+                    if (outOfStock)
+                      const Positioned(
+                        top: 8,
+                        right: 8,
+                        child: OutOfStockRibbon(fontSize: 9, compact: true),
+                      )
+                    else if (discountPercent > 0)
                       Positioned(
                         top: 8,
                         right: 8,
@@ -251,6 +335,22 @@ class ProductCard extends StatelessWidget {
                           decoration: BoxDecoration(color: AppColors.turquoise, borderRadius: BorderRadius.circular(6)),
                           child: Text('خصم $discountPercent%',
                               style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                    if (!outOfStock && product.isLowStock)
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'المتبقي ${product.stock} فقط',
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800),
+                          ),
                         ),
                       ),
                     Positioned(
@@ -334,8 +434,8 @@ class ProductCard extends StatelessWidget {
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
                           ),
-                          icon: const PhIcon(LucideIcons.shoppingCart, size: 13),
-                          label: Text(outOfStock ? 'غير متوفر' : 'أضف للسلة',
+                          icon: PhIcon(outOfStock ? LucideIcons.slash : LucideIcons.shoppingCart, size: 13),
+                          label: Text(outOfStock ? 'نفذت الكمية' : 'أضف للسلة',
                               style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800)),
                         ),
                       ],
@@ -526,13 +626,14 @@ class IconField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsetsDirectional.only(start: 12, end: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderLight),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           PhIcon(icon, size: 16, color: AppColors.textTertiary),
           const SizedBox(width: 8),
@@ -585,13 +686,15 @@ class AppInput extends StatelessWidget {
 InputDecoration bareInput(String hint, {Widget? suffix}) {
   return InputDecoration(
     hintText: hint,
+    hintStyle: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
     suffixIcon: suffix,
+    suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
     isDense: true,
     filled: false,
     border: InputBorder.none,
     enabledBorder: InputBorder.none,
     focusedBorder: InputBorder.none,
-    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
   );
 }
 
@@ -693,6 +796,179 @@ class ToastBanner extends StatelessWidget {
             Flexible(
               child: Text(message, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── AnimatedProductCard ──────────────────────────────────────────────────────
+
+class AnimatedProductCard extends StatefulWidget {
+  final Widget child;
+  final int index;
+  const AnimatedProductCard({super.key, required this.child, this.index = 0});
+
+  @override
+  State<AnimatedProductCard> createState() => _AnimatedProductCardState();
+}
+
+class _AnimatedProductCardState extends State<AnimatedProductCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    final reduceMotion =
+        WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 400),
+    );
+
+    final curved = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _opacity = Tween<double>(begin: 0, end: 1).animate(curved);
+    _slide = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(curved);
+
+    final delay = Duration(milliseconds: widget.index * 60);
+    Future.delayed(delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: SlideTransition(position: _slide, child: widget.child),
+    );
+  }
+}
+
+// ─── PhLoadingSpinner ─────────────────────────────────────────────────────────
+
+class PhLoadingSpinner extends StatelessWidget {
+  final double size;
+  const PhLoadingSpinner({super.key, this.size = 24});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: const CircularProgressIndicator(
+        strokeWidth: 2.5,
+        valueColor: AlwaysStoppedAnimation<Color>(AppColors.turquoise),
+      ),
+    );
+  }
+}
+
+// ─── PhEmptyState ─────────────────────────────────────────────────────────────
+
+class PhEmptyState extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? action;
+
+  const PhEmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.action,
+  });
+
+  @override
+  State<PhEmptyState> createState() => _PhEmptyStateState();
+}
+
+class _PhEmptyStateState extends State<PhEmptyState>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    final reduceMotion =
+        WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 2400),
+    );
+    if (!reduceMotion) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                final offset = math.sin(_controller.value * 2 * math.pi) * 6.0;
+                return Transform.translate(
+                  offset: Offset(0, offset),
+                  child: child,
+                );
+              },
+              child: Icon(
+                widget.icon,
+                size: 56,
+                color: AppColors.turquoise.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              widget.title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.navy,
+              ),
+            ),
+            if (widget.subtitle != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                widget.subtitle!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+            ],
+            if (widget.action != null) ...[
+              const SizedBox(height: 16),
+              widget.action!,
+            ],
           ],
         ),
       ),

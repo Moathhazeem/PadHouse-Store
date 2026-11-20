@@ -149,20 +149,14 @@ export class RecommendationsService {
     const selected = model.trim();
 
     const compatible = await this.prisma.product.findMany({
-      where: { isActive: true, ipadCompatibility: { contains: selected } },
+      where: {
+        isActive: true,
+        ipadCompatibility: { has: selected },
+      },
       include: PRODUCT_INCLUDE,
     });
 
-    const exact = compatible.filter((p) => {
-      try {
-        const parsed = JSON.parse(p.ipadCompatibility);
-        return Array.isArray(parsed)
-          ? parsed.some((m: string) => m.trim() === selected)
-          : String(p.ipadCompatibility).trim() === selected;
-      } catch {
-        return String(p.ipadCompatibility).trim() === selected;
-      }
-    });
+    const exact = compatible;
 
     const groups = SETUP_GROUPS.map((group) => {
       const items = exact

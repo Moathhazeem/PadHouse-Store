@@ -36,7 +36,7 @@ void main() {
     // Verify Admin Credentials card with Quick-fill
     expect(find.byKey(const Key('admin-credentials')), findsOneWidget);
     expect(find.byKey(const Key('admin-autofill')), findsOneWidget);
-    expect(find.text('adimn123@gmail.com / 123456'), findsOneWidget);
+    expect(find.text('admin@gmail.com / 123456789'), findsOneWidget);
 
     // Verify Continue as Guest button
     expect(find.byKey(const Key('continue-guest')), findsOneWidget);
@@ -58,7 +58,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify fields populated
-    expect(find.text('adimn123@gmail.com'), findsOneWidget);
+    expect(find.text('admin@gmail.com'), findsOneWidget);
   });
 
   testWidgets('Continue as Guest enters Store and renders products & 6 categories', (WidgetTester tester) async {

@@ -84,12 +84,16 @@ export class AiService {
       });
 
       return products.map((product) => {
-      let compatibleModels = product.ipadCompatibility;
-      try {
-        const parsed: unknown = JSON.parse(product.ipadCompatibility);
-        if (Array.isArray(parsed)) compatibleModels = parsed.join('، ');
-      } catch {
-        // Keep the stored value when legacy rows are not JSON encoded.
+      let compatibleModels = '';
+      if (Array.isArray(product.ipadCompatibility)) {
+        compatibleModels = product.ipadCompatibility.join('، ');
+      } else if (typeof product.ipadCompatibility === 'string') {
+        try {
+          const parsed: unknown = JSON.parse(product.ipadCompatibility);
+          compatibleModels = Array.isArray(parsed) ? parsed.join('، ') : String(parsed);
+        } catch {
+          compatibleModels = product.ipadCompatibility;
+        }
       }
       const price = product.salePrice ?? product.basePrice;
       const stock = product.variants.reduce((sum, variant) => sum + (variant.inventory?.currentStock ?? 0), 0);

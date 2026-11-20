@@ -107,6 +107,58 @@
 .ph-input-help { margin-top: 5px; color: var(--ph-muted); font-size: 12px; }
 .ph-input-error { margin-top: 5px; color: var(--ph-error); font-size: 12px; }
 
+/* ─── Standardized Input Groups & RTL/LTR Icon Handling ─── */
+.ph-input-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: var(--ph-surface);
+  border: 1px solid var(--ph-border);
+  border-radius: var(--ph-radius-input);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  overflow: hidden;
+}
+.ph-input-wrapper:focus-within {
+  border-color: var(--ph-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(28, 168, 158, 0.18);
+}
+.ph-input-wrapper .ph-input-icon-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline-start: 12px;
+  padding-inline-end: 4px;
+  color: var(--ph-muted);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.ph-input-wrapper .ph-input-icon-end {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline-start: 4px;
+  padding-inline-end: 12px;
+  color: var(--ph-muted);
+  flex-shrink: 0;
+}
+.ph-input-wrapper .ph-input-field {
+  flex: 1 1 0%;
+  min-width: 0;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 10px 8px;
+  font-size: 13px;
+  color: var(--ph-ink);
+}
+.ph-input-wrapper .ph-input-field::placeholder {
+  color: var(--ph-muted);
+  opacity: 0.8;
+}
+
+
 .ph-compatibility {
   display: inline-flex; max-width: 100%; align-items: center; gap: 6px;
   border: 1px solid var(--ph-brand); border-radius: 999px; background: var(--ph-surface-soft);
@@ -122,6 +174,51 @@
   position: relative; display: flex; aspect-ratio: 1; align-items: center; justify-content: center;
   overflow: hidden; background: var(--ph-surface-soft);
 }
+
+/* ── Out-of-stock diagonal ribbon ── */
+.ph-oos-ribbon {
+  position: absolute;
+  inset-inline-start: -38px;
+  top: 22px;
+  z-index: 20;
+  width: 155px;
+  padding: 6px 0;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 50%, #B91C1C 100%);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.5px;
+  transform: rotate(-45deg);
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.45), 0 1px 3px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  user-select: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+/* RTL: In RTL layout, place ribbon on top-right corner with 45deg or keep top-left */
+[dir="rtl"] .ph-oos-ribbon,
+html[dir="rtl"] .ph-oos-ribbon {
+  inset-inline-start: auto;
+  inset-inline-end: -38px;
+  transform: rotate(45deg);
+}
+
+/* Large variant for ProductDetailsPage hero gallery */
+.ph-oos-ribbon--lg {
+  top: 36px;
+  inset-inline-start: -56px;
+  width: 220px;
+  padding: 9px 0;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.5), 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+[dir="rtl"] .ph-oos-ribbon--lg,
+html[dir="rtl"] .ph-oos-ribbon--lg {
+  inset-inline-start: auto;
+  inset-inline-end: -56px;
+  transform: rotate(45deg);
+}
 .ph-product-media img {
   width: 100%; height: 100%; box-sizing: border-box; object-fit: contain; padding: 16px;
   transition: transform 300ms ease;
@@ -136,9 +233,43 @@
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   border-top: 1px solid var(--ph-border); margin-top: 12px; padding-top: 12px;
 }
-.ph-skeleton { position: relative; overflow: hidden; border-radius: 8px; background: rgba(100, 116, 139, 0.1); }
-.ph-skeleton { animation: ph-pulse 1.4s ease-in-out infinite alternate; }
+.ph-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(226, 232, 240, 0.4) 0%, rgba(226, 232, 240, 0.8) 50%, rgba(226, 232, 240, 0.4) 100%);
+  background-size: 200% 100%;
+  animation: ph-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes ph-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 @keyframes ph-pulse { to { opacity: 0.55; } }
+@keyframes ph-heart-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  65% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.ph-heart-bounce {
+  animation: ph-heart-pop 380ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes ph-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.ph-floating {
+  animation: ph-float 3s ease-in-out infinite;
+}
+@keyframes ph-check-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.ph-check-animated {
+  animation: ph-check-pop 450ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
@@ -174,4 +305,307 @@
 @layer utilities {
   .scrollbar-none, .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .scrollbar-none::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+
+/* ============================================================
+   PADHOUSE — Animation & Micro-interaction Enhancements
+   Added: Page Transitions, Toast, Skeleton, Nav Indicator,
+          Category Card, Empty State, Modal, Qty Btn, Success
+          Burst, Scroll-to-top, Floating Label, Badge Pop
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. PAGE TRANSITIONS
+   ---------------------------------------------------------- */
+@keyframes ph-page-enter-anim {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes ph-page-exit-anim {
+  from { opacity: 1; transform: translate3d(0, 0, 0); }
+  to   { opacity: 0; transform: translate3d(0, -10px, 0); }
+}
+.ph-page-enter {
+  animation: ph-page-enter-anim 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+.ph-page-exit {
+  animation: ph-page-exit-anim 280ms cubic-bezier(0.4, 0, 1, 1) both;
+  will-change: opacity, transform;
+}
+
+/* ----------------------------------------------------------
+   2. ENHANCED PRODUCT CARD
+   ---------------------------------------------------------- */
+.ph-product-card {
+  will-change: transform;
+  border-color: var(--ph-border);
+}
+.ph-product-card:hover {
+  box-shadow:
+    0 8px 24px rgba(28, 168, 158, 0.12),
+    0 2px 8px  rgba(15, 23, 42, 0.06);
+  border-color: var(--ph-brand);
+}
+
+/* ----------------------------------------------------------
+   3. TOAST NOTIFICATIONS
+   ---------------------------------------------------------- */
+@keyframes ph-toast-in {
+  from { opacity: 0; transform: translate3d(0, -16px, 0) scale(0.97); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0)    scale(1); }
+}
+@keyframes ph-toast-out {
+  from { opacity: 1; transform: translate3d(0, 0, 0)    scale(1); }
+  to   { opacity: 0; transform: translate3d(0, -12px, 0) scale(0.97); }
+}
+.ph-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 260px;
+  max-width: 380px;
+  padding: 12px 16px;
+  border-radius: var(--ph-radius-card);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  animation: ph-toast-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+  pointer-events: auto;
+}
+.ph-toast--success { background: #16A34A; }
+.ph-toast--error   { background: #DC2626; }
+.ph-toast--info    { background: #1CA89E; }
+.ph-toast-exit {
+  animation: ph-toast-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* ----------------------------------------------------------
+   4. BUTTON LOADING STATE
+   ---------------------------------------------------------- */
+@keyframes ph-spinner-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+.ph-button--loading {
+  pointer-events: none;
+  opacity: 0.75;
+}
+.ph-button--loading .ph-spinner,
+.ph-button--loading [data-spinner] {
+  animation: ph-spinner-pulse 900ms ease-in-out infinite;
+}
+.ph-button:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform 100ms ease;
+}
+
+/* ----------------------------------------------------------
+   5. CART BADGE — ELASTIC BOUNCE + POP CLASS
+   ---------------------------------------------------------- */
+@keyframes ph-cart-bounce-elastic {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.4); }
+  40%  { transform: scale(0.85); }
+  60%  { transform: scale(1.18); }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.ph-badge-pop {
+  animation: ph-cart-bounce-elastic 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  will-change: transform;
+}
+
+/* ----------------------------------------------------------
+   6. SKELETON IMPROVEMENTS
+   ---------------------------------------------------------- */
+.ph-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.4) 0%,
+    rgba(28, 168, 158, 0.08) 50%,
+    rgba(226, 232, 240, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  animation: ph-shimmer 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.ph-skeleton--circle {
+  border-radius: 50%;
+}
+.ph-skeleton--text {
+  border-radius: 4px;
+  height: 1em;
+}
+
+/* ----------------------------------------------------------
+   7. INPUT FOCUS RING EXPANSION
+   ---------------------------------------------------------- */
+.ph-input {
+  transition: border-color 180ms ease, box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ph-input:focus {
+  border-color: var(--ph-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(28, 168, 158, 0.18);
+}
+/* Floating label — layout hook for future use */
+.ph-input--floating-label {
+  position: relative;
+}
+.ph-input--floating-label .ph-input {
+  padding-top: 20px;
+  padding-bottom: 6px;
+}
+.ph-input--floating-label .ph-input-label {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 14px;
+  color: var(--ph-muted);
+  pointer-events: none;
+  transition: transform 160ms ease, font-size 160ms ease, color 160ms ease;
+  transform-origin: top right;
+}
+.ph-input--floating-label .ph-input:focus ~ .ph-input-label,
+.ph-input--floating-label .ph-input:not(:placeholder-shown) ~ .ph-input-label {
+  transform: translateY(-10px) scale(0.78);
+  color: var(--ph-brand);
+}
+
+/* ----------------------------------------------------------
+   8. NAV / TAB INDICATOR
+   ---------------------------------------------------------- */
+.ph-nav-indicator {
+  position: relative;
+}
+.ph-nav-indicator::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: var(--ph-tab-x, 0px);
+  width: var(--ph-tab-w, 0px);
+  height: 2px;
+  background: var(--ph-brand);
+  border-radius: 2px 2px 0 0;
+  transition: right 240ms cubic-bezier(0.16, 1, 0.3, 1),
+              width 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: right, width;
+}
+
+/* ----------------------------------------------------------
+   9. CATEGORY CARD HOVER
+   ---------------------------------------------------------- */
+.ph-category-card {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 200ms ease;
+  will-change: transform;
+  cursor: pointer;
+}
+.ph-category-card:hover {
+  transform: translateY(-3px) scale(1.015);
+  box-shadow:
+    0 10px 28px rgba(28, 168, 158, 0.13),
+    0 2px 8px   rgba(15, 23, 42, 0.06);
+}
+.ph-category-card:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* ----------------------------------------------------------
+   10. EMPTY STATE — FLOATING ICON
+   ---------------------------------------------------------- */
+.ph-empty-state .ph-empty-icon {
+  display: inline-block;
+  animation: ph-float 3.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ----------------------------------------------------------
+   11. MODAL BACKDROP IMPROVEMENTS
+   ---------------------------------------------------------- */
+.ph-modal-backdrop {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity 200ms ease;
+  opacity: 1;
+}
+.ph-modal-backdrop--exit {
+  animation: ph-backdrop-out 200ms ease both;
+}
+@keyframes ph-backdrop-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ----------------------------------------------------------
+   12. QUANTITY BUTTON
+   ---------------------------------------------------------- */
+.ph-qty-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 100ms ease, background-color 120ms ease;
+  cursor: pointer;
+  will-change: transform;
+}
+.ph-qty-btn:active {
+  transform: scale(0.92);
+}
+
+/* ----------------------------------------------------------
+   13. SUCCESS BURST (order confirmation checkmark pop)
+   ---------------------------------------------------------- */
+.ph-success-burst {
+  animation: ph-check-pop 450ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  will-change: transform, opacity;
+}
+
+/* ----------------------------------------------------------
+   14. SCROLL-TO-TOP BUTTON
+   ---------------------------------------------------------- */
+@keyframes ph-scroll-top-enter {
+  from { opacity: 0; transform: translate3d(0, 20px, 0) scale(0.85); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0)    scale(1); }
+}
+.ph-scroll-top {
+  animation: ph-scroll-top-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  will-change: transform;
+  cursor: pointer;
+}
+.ph-scroll-top:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(28, 168, 158, 0.28);
+}
+.ph-scroll-top:active {
+  transform: translateY(0px) scale(0.95);
+}
+
+/* ----------------------------------------------------------
+   15. REDUCED MOTION — covers all new animations
+   ---------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ph-page-enter,
+  .ph-page-exit,
+  .ph-toast,
+  .ph-toast-exit,
+  .ph-badge-pop,
+  .ph-empty-state .ph-empty-icon,
+  .ph-scroll-top,
+  .ph-success-burst,
+  .ph-button--loading .ph-spinner,
+  .ph-button--loading [data-spinner] {
+    animation: none !important;
+  }
+  .ph-product-card,
+  .ph-category-card,
+  .ph-qty-btn,
+  .ph-scroll-top,
+  .ph-input,
+  .ph-nav-indicator::after {
+    transition: none !important;
+  }
 }

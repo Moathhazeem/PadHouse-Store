@@ -81,9 +81,12 @@ class PadhouseController extends ChangeNotifier {
   CustomerStack? customerStack;
   AdminTab adminTab = AdminTab.overview;
 
-  List<Product> products = const [];
+  List<Product> products = officialProducts;
   List<ShopOrder> orders = const [];
-  List<CartLine> cart = const [];
+  List<CartLine> cart = const [
+    CartLine(productId: 'prod-01', quantity: 1, selectedColor: 'أبيض ناصع'),
+    CartLine(productId: 'prod-19', quantity: 1, selectedColor: 'ملمس ورقي مطفي'),
+  ];
   List<String> wishlistIds = const [];
 
   String? selectedProductId = 'prod-01';
@@ -136,6 +139,12 @@ class PadhouseController extends ChangeNotifier {
   /// Last error surfaced by [placeOrder] (null when the last attempt succeeded).
   String? lastOrderError;
 
+  // ─── Admin Notifications & Inventory Alerts ──────────────────────────────
+
+  List<AdminNotificationModel> adminNotifications = const [];
+  int adminUnreadNotificationCount = 0;
+  bool isLoadingNotifications = false;
+
   // ─── Remote cart bookkeeping ───────────────────────────────────────────────
 
   int? _remoteSubtotal;
@@ -147,9 +156,12 @@ class PadhouseController extends ChangeNotifier {
     final u = user;
     if (u == null) return false;
     final role = u.role.toLowerCase();
+    final emailLower = u.email.toLowerCase();
     return role == 'admin' ||
         role == 'super_admin' ||
-        u.email.toLowerCase() == superAdminEmail;
+        emailLower == defaultAdminEmail ||
+        emailLower == superAdminEmail ||
+        emailLower == legacyAdminEmail;
   }
 
   bool get _isLoggedInCustomer => user != null && user!.role != 'guest';
@@ -267,9 +279,13 @@ class PadhouseController extends ChangeNotifier {
     _notify();
     try {
       final list = await _api.getProducts();
-      products = list;
+      if (list.isNotEmpty) {
+        products = list;
+      }
     } catch (_) {
-      products = const [];
+      if (products.isEmpty) {
+        products = officialProducts;
+      }
     } finally {
       isSyncingWithBackend = false;
       _notify();
@@ -555,11 +571,42 @@ class PadhouseController extends ChangeNotifier {
     return null;
   }
 
+  /// Awaitable login — returns null on success, error string on failure.
+  /// Use this from the UI to properly await the network call, show a loading
+  /// indicator, display backend errors in-form, and navigate on success.
+  Future<String?> loginAsync(String email, String password) async {
+    final emailTrim = email.trim().toLowerCase();
+    final passTrim = password;
+    if (emailTrim.isEmpty || !emailTrim.contains('@')) {
+      return 'يرجى إدخال بريد إلكتروني صالح';
+    }
+    if (passTrim.isEmpty) return 'يرجى إدخال كلمة المرور';
+
+    if (_isTestEnvironment) return _localLogin(emailTrim, passTrim);
+
+    try {
+      final result = await _api.login(emailTrim, passTrim);
+      await _api.saveTokens(result.accessToken, result.refreshToken);
+      _applyApiUser(result.user);
+      await _persist();
+      _notify();
+      showToast('أهلاً بك مجدداً ${user?.name ?? ''}!');
+      unawaited(syncAuthedData());
+      return null;
+    } catch (e) {
+      return _dioMessage(e,
+          fallback:
+              'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى المحاولة ثانية.');
+    }
+  }
+
   String? _localLogin(String emailTrim, String passTrim) {
-    if (emailTrim == superAdminEmail && passTrim == superAdminPass) {
-      user = const AppUser(
-        name: 'المسؤول العام',
-        email: superAdminEmail,
+    if ((emailTrim == defaultAdminEmail && passTrim == defaultAdminPass) ||
+        (emailTrim == superAdminEmail && passTrim == superAdminPass) ||
+        (emailTrim == legacyAdminEmail && passTrim == legacyAdminPass)) {
+      user = AppUser(
+        name: 'مسؤول النظام (Admin)',
+        email: emailTrim,
         phone: '+970 59 000 0000',
         city: 'رام الله والبيرة',
         role: 'super_admin',
@@ -569,7 +616,7 @@ class PadhouseController extends ChangeNotifier {
       checkoutPhone = user!.phone;
       _persist();
       _notify();
-      showToast('مرحباً بك! تم تسجيل الدخول كمسؤول عام');
+      showToast('مرحباً بك! تم تسجيل الدخول كمسؤول');
       return null;
     }
     final record = accounts[emailTrim];
@@ -652,6 +699,71 @@ class PadhouseController extends ChangeNotifier {
       password: passTrim,
     ));
     return null;
+  }
+
+  /// Awaitable register — returns null on success, error string on failure.
+  /// Use this from the UI to properly await the network call, show a loading
+  /// indicator, display backend errors in-form, and navigate on success.
+  Future<String?> registerAsync({
+    required String name,
+    required String email,
+    required String phone,
+    required String city,
+    required String password,
+  }) async {
+    final emailTrim = email.trim().toLowerCase();
+    final passTrim = password;
+    if (name.trim().isEmpty) return 'يرجى كتابة الاسم الكامل';
+    if (emailTrim.isEmpty || !emailTrim.contains('@')) {
+      return 'يرجى إدخال بريد إلكتروني صالح';
+    }
+    if (passTrim.length < 6) return 'كلمة المرور يجب أن لا تقل عن 6 خانات';
+
+    if (_isTestEnvironment) {
+      if (emailTrim == superAdminEmail || accounts.containsKey(emailTrim)) {
+        return 'هذا البريد مسجل لدينا مسبقاً';
+      }
+      final created = AppUser(
+        name: name.trim(),
+        email: emailTrim,
+        phone: phone.trim().isEmpty ? '+970 59 000 0000' : phone.trim(),
+        city: city,
+        role: 'customer',
+      );
+      accounts = {
+        ...accounts,
+        emailTrim: RegisteredAccount(password: passTrim, user: created)
+      };
+      user = created;
+      appMode = AppMode.customer;
+      checkoutName = created.name;
+      checkoutPhone = created.phone;
+      checkoutCity = created.city;
+      _persist();
+      _notify();
+      showToast('تم إنشاء الحساب بنجاح! أهلاً بك في بادهاوس');
+      return null;
+    }
+
+    try {
+      final result = await _api.register(
+        fullName: name.trim(),
+        email: emailTrim,
+        password: passTrim,
+        phone: phone.trim().isEmpty ? null : phone.trim(),
+        city: city.isEmpty ? null : city,
+      );
+      await _api.saveTokens(result.accessToken, result.refreshToken);
+      _applyApiUser(result.user);
+      await _persist();
+      _notify();
+      showToast('تم إنشاء الحساب بنجاح! أهلاً بك في بادهاوس');
+      unawaited(syncAuthedData());
+      return null;
+    } catch (e) {
+      return _dioMessage(e,
+          fallback: 'تعذّر إنشاء الحساب، يرجى المحاولة مرة أخرى');
+    }
   }
 
   Future<void> _remoteRegister({
@@ -783,6 +895,8 @@ class PadhouseController extends ChangeNotifier {
   void enterAdmin() {
     appMode = AppMode.admin;
     adminTab = AdminTab.overview;
+    _refreshLocalLowStockAlerts();
+    unawaited(loadAdminNotifications());
     _notify();
   }
 
@@ -1182,7 +1296,119 @@ class PadhouseController extends ChangeNotifier {
     }
   }
 
-  // ─── Admin / catalog management (local admin OS) ──────────────────────────
+  // ─── Admin / catalog management (local admin OS & ERP Sync) ──────────────
+
+  /// Loads admin notifications from backend `GET /admin/notifications`,
+  /// supplemented with active low-stock alerts for products where `stock < minStock`.
+  Future<void> loadAdminNotifications() async {
+    if (!isSuperAdmin) return;
+    isLoadingNotifications = true;
+    _notify();
+    if (_isTestEnvironment) {
+      _refreshLocalLowStockAlerts();
+      isLoadingNotifications = false;
+      _notify();
+      return;
+    }
+    try {
+      final res = await _api.getAdminNotifications();
+      final backendNotifications = res.notifications;
+
+      final activeAlerts = <AdminNotificationModel>[];
+      for (final p in products) {
+        if (p.stock < p.minStock) {
+          final existing = backendNotifications
+              .where((n) => n.productId == p.id)
+              .firstOrNull;
+          if (existing != null) {
+            activeAlerts.add(existing);
+          } else {
+            activeAlerts.add(AdminNotificationModel(
+              id: 'local-alert-${p.id}',
+              title: 'تنبيه انخفاض المخزون: ${p.name}',
+              message:
+                  'الرصيد الحالي (${p.stock} قطعة) أقل من الحد الأدنى المطلوب (${p.minStock} قطع).',
+              productId: p.id,
+              isRead: false,
+              createdAt: DateTime.now(),
+              type: 'LOW_STOCK',
+            ));
+          }
+        }
+      }
+
+      final merged = <String, AdminNotificationModel>{};
+      for (final n in activeAlerts) {
+        merged[n.id] = n;
+      }
+      for (final n in backendNotifications) {
+        merged.putIfAbsent(n.id, () => n);
+      }
+
+      adminNotifications = merged.values.toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      adminUnreadNotificationCount =
+          adminNotifications.where((n) => !n.isRead).length;
+    } catch (_) {
+      _refreshLocalLowStockAlerts();
+    } finally {
+      isLoadingNotifications = false;
+      _notify();
+    }
+  }
+
+  void _refreshLocalLowStockAlerts() {
+    final alerts = <AdminNotificationModel>[];
+    for (final p in products) {
+      if (p.stock < p.minStock) {
+        final prev = adminNotifications
+            .where((n) => n.productId == p.id || n.id == 'local-alert-${p.id}')
+            .firstOrNull;
+        alerts.add(AdminNotificationModel(
+          id: 'local-alert-${p.id}',
+          title: 'تنبيه انخفاض المخزون: ${p.name}',
+          message:
+              'الرصيد الحالي (${p.stock} قطعة) أقل من الحد الأدنى المطلوب (${p.minStock} قطع).',
+          productId: p.id,
+          isRead: prev?.isRead ?? false,
+          createdAt: prev?.createdAt ?? DateTime.now(),
+          type: 'LOW_STOCK',
+        ));
+      }
+    }
+    adminNotifications = alerts;
+    adminUnreadNotificationCount =
+        adminNotifications.where((n) => !n.isRead).length;
+  }
+
+  Future<void> markAdminNotificationAsRead(String id) async {
+    adminNotifications = adminNotifications.map((n) {
+      if (n.id == id) return n.copyWith(isRead: true);
+      return n;
+    }).toList();
+    adminUnreadNotificationCount =
+        adminNotifications.where((n) => !n.isRead).length;
+    _notify();
+    if (!_isTestEnvironment) {
+      try {
+        await _api.markAdminNotificationAsRead(id);
+      } catch (_) {}
+    }
+    showToast('تم تحديد الإشعار كمقروء');
+  }
+
+  Future<void> markAllAdminNotificationsAsRead() async {
+    adminNotifications =
+        adminNotifications.map((n) => n.copyWith(isRead: true)).toList();
+    adminUnreadNotificationCount = 0;
+    _notify();
+    if (!_isTestEnvironment) {
+      try {
+        await _api.markAllAdminNotificationsAsRead();
+      } catch (_) {}
+    }
+    showToast('تم تحديد جميع الإشعارات كمقروءة');
+  }
 
   void adjustStock(String productId, int delta) {
     products = products
@@ -1190,12 +1416,18 @@ class PadhouseController extends ChangeNotifier {
             ? item.copyWith(stock: max(0, item.stock + delta))
             : item)
         .toList();
-    final name = productById(productId)?.name ?? '';
+    final updatedProduct = productById(productId);
+    final name = updatedProduct?.name ?? '';
+    _refreshLocalLowStockAlerts();
     if (delta > 0) {
-      showToast('تمت إضافة $delta قطع لـ "$name"');
+      showToast('تمت إضافة $delta قطع لـ "$name" (المخزون: ${updatedProduct?.stock ?? 0})');
     } else {
-      _notify();
+      showToast('تم خصم ${delta.abs()} قطع من "$name" (المخزون: ${updatedProduct?.stock ?? 0})');
     }
+    if (!_isTestEnvironment && updatedProduct != null) {
+      unawaited(_api.updateAdminProductStock(productId, updatedProduct.stock));
+    }
+    _notify();
   }
 
   void updateOrderStatus(String orderId, String status) {
@@ -1210,6 +1442,8 @@ class PadhouseController extends ChangeNotifier {
     required String name,
     required int price,
     required int stock,
+    int minStock = 5,
+    int maxStock = 100,
     required String category,
     required String compatibility,
   }) {
@@ -1221,12 +1455,22 @@ class PadhouseController extends ChangeNotifier {
                   name: name,
                   price: price,
                   stock: stock,
+                  minStock: minStock,
+                  maxStock: maxStock,
                   categories: [category],
                   compatibility: compatibility,
                 )
               : p)
           .toList();
-      showToast('تم حفظ تعديلات المنتج!');
+      showToast('تم حفظ تعديلات المنتج وحدود المخزون!');
+      unawaited(_api.updateAdminProduct(editing.id, {
+        'nameAr': name,
+        'basePrice': price,
+        'stock': stock,
+        'minStock': minStock,
+        'maxStock': maxStock,
+        'compatibility': compatibility,
+      }));
     } else {
       final created = Product(
         id: 'prod-${DateTime.now().millisecondsSinceEpoch}',
@@ -1236,7 +1480,9 @@ class PadhouseController extends ChangeNotifier {
         price: price,
         originalPrice: price + 20,
         stock: stock,
-        minThreshold: 5,
+        minStock: minStock,
+        maxStock: maxStock,
+        minThreshold: minStock,
         compatibility: compatibility,
         rating: 5,
         reviewsCount: 1,
@@ -1247,7 +1493,9 @@ class PadhouseController extends ChangeNotifier {
       );
       products = [created, ...products];
       showToast('تمت إضافة المنتج بنجاح إلى الكتالوج!');
+      unawaited(_api.createAdminProduct(created.toJson()));
     }
+    _refreshLocalLowStockAlerts();
     showProductModal = false;
     editingProduct = null;
     _notify();

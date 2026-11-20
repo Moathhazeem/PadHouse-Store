@@ -314,9 +314,69 @@ class PadhouseApi {
   }
 
   Future<List<Map<String, dynamic>>> getCategories() async => _asList(await _get('/categories'));
+
+  // ─── Admin Notifications ──────────────────────────────────────────────────
+
+  Future<AdminNotificationsResult> getAdminNotifications() async {
+    final data = await _get('/admin/notifications');
+    if (data is Map) {
+      return AdminNotificationsResult.fromJson(Map<String, dynamic>.from(data));
+    } else if (data is List) {
+      final list = data
+          .whereType<Map<dynamic, dynamic>>()
+          .map((e) => AdminNotificationModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      return AdminNotificationsResult(
+        notifications: list,
+        unreadCount: list.where((n) => !n.isRead).length,
+      );
+    }
+    return const AdminNotificationsResult(notifications: [], unreadCount: 0);
+  }
+
+  Future<Map<String, dynamic>> markAdminNotificationAsRead(String id) async =>
+      _asMap(await _patch('/admin/notifications/$id/read'));
+
+  Future<Map<String, dynamic>> markAllAdminNotificationsAsRead() async =>
+      _asMap(await _patch('/admin/notifications/read-all'));
+
+  // ─── Admin Product Management ─────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> createAdminProduct(Map<String, dynamic> body) async =>
+      _asMap(await _post('/products', body));
+
+  Future<Map<String, dynamic>> updateAdminProduct(String id, Map<String, dynamic> body) async =>
+      _asMap(await _patch('/products/$id', body));
+
+  Future<Map<String, dynamic>> updateAdminProductStock(String id, int stock) async =>
+      _asMap(await _patch('/products/$id/stock', {'stock': stock}));
 }
 
 // ─── Response models ─────────────────────────────────────────────────────────
+
+class AdminNotificationsResult {
+  final List<AdminNotificationModel> notifications;
+  final int unreadCount;
+
+  const AdminNotificationsResult({
+    required this.notifications,
+    required this.unreadCount,
+  });
+
+  factory AdminNotificationsResult.fromJson(Map<String, dynamic> json) {
+    final rawList = json['notifications'];
+    final list = rawList is List
+        ? rawList
+            .whereType<Map<dynamic, dynamic>>()
+            .map((e) => AdminNotificationModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList()
+        : <AdminNotificationModel>[];
+    return AdminNotificationsResult(
+      notifications: list,
+      unreadCount: (json['unreadCount'] as num?)?.toInt() ?? list.where((n) => !n.isRead).length,
+    );
+  }
+}
 
 class ApiUser {
   final String id;

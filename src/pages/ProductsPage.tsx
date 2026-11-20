@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { SlidersHorizontal, ArrowUpDown, Check, PackageSearch, PenLine, Smartphone, Keyboard, BriefcaseBusiness, Cable, Shield } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Product } from '../types';
 import { OFFICIAL_CATEGORIES } from '../data/catalog';
 import { ProductCard } from '../components/ProductCard';
@@ -70,10 +71,25 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      <div className="mb-6 flex gap-2 overflow-x-auto pb-2" aria-label="تصفية حسب القسم">
+      <div className="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-none" aria-label="تصفية حسب القسم">
         {OFFICIAL_CATEGORIES.map((cat) => {
           const Icon = ({cat_pens: PenLine, cat_cases: Smartphone, cat_keyboards: Keyboard, cat_stands: BriefcaseBusiness, cat_chargers: Cable, cat_others: Shield, all: PackageSearch} as Record<string, React.ElementType>)[cat.id] || PackageSearch;
-          return <button key={cat.id} onClick={() => onSelectCategory(cat.id)} className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold ${selectedCategory === cat.id ? 'border-ph-brand bg-ph-brand text-white' : 'border-ph-border bg-white text-ph-ink hover:border-ph-brand'}`}><Icon className="h-4 w-4" strokeWidth={1.7}/>{cat.name}</button>;
+          return (
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              key={cat.id}
+              onClick={() => onSelectCategory(cat.id)}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold transition-all shadow-2xs ${
+                selectedCategory === cat.id
+                  ? 'border-ph-brand bg-ph-brand text-white shadow-xs'
+                  : 'border-ph-border bg-white text-ph-ink hover:border-ph-brand'
+              }`}
+            >
+              <Icon className="h-4 w-4" strokeWidth={1.7}/>
+              {cat.name}
+            </motion.button>
+          );
         })}
       </div>
       {/* Top Breadcrumb & Heading */}
@@ -218,17 +234,27 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredProducts.map((prod, index) => (
-                <ProductCard
-                  key={prod.id}
-                  product={prod}
-                  isWishlisted={wishlistIds.includes(prod.id)}
-                  onSelect={onSelectProduct}
-                  onAddToCart={onAddToCart}
-                  onToggleWishlist={onToggleWishlist}
-                  revealDelay={(index % 8) * 45}
-                />
-              ))}
+              <AnimatePresence mode="popLayout">
+                {filteredProducts.map((prod, index) => (
+                  <motion.div
+                    key={prod.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <ProductCard
+                      product={prod}
+                      isWishlisted={wishlistIds.includes(prod.id)}
+                      onSelect={onSelectProduct}
+                      onAddToCart={onAddToCart}
+                      onToggleWishlist={onToggleWishlist}
+                      revealDelay={(index % 8) * 35}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </main>

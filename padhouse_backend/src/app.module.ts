@@ -16,6 +16,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
 import { DeliveryModule } from './delivery/delivery.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { GiftCardsModule } from './gift-cards/gift-cards.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 
 @Module({
@@ -32,6 +33,7 @@ import { AiModule } from './ai/ai.module';
     CartModule,
     OrdersModule,
     InventoryModule,
+    NotificationsModule,
     CouponsModule,
     EngagementModule,
     ReviewsModule,

@@ -1,7 +1,10 @@
 import { BadGatewayException, BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { mapCatalogProduct } from './product.mapper';
+import { CreateProductDto, UpdateProductDto } from './dto';
 
 const CATALOG_INCLUDE = {
   category: true,
@@ -17,7 +20,10 @@ const imageFetches = new Map<string, Promise<{ buffer: Buffer; contentType: stri
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async fetchProductImage(sourceUrl: string): Promise<{ buffer: Buffer; contentType: string }> {
     let imageUrl: URL;
@@ -107,10 +113,10 @@ async findAll(query: {
       const search = query.search.trim();
       conditions.push({
         OR: [
-          { nameAr: { contains: search } },
-          { nameEn: { contains: search } },
-          { descriptionAr: { contains: search } },
-          { sku: { contains: search } },
+          { nameAr: { contains: search, mode: 'insensitive' } },
+          { nameEn: { contains: search, mode: 'insensitive' } },
+          { descriptionAr: { contains: search, mode: 'insensitive' } },
+          { sku: { contains: search, mode: 'insensitive' } },
         ],
       });
     }
@@ -119,22 +125,17 @@ async findAll(query: {
       conditions.push({ isFeatured: query.featured });
     }
 
+    if (query.compatibility) {
+      conditions.push({ ipadCompatibility: { has: query.compatibility } });
+    }
+
     const items = await this.prisma.product.findMany({
       where: { AND: conditions },
       include: CATALOG_INCLUDE,
       orderBy: { createdAt: 'asc' },
     });
 
-    const compatibleItems = query.compatibility
-      ? items.filter((product) => {
-          try {
-            const verifiedModels: unknown = JSON.parse(product.ipadCompatibility);
-            return Array.isArray(verifiedModels) && verifiedModels.includes(query.compatibility);
-          } catch {
-            return false;
-          }
-        })
-      : items;
+    const compatibleItems = items;
 
     return compatibleItems.map(mapCatalogProduct);
   }
@@ -179,18 +180,170 @@ async findAll(query: {
 
     const modelSet = new Set<string>();
     for (const product of products) {
-      try {
-        const parsed = JSON.parse(product.ipadCompatibility);
-        if (Array.isArray(parsed)) {
-          parsed.forEach((model: string) => modelSet.add(model));
-        } else {
-          modelSet.add(String(product.ipadCompatibility));
-        }
-      } catch {
-        if (product.ipadCompatibility) modelSet.add(String(product.ipadCompatibility));
+      if (Array.isArray(product.ipadCompatibility)) {
+        product.ipadCompatibility.forEach((model: string) => modelSet.add(model));
       }
     }
 
     return Array.from(modelSet).sort((a, b) => a.localeCompare(b, 'ar'));
+  }
+
+  /**
+   * Creates a new product and validates that minStock >= 0 and maxStock >= minStock.
+   * If stock < minStock, automatically triggers a low-stock admin notification.
+   */
+  async create(dto: CreateProductDto) {
+    if (dto.minStock !== undefined && dto.minStock < 0) {
+      throw new BadRequestException('الحد الأدنى للمخزون يجب أن يكون صفراً أو أكثر (minStock >= 0)');
+    }
+    const minStock = dto.minStock ?? 5;
+    const maxStock = dto.maxStock ?? 100;
+    if (maxStock < minStock) {
+      throw new BadRequestException(
+        'الحد الأقصى للمخزون يجب أن يكون أكبر من أو يساوي الحد الأدنى (maxStock >= minStock)',
+      );
+    }
+
+    const initialStock = dto.stock ?? 0;
+
+    const product = await this.prisma.product.create({
+      data: {
+        sku: dto.sku,
+        nameAr: dto.nameAr,
+        nameEn: dto.nameEn,
+        descriptionAr: dto.descriptionAr,
+        descriptionEn: dto.descriptionEn,
+        categoryId: dto.categoryId,
+        basePrice: dto.basePrice,
+        salePrice: dto.salePrice ?? null,
+        stock: initialStock,
+        minStock,
+        maxStock,
+        ipadCompatibility: dto.ipadCompatibility ?? [],
+        warrantyMonths: dto.warrantyMonths ?? 12,
+        isFeatured: dto.isFeatured ?? false,
+        isActive: dto.isActive ?? true,
+      },
+      include: CATALOG_INCLUDE,
+    });
+
+    // Check low-stock trigger (stock < minStock)
+    if (product.stock < product.minStock) {
+      await this.notificationsService.checkAndCreateLowStockNotification({
+        productId: product.id,
+        productNameAr: product.nameAr,
+        stock: product.stock,
+        minStock: product.minStock,
+      });
+    }
+
+    return mapCatalogProduct(product);
+  }
+
+  /**
+   * Updates an existing product.
+   * Validates minStock >= 0 and maxStock >= minStock against existing values.
+   * If stock falls below minStock, automatically triggers a low-stock notification.
+   */
+  async update(id: string, dto: UpdateProductDto) {
+    const existing = await this.prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('المنتج غير موجود');
+    }
+
+    const minStock = dto.minStock !== undefined ? dto.minStock : existing.minStock;
+    const maxStock = dto.maxStock !== undefined ? dto.maxStock : existing.maxStock;
+
+    if (minStock < 0) {
+      throw new BadRequestException('الحد الأدنى للمخزون يجب أن يكون صفراً أو أكثر (minStock >= 0)');
+    }
+    if (maxStock < minStock) {
+      throw new BadRequestException(
+        'الحد الأقصى للمخزون يجب أن يكون أكبر من أو يساوي الحد الأدنى (maxStock >= minStock)',
+      );
+    }
+
+    const updated = await this.prisma.product.update({
+      where: { id },
+      data: {
+        ...(dto.sku ? { sku: dto.sku } : {}),
+        ...(dto.nameAr ? { nameAr: dto.nameAr } : {}),
+        ...(dto.nameEn ? { nameEn: dto.nameEn } : {}),
+        ...(dto.descriptionAr ? { descriptionAr: dto.descriptionAr } : {}),
+        ...(dto.descriptionEn ? { descriptionEn: dto.descriptionEn } : {}),
+        ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
+        ...(dto.basePrice !== undefined ? { basePrice: dto.basePrice } : {}),
+        ...(dto.salePrice !== undefined ? { salePrice: dto.salePrice } : {}),
+        ...(dto.stock !== undefined ? { stock: dto.stock } : {}),
+        ...(dto.minStock !== undefined ? { minStock: dto.minStock } : {}),
+        ...(dto.maxStock !== undefined ? { maxStock: dto.maxStock } : {}),
+        ...(dto.ipadCompatibility ? { ipadCompatibility: dto.ipadCompatibility } : {}),
+        ...(dto.warrantyMonths !== undefined ? { warrantyMonths: dto.warrantyMonths } : {}),
+        ...(dto.isFeatured !== undefined ? { isFeatured: dto.isFeatured } : {}),
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+      },
+      include: CATALOG_INCLUDE,
+    });
+
+    // Check low-stock trigger (stock < minStock)
+    if (updated.stock < updated.minStock) {
+      await this.notificationsService.checkAndCreateLowStockNotification({
+        productId: updated.id,
+        productNameAr: updated.nameAr,
+        stock: updated.stock,
+        minStock: updated.minStock,
+      });
+    }
+
+    return mapCatalogProduct(updated);
+  }
+
+  /**
+   * Directly updates stock for ERP inventory management.
+   * Safe to call inside an existing transaction or standalone.
+   */
+  async updateStock(id: string, newStock: number, tx?: Prisma.TransactionClient) {
+    if (newStock < 0) {
+      throw new BadRequestException('لا يمكن أن يكون المخزون سالباً');
+    }
+
+    const client = tx || this.prisma;
+    const existing = await client.product.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('المنتج غير موجود');
+    }
+
+    const updated = await client.product.update({
+      where: { id },
+      data: { stock: newStock },
+    });
+
+    if (updated.stock < updated.minStock) {
+      await this.notificationsService.checkAndCreateLowStockNotification(
+        {
+          productId: updated.id,
+          productNameAr: updated.nameAr,
+          stock: updated.stock,
+          minStock: updated.minStock,
+        },
+        tx,
+      );
+    }
+
+    return updated;
+  }
+
+  async remove(id: string) {
+    const existing = await this.prisma.product.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('المنتج غير موجود');
+    }
+    return this.prisma.product.delete({ where: { id } });
   }
 }

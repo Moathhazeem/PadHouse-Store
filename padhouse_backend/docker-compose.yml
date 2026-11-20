@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: padhouse_postgres
+    environment:
+      POSTGRES_USER: padhouse_user
+      POSTGRES_PASSWORD: padhouse_dev_password
+      POSTGRES_DB: padhouse_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - padhouse_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  padhouse_pgdata:

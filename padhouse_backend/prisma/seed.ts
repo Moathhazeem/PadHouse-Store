@@ -18,6 +18,31 @@ async function main() {
   console.log('--- Starting PadHouse Database Seeding ---');
 
   // 1. Seed Super Admin, Admin and Customer
+  const defaultAdminPassword = await bcrypt.hash('123456789', 10);
+  const defaultAdmin = await prisma.user.upsert({
+    where: { email: 'admin@gmail.com' },
+    update: {
+      role: 'ADMIN',
+      isActive: true,
+      passwordHash: defaultAdminPassword,
+    },
+    create: {
+      email: 'admin@gmail.com',
+      passwordHash: defaultAdminPassword,
+      fullName: 'مسؤول المتجر (Admin)',
+      phone: '+970599000000',
+      role: 'ADMIN',
+      isActive: true,
+      customerProfile: {
+        create: {
+          preferredLocale: 'ar',
+          cart: { create: {} },
+        },
+      },
+    },
+  });
+  console.log('Created/Verified Default Admin (admin@gmail.com):', defaultAdmin.email);
+
   const superAdminPassword = await bcrypt.hash('123456', 10);
   const superAdmin = await prisma.user.upsert({
     where: { email: 'adimn123@gmail.com' },
@@ -156,7 +181,7 @@ async function main() {
         descriptionEn: p.description,
         basePrice: p.originalPrice || p.price,
         salePrice: p.originalPrice > p.price ? p.price : null,
-        ipadCompatibility: JSON.stringify([p.compatibility]),
+        ipadCompatibility: [p.compatibility],
         categoryId,
         images: {
           deleteMany: { isPrimary: true },
@@ -176,7 +201,7 @@ async function main() {
         descriptionEn: p.description,
         basePrice: p.originalPrice || p.price,
         salePrice: p.originalPrice > p.price ? p.price : null,
-        ipadCompatibility: JSON.stringify([p.compatibility]),
+        ipadCompatibility: [p.compatibility],
         categoryId,
         images: {
           create: {

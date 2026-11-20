@@ -29,7 +29,7 @@ class StoreScreen extends ConsumerWidget {
                 _Header(store: store),
                 Expanded(
                   child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
+                    duration: const Duration(milliseconds: 280),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
                     transitionBuilder: (child, animation) => FadeTransition(
@@ -57,23 +57,37 @@ class StoreScreen extends ConsumerWidget {
                 top: 70,
                 left: 20,
                 right: 20,
-                child: Material(
-                  elevation: 6,
-                  borderRadius: BorderRadius.circular(12),
-                  color: AppColors.navy,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      children: [
-                        const PhIcon(LucideIcons.info, size: 16, color: AppColors.turquoise),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            store.toastMessage!,
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                child: TweenAnimationBuilder<double>(
+                  key: ValueKey(store.toastMessage),
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOutBack,
+                  tween: Tween<double>(begin: 0, end: 1),
+                  builder: (context, val, child) => Transform.translate(
+                    offset: Offset(0, -20 * (1 - val)),
+                    child: Opacity(opacity: val.clamp(0.0, 1.0), child: child),
+                  ),
+                  child: Material(
+                    elevation: 8,
+                    borderRadius: BorderRadius.circular(14),
+                    color: AppColors.navy,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const PhIcon(LucideIcons.info, size: 16, color: AppColors.turquoise),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              store.toastMessage!,
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -118,6 +132,18 @@ class _Header extends ConsumerWidget {
                 ],
               ),
             ),
+            IconButton(
+              key: const Key('admin-lowstock-bell'),
+              tooltip: 'إشعارات انخفاض المخزون',
+              onPressed: () => showLowStockNotificationsBottomSheet(context, store),
+              icon: Badge(
+                isLabelVisible: store.adminUnreadNotificationCount > 0,
+                label: Text('${store.adminUnreadNotificationCount}'),
+                backgroundColor: AppColors.error,
+                child: const PhIcon(LucideIcons.bell, size: 20, color: AppColors.navy),
+              ),
+            ),
+            const SizedBox(width: 4),
             FilledButton.icon(
               key: const Key('back-to-store'),
               onPressed: store.backToStore,
@@ -238,7 +264,7 @@ class _AdminNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return _NavBar(
       items: [
-        _NavItem('المؤشرات', LucideIcons.barChart3, store.adminTab == AdminTab.overview, () => store.setAdminTab(AdminTab.overview), const Key('admin-overview')),
+        _NavItem('المؤشرات', LucideIcons.barChart3, store.adminTab == AdminTab.overview, () => store.setAdminTab(AdminTab.overview), const Key('admin-overview'), badge: store.adminUnreadNotificationCount, badgeColor: AppColors.error),
         _NavItem('المنتجات', LucideIcons.package, store.adminTab == AdminTab.products, () => store.setAdminTab(AdminTab.products), const Key('admin-products')),
         _NavItem('المخزون', LucideIcons.layers, store.adminTab == AdminTab.inventory, () => store.setAdminTab(AdminTab.inventory), const Key('admin-inventory')),
         _NavItem('الطلبات', LucideIcons.shoppingBag, store.adminTab == AdminTab.orders, () => store.setAdminTab(AdminTab.orders), const Key('admin-orders'), badge: store.pendingOrders, badgeColor: AppColors.error),
@@ -359,28 +385,40 @@ class _RegularNavItem extends StatelessWidget {
     );
   }
 
-  Widget _navIcon(_NavItem item, {bool compact = false}) => Container(
-        padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 12, vertical: 4),
+  Widget _navIcon(_NavItem item, {bool compact = false}) => AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 14, vertical: 4),
         decoration: BoxDecoration(
           color: item.active ? AppColors.turquoise.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
         ),
-        child: Badge(
-          isLabelVisible: item.badge > 0,
-          label: Text('${item.badge}'),
-          backgroundColor: item.badgeColor,
-          child: PhIcon(item.icon, size: 18, color: item.active ? AppColors.turquoise : AppColors.textTertiary),
+        child: AnimatedScale(
+          scale: item.active ? 1.08 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: Badge(
+            isLabelVisible: item.badge > 0,
+            label: Text('${item.badge}'),
+            backgroundColor: item.badgeColor,
+            child: PhIcon(item.icon, size: 18, color: item.active ? AppColors.turquoise : AppColors.textTertiary),
+          ),
         ),
       );
 
-  Widget _navLabel(_NavItem item, {required int maxLines}) => Text(
-        item.label,
-        maxLines: maxLines,
-        overflow: TextOverflow.ellipsis,
+  Widget _navLabel(_NavItem item, {required int maxLines}) => AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
         style: TextStyle(
+          fontFamily: 'IBM Plex Sans Arabic',
           fontSize: 10,
           fontWeight: item.active ? FontWeight.w800 : FontWeight.w600,
           color: item.active ? AppColors.turquoise : AppColors.textTertiary,
+        ),
+        child: Text(
+          item.label,
+          maxLines: maxLines,
+          overflow: TextOverflow.ellipsis,
         ),
       );
 }
@@ -426,28 +464,40 @@ class _NavBar extends StatelessWidget {
     );
   }
 
-  Widget _navIcon(_NavItem item, {bool compact = false}) => Container(
-        padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 12, vertical: 4),
+  Widget _navIcon(_NavItem item, {bool compact = false}) => AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 14, vertical: 4),
         decoration: BoxDecoration(
           color: item.active ? AppColors.turquoise.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
         ),
-        child: Badge(
-          isLabelVisible: item.badge > 0,
-          label: Text('${item.badge}'),
-          backgroundColor: item.badgeColor,
-          child: PhIcon(item.icon, size: 18, color: item.active ? AppColors.turquoise : AppColors.textTertiary),
+        child: AnimatedScale(
+          scale: item.active ? 1.08 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: Badge(
+            isLabelVisible: item.badge > 0,
+            label: Text('${item.badge}'),
+            backgroundColor: item.badgeColor,
+            child: PhIcon(item.icon, size: 18, color: item.active ? AppColors.turquoise : AppColors.textTertiary),
+          ),
         ),
       );
 
-  Widget _navLabel(_NavItem item, {required int maxLines}) => Text(
-        item.label,
-        maxLines: maxLines,
-        overflow: TextOverflow.ellipsis,
+  Widget _navLabel(_NavItem item, {required int maxLines}) => AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
         style: TextStyle(
+          fontFamily: 'IBM Plex Sans Arabic',
           fontSize: 10,
           fontWeight: item.active ? FontWeight.w800 : FontWeight.w600,
           color: item.active ? AppColors.turquoise : AppColors.textTertiary,
+        ),
+        child: Text(
+          item.label,
+          maxLines: maxLines,
+          overflow: TextOverflow.ellipsis,
         ),
       );
 }

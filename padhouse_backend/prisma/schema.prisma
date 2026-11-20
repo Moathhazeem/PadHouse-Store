@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -7,14 +7,73 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// User & Profiles
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  INVENTORY_MANAGER
+  MARKETING_MANAGER
+  STAFF
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  PALPAY
+  MAHFAZATI
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum StockMovementType {
+  RESTOCK
+  ORDER_FULFILLMENT
+  MANUAL_ADJUSTMENT
+  RETURN_RESTOCK
+  DAMAGED_WRITE_OFF
+}
+
+enum ContentStatus {
+  IDEA
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  CANCELLED
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  TIKTOK
+}
+
+// ─── User & Profiles ──────────────────────────────────────────────────────────
+
 model User {
   id              String        @id @default(uuid())
   email           String        @unique
   passwordHash    String
   fullName        String
   phone           String?
-  role            String        @default("CUSTOMER") // SUPER_ADMIN, ADMIN, INVENTORY_MANAGER, MARKETING_MANAGER, STAFF, CUSTOMER
+  role            Role          @default(CUSTOMER)
   isActive        Boolean       @default(true)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -41,30 +100,30 @@ model RefreshToken {
 }
 
 model CustomerProfile {
-  id              String         @id @default(uuid())
-  userId          String         @unique
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  preferredLocale String         @default("ar")
-  avatarUrl       String?
-  addresses       Address[]
-  reviews         Review[]
-  cart            Cart?
-  wishlistItems   WishlistItem[]
-  recentlyViewed  RecentlyViewed[]
+  id                String             @id @default(uuid())
+  userId            String             @unique
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredLocale   String             @default("ar")
+  avatarUrl         String?
+  addresses         Address[]
+  reviews           Review[]
+  cart              Cart?
+  wishlistItems     WishlistItem[]
+  recentlyViewed    RecentlyViewed[]
   backInStockAlerts BackInStockAlert[]
-  loyaltyAccount  LoyaltyAccount?
-  referralsMade   Referral[]     @relation("ReferralOwner")
+  loyaltyAccount    LoyaltyAccount?
+  referralsMade     Referral[]         @relation("ReferralOwner")
   couponRedemptions CouponRedemption[]
-  warranties      Warranty[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  warranties        Warranty[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 model Address {
   id                String          @id @default(uuid())
   customerProfileId String
   customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
-  city              String          // Ramallah, Nablus, Hebron, Jerusalem, etc.
+  city              String
   street            String
   building          String?
   floor             String?
@@ -74,35 +133,40 @@ model Address {
   orders            Order[]
 }
 
-// Product Catalog
+// ─── Product Catalog ──────────────────────────────────────────────────────────
+
 model Category {
-  id          String    @id @default(uuid())
-  slug        String    @unique
-  nameAr      String
-  nameEn      String
-  description String?
-  imageUrl    String?
-  displayOrder Int      @default(0)
-  isActive    Boolean   @default(true)
-  products    Product[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String    @id @default(uuid())
+  slug         String    @unique
+  nameAr       String
+  nameEn       String
+  description  String?
+  imageUrl     String?
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+  products     Product[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model Product {
-  id                String            @id @default(uuid())
-  sku               String            @unique
+  id                String                   @id @default(uuid())
+  sku               String                   @unique
   nameAr            String
   nameEn            String
   descriptionAr     String
   descriptionEn     String
   categoryId        String
-  category          Category          @relation(fields: [categoryId], references: [id])
-  basePrice         Decimal
-  salePrice         Decimal?
-  isFeatured        Boolean           @default(false)
-  isActive          Boolean           @default(true)
-  ipadCompatibility String            // Stored as JSON string in SQLite: '["iPad Pro 11 M4", "iPad Air 13 M2"]'
+  category          Category                 @relation(fields: [categoryId], references: [id])
+  basePrice         Decimal                  @db.Decimal(10, 2)
+  salePrice         Decimal?                 @db.Decimal(10, 2)
+  stock             Int                      @default(0)
+  minStock          Int                      @default(5)
+  maxStock          Int                      @default(100)
+  isFeatured        Boolean                  @default(false)
+  isActive          Boolean                  @default(true)
+  ipadCompatibility String[]
+  warrantyMonths    Int                      @default(12)
   images            ProductImage[]
   variants          ProductVariant[]
   reviews           Review[]
@@ -114,10 +178,10 @@ model Product {
   backInStockAlerts BackInStockAlert[]
   bundleItems       BundleItem[]
   flashSaleItems    FlashSaleItem[]
-  warrantyMonths    Int               @default(12)
   warranties        Warranty[]
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  notifications     Notification[]
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
   @@index([categoryId])
   @@index([sku])
@@ -133,93 +197,95 @@ model ProductImage {
 }
 
 model ProductVariant {
-  id           String            @id @default(uuid())
-  productId    String
-  product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
-  sku          String            @unique
-  colorNameAr  String
-  colorNameEn  String
-  colorHex     String?
-  material     String?
-  priceDelta   Decimal           @default(0.00)
-  inventory    Inventory?
-  orderItems   OrderItem[]
-  cartItems    CartItem[]
-  createdAt    DateTime          @default(now())
+  id          String    @id @default(uuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku         String    @unique
+  colorNameAr String
+  colorNameEn String
+  colorHex    String?
+  material    String?
+  priceDelta  Decimal   @default(0.00) @db.Decimal(10, 2)
+  inventory   Inventory?
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+  createdAt   DateTime  @default(now())
 }
 
 model Inventory {
-  id               String              @id @default(uuid())
-  variantId        String              @unique
-  variant          ProductVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  currentStock     Int                 @default(0)
-  minThreshold     Int                 @default(5)
-  costPrice        Decimal
-  lastRestockDate  DateTime?
-  movements        InventoryMovement[]
-  updatedAt        DateTime            @updatedAt
+  id              String              @id @default(uuid())
+  variantId       String              @unique
+  variant         ProductVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  currentStock    Int                 @default(0)
+  minThreshold    Int                 @default(5)
+  costPrice       Decimal             @db.Decimal(10, 2)
+  lastRestockDate DateTime?
+  movements       InventoryMovement[]
+  updatedAt       DateTime            @updatedAt
 }
 
 model InventoryMovement {
-  id           String            @id @default(uuid())
-  inventoryId  String
-  inventory    Inventory         @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-  quantity     Int
-  type         String            // RESTOCK, ORDER_FULFILLMENT, MANUAL_ADJUSTMENT, RETURN_RESTOCK, DAMAGED_WRITE_OFF
-  notes        String?
-  actorId      String?
-  createdAt    DateTime          @default(now())
+  id          String            @id @default(uuid())
+  inventoryId String
+  inventory   Inventory         @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  quantity    Int
+  type        StockMovementType
+  notes       String?
+  actorId     String?
+  createdAt   DateTime          @default(now())
 
   @@index([inventoryId])
 }
 
-// Shopping Cart
+// ─── Shopping Cart ────────────────────────────────────────────────────────────
+
 model Cart {
   id                String          @id @default(uuid())
   customerProfileId String          @unique
   customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
   items             CartItem[]
   couponCode        String?
-  discountAmount    Decimal         @default(0.00)
+  discountAmount    Decimal         @default(0.00) @db.Decimal(10, 2)
   updatedAt         DateTime        @updatedAt
 }
 
 model CartItem {
-  id         String         @id @default(uuid())
-  cartId     String
-  cart       Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId  String
-  product    Product        @relation(fields: [productId], references: [id])
-  variantId  String
-  variant    ProductVariant @relation(fields: [variantId], references: [id])
-  quantity   Int            @default(1)
-  createdAt  DateTime       @default(now())
+  id        String         @id @default(uuid())
+  cartId    String
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product        @relation(fields: [productId], references: [id])
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  quantity  Int            @default(1)
+  createdAt DateTime       @default(now())
 }
 
-// Orders & Lifecycle
+// ─── Orders & Lifecycle ───────────────────────────────────────────────────────
+
 model Order {
-  id             String               @id @default(uuid())
-  orderNumber    String               @unique // e.g. PH-2026-1042
-  userId         String
-  user           User                 @relation(fields: [userId], references: [id])
-  addressId      String
-  shippingAddress Address             @relation(fields: [addressId], references: [id])
-  status         String               @default("PENDING") // PENDING, CONFIRMED, PREPARING, SHIPPED, DELIVERED, CANCELLED
-  paymentMethod  String               @default("CASH_ON_DELIVERY") // CASH_ON_DELIVERY, PALPAY, MAHFAZATI, BANK_TRANSFER
-  paymentStatus  String               @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
-  subtotal       Decimal
-  shippingFee    Decimal
-  discountTotal  Decimal              @default(0.00)
-  giftCardCode   String?
-  giftCardDiscount Decimal            @default(0.00)
-  grandTotal     Decimal
-  internalNotes  String?
-  customerNotes  String?
-  items          OrderItem[]
-  statusHistory  OrderStatusHistory[]
-  warranties     Warranty[]
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  id               String               @id @default(uuid())
+  orderNumber      String               @unique
+  userId           String
+  user             User                 @relation(fields: [userId], references: [id])
+  addressId        String
+  shippingAddress  Address              @relation(fields: [addressId], references: [id])
+  status           OrderStatus          @default(PENDING)
+  paymentMethod    PaymentMethod        @default(CASH_ON_DELIVERY)
+  paymentStatus    PaymentStatus        @default(PENDING)
+  subtotal         Decimal              @db.Decimal(10, 2)
+  shippingFee      Decimal              @db.Decimal(10, 2)
+  discountTotal    Decimal              @default(0.00) @db.Decimal(10, 2)
+  giftCardCode     String?
+  giftCardDiscount Decimal              @default(0.00) @db.Decimal(10, 2)
+  grandTotal       Decimal              @db.Decimal(10, 2)
+  internalNotes    String?
+  customerNotes    String?
+  items            OrderItem[]
+  statusHistory    OrderStatusHistory[]
+  warranties       Warranty[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
   @@index([userId])
   @@index([orderNumber])
@@ -234,16 +300,16 @@ model OrderItem {
   product    Product        @relation(fields: [productId], references: [id])
   variantId  String
   variant    ProductVariant @relation(fields: [variantId], references: [id])
-  unitPrice  Decimal
+  unitPrice  Decimal        @db.Decimal(10, 2)
   quantity   Int
-  totalPrice Decimal
+  totalPrice Decimal        @db.Decimal(10, 2)
 }
 
 model OrderStatusHistory {
   id        String      @id @default(uuid())
   orderId   String
   order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  status    String      // PENDING, CONFIRMED, PREPARING, SHIPPED, DELIVERED, CANCELLED
+  status    OrderStatus
   notes     String?
   updatedBy String?
   createdAt DateTime    @default(now())
@@ -257,94 +323,96 @@ model Review {
   product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   customerProfileId String
   customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
-  rating            Int             // 1 to 5
+  rating            Int
   comment           String?
   isVerifiedPurchase Boolean        @default(true)
   createdAt         DateTime        @default(now())
 }
 
-// Competitor & Intelligence
+// ─── Competitor & Intelligence ────────────────────────────────────────────────
+
 model Competitor {
-  id            String                   @id @default(uuid())
-  name          String
-  websiteUrl    String?
-  instagramHandle String?
-  notes         String?
-  isActive      Boolean                  @default(true)
-  products      CompetitorProductMatch[]
-  promotions    CompetitorPromotion[]
-  createdAt     DateTime                 @default(now())
+  id               String                   @id @default(uuid())
+  name             String
+  websiteUrl       String?
+  instagramHandle  String?
+  notes            String?
+  isActive         Boolean                  @default(true)
+  products         CompetitorProductMatch[]
+  promotions       CompetitorPromotion[]
+  createdAt        DateTime                 @default(now())
 }
 
 model CompetitorProductMatch {
-  id            String                   @id @default(uuid())
-  competitorId  String
-  competitor    Competitor               @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  id             String                   @id @default(uuid())
+  competitorId   String
+  competitor     Competitor               @relation(fields: [competitorId], references: [id], onDelete: Cascade)
   padhouseProdId String
-  padhouseProd  Product                  @relation(fields: [padhouseProdId], references: [id], onDelete: Cascade)
-  externalTitle String
-  productUrl    String?
-  currentPrice  Decimal
-  previousPrice Decimal?
-  isAvailable   Boolean                  @default(true)
-  isVerified    Boolean                  @default(true)
-  history       CompetitorPriceHistory[]
-  lastCheckedAt DateTime                 @default(now())
+  padhouseProd   Product                  @relation(fields: [padhouseProdId], references: [id], onDelete: Cascade)
+  externalTitle  String
+  productUrl     String?
+  currentPrice   Decimal                  @db.Decimal(10, 2)
+  previousPrice  Decimal?                 @db.Decimal(10, 2)
+  isAvailable    Boolean                  @default(true)
+  isVerified     Boolean                  @default(true)
+  history        CompetitorPriceHistory[]
+  lastCheckedAt  DateTime                 @default(now())
 
   @@index([competitorId])
   @@index([padhouseProdId])
 }
 
 model CompetitorPriceHistory {
-  id             String                 @id @default(uuid())
-  matchId        String
-  match          CompetitorProductMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  recordedPrice  Decimal
-  discountTag    String?
-  capturedAt     DateTime               @default(now())
+  id            String                 @id @default(uuid())
+  matchId       String
+  match         CompetitorProductMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  recordedPrice Decimal                @db.Decimal(10, 2)
+  discountTag   String?
+  capturedAt    DateTime               @default(now())
 
   @@index([matchId])
 }
 
 model CompetitorPromotion {
-  id            String     @id @default(uuid())
-  competitorId  String
-  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
-  title         String
-  promoType     String     // "DISCOUNT", "BUNDLE", "FREE_DELIVERY"
-  discountText  String?
-  startDate     DateTime?
-  endDate       DateTime?
-  isActive      Boolean    @default(true)
-  createdAt     DateTime   @default(now())
+  id           String     @id @default(uuid())
+  competitorId String
+  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  title        String
+  promoType    String
+  discountText String?
+  startDate    DateTime?
+  endDate      DateTime?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
 }
 
-// Social Media Intelligence & Planner
+// ─── Social Media Intelligence & Planner ─────────────────────────────────────
+
 model SocialAccount {
-  id             String                   @id @default(uuid())
-  platform       String                   // INSTAGRAM, FACEBOOK, TIKTOK
+  id             String                    @id @default(uuid())
+  platform       SocialPlatform
   accountHandle  String
-  followersCount Int                      @default(0)
-  followingCount Int                      @default(0)
-  postsCount     Int                      @default(0)
+  followersCount Int                       @default(0)
+  followingCount Int                       @default(0)
+  postsCount     Int                       @default(0)
   snapshots      SocialAnalyticsSnapshot[]
-  updatedAt      DateTime                 @updatedAt
+  updatedAt      DateTime                  @updatedAt
 }
 
 model SocialAnalyticsSnapshot {
-  id              String        @id @default(uuid())
-  accountId       String
-  account         SocialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  recordedDate    DateTime      @default(now())
-  followers       Int
-  reach           Int
-  impressions     Int
-  engagementRate  Decimal
-  likes           Int
-  comments        Int
-  shares          Int
-  saves           Int
-  profileVisits   Int
+  id             String        @id @default(uuid())
+  accountId      String
+  account        SocialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recordedDate   DateTime      @default(now())
+  followers      Int
+  reach          Int
+  impressions    Int
+  engagementRate Decimal       @db.Decimal(10, 4)
+  likes          Int
+  comments       Int
+  shares         Int
+  saves          Int
+  profileVisits  Int
 
   @@index([accountId])
 }
@@ -354,10 +422,10 @@ model ContentCalendarItem {
   title         String
   captionAr     String
   captionEn     String?
-  hashtags      String         // Stored as JSON string in SQLite
-  platforms     String         // Stored as JSON string in SQLite
-  mediaUrls     String         // Stored as JSON string in SQLite
-  status        String         @default("IDEA") // IDEA, DRAFT, IN_REVIEW, APPROVED, SCHEDULED, PUBLISHED, CANCELLED
+  hashtags      String[]
+  platforms     SocialPlatform[]
+  mediaUrls     String[]
+  status        ContentStatus  @default(IDEA)
   scheduledFor  DateTime?
   publishedAt   DateTime?
   assignedToId  String?
@@ -371,10 +439,10 @@ model ContentCalendarItem {
 
 model AutomationLog {
   id           String   @id @default(uuid())
-  workflowName String   // e.g. "LOW_STOCK_N8N_ALERT", "NEW_ORDER_NOTIFY"
-  status       String   // "SUCCESS", "FAILED"
-  payload      String?  // JSON string
-  response     String?  // JSON string
+  workflowName String
+  status       String
+  payload      Json?
+  response     Json?
   executedAt   DateTime @default(now())
 }
 
@@ -382,29 +450,30 @@ model AuditLog {
   id        String   @id @default(uuid())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])
-  action    String   // "PRICE_UPDATE", "STOCK_ADJUSTMENT", "ORDER_STATUS_CHANGE"
+  action    String
   targetId  String?
-  meta      String?  // JSON string
+  meta      Json?
   createdAt DateTime @default(now())
 }
 
-// ─── Coupons & Promotions ──────────────────────────────────────────────────
+// ─── Coupons & Promotions ─────────────────────────────────────────────────────
+
 model Coupon {
-  id             String             @id @default(uuid())
-  code           String             @unique
-  type           String             @default("FIXED") // FIXED, PERCENT, FREE_SHIPPING
-  value          Decimal            @default(0)
-  minSubtotal    Decimal            @default(0)
-  maxDiscount    Decimal?
-  usageLimit     Int?
-  usedCount      Int                @default(0)
-  perCustomerLimit Int              @default(1)
-  startsAt       DateTime?
-  endsAt         DateTime?
-  descriptionAr  String?
-  isActive       Boolean            @default(true)
-  redemptions    CouponRedemption[]
-  createdAt      DateTime           @default(now())
+  id               String             @id @default(uuid())
+  code             String             @unique
+  type             String             @default("FIXED")
+  value            Decimal            @default(0) @db.Decimal(10, 2)
+  minSubtotal      Decimal            @default(0) @db.Decimal(10, 2)
+  maxDiscount      Decimal?           @db.Decimal(10, 2)
+  usageLimit       Int?
+  usedCount        Int                @default(0)
+  perCustomerLimit Int                @default(1)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  descriptionAr    String?
+  isActive         Boolean            @default(true)
+  redemptions      CouponRedemption[]
+  createdAt        DateTime           @default(now())
 
   @@index([code])
 }
@@ -416,14 +485,15 @@ model CouponRedemption {
   customerProfileId String
   customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
   orderId           String?
-  amount            Decimal
+  amount            Decimal         @db.Decimal(10, 2)
   createdAt         DateTime        @default(now())
 
   @@index([couponId])
   @@index([customerProfileId])
 }
 
-// ─── Wishlist & Sensory Engagement ─────────────────────────────────────────
+// ─── Wishlist & Sensory Engagement ───────────────────────────────────────────
+
 model WishlistItem {
   id                String          @id @default(uuid())
   customerProfileId String
@@ -463,14 +533,15 @@ model BackInStockAlert {
   @@index([productId])
 }
 
-// ─── Bundles & Flash Sales ─────────────────────────────────────────────────
+// ─── Bundles & Flash Sales ────────────────────────────────────────────────────
+
 model Bundle {
   id            String       @id @default(uuid())
   slug          String       @unique
   titleAr       String
   descriptionAr String?
-  discountType  String       @default("PERCENT") // PERCENT, FIXED
-  discountValue Decimal      @default(0)
+  discountType  String       @default("PERCENT")
+  discountValue Decimal      @default(0) @db.Decimal(10, 2)
   imageUrl      String?
   displayOrder  Int          @default(0)
   isActive      Boolean      @default(true)
@@ -510,13 +581,14 @@ model FlashSaleItem {
   @@index([flashSaleId])
 }
 
-// ─── Loyalty, Referrals & Gift Cards ───────────────────────────────────────
+// ─── Loyalty, Referrals & Gift Cards ─────────────────────────────────────────
+
 model LoyaltyAccount {
   id                String               @id @default(uuid())
   customerProfileId String               @unique
   customerProfile   CustomerProfile      @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
   points            Int                  @default(0)
-  tier              String               @default("BRONZE") // BRONZE, SILVER, GOLD
+  tier              String               @default("BRONZE")
   transactions      LoyaltyTransaction[]
   updatedAt         DateTime             @updatedAt
 }
@@ -526,7 +598,7 @@ model LoyaltyTransaction {
   loyaltyAccountId String
   loyaltyAccount   LoyaltyAccount @relation(fields: [loyaltyAccountId], references: [id], onDelete: Cascade)
   points           Int
-  type             String // SIGNUP_BONUS, EARN_ORDER, REDEEM, REFERRAL_BONUS
+  type             String
   notes            String?
   orderId          String?
   createdAt        DateTime       @default(now())
@@ -540,7 +612,7 @@ model Referral {
   ownerProfile   CustomerProfile @relation("ReferralOwner", fields: [ownerProfileId], references: [id], onDelete: Cascade)
   code           String          @unique
   refereeEmail   String?
-  status         String          @default("PENDING") // PENDING, COMPLETED
+  status         String          @default("PENDING")
   rewardPoints   Int             @default(50)
   createdAt      DateTime        @default(now())
 
@@ -550,15 +622,16 @@ model Referral {
 model GiftCard {
   id             String    @id @default(uuid())
   code           String    @unique
-  initialBalance Decimal
-  balance        Decimal
+  initialBalance Decimal   @db.Decimal(10, 2)
+  balance        Decimal   @db.Decimal(10, 2)
   currency       String    @default("ILS")
   isActive       Boolean   @default(true)
   expiresAt      DateTime?
   createdAt      DateTime  @default(now())
 }
 
-// ─── Warranty Management ───────────────────────────────────────────────────
+// ─── Warranty Management ──────────────────────────────────────────────────────
+
 model Warranty {
   id                String          @id @default(uuid())
   orderId           String
@@ -571,9 +644,26 @@ model Warranty {
   months            Int
   startsAt          DateTime        @default(now())
   expiresAt         DateTime
-  status            String          @default("ACTIVE") // ACTIVE, EXPIRED, CLAIMED
+  status            String          @default("ACTIVE")
   createdAt         DateTime        @default(now())
 
   @@index([orderId])
   @@index([customerProfileId])
 }
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String   @default("LOW_STOCK")
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+

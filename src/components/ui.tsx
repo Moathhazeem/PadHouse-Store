@@ -1,6 +1,7 @@
 import React, { forwardRef, useEffect, useId, useRef, useState } from 'react';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
-import { LoaderCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, LoaderCircle, Minus, Plus, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export function useScrollReveal<T extends HTMLElement>(delayMs = 0) {
   const ref = useRef<T>(null);
@@ -161,11 +162,142 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl border border-ph-border bg-ph-surface px-6 py-12 text-center ${className}`.trim()}>
-      {icon && <div className="mb-4 flex justify-center text-ph-muted">{icon}</div>}
+    <section className={`rounded-3xl border border-ph-border bg-ph-surface px-6 py-12 text-center shadow-xs ${className}`.trim()}>
+      {icon && (
+        <div className="mb-4 flex justify-center">
+          <div className="ph-floating flex h-16 w-16 items-center justify-center rounded-2xl bg-ph-background text-ph-brand border border-ph-border shadow-xs">
+            {icon}
+          </div>
+        </div>
+      )}
       <h2 className="text-base font-bold text-ph-ink">{title}</h2>
       {description && <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-ph-muted">{description}</p>}
       {action && <div className="mt-5 flex justify-center">{action}</div>}
     </section>
   );
 }
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+interface ToastProps {
+  message: string;
+  type?: 'success' | 'error' | 'info';
+  onDismiss?: () => void;
+}
+
+const toastBg: Record<NonNullable<ToastProps['type']>, string> = {
+  success: 'bg-emerald-600',
+  error: 'bg-red-600',
+  info: 'bg-[#1CA89E]',
+};
+
+const ToastIcon: React.FC<{ type: NonNullable<ToastProps['type']> }> = ({ type }) => {
+  if (type === 'success') return <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />;
+  if (type === 'error') return <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />;
+  return <Info className="h-5 w-5 shrink-0" aria-hidden="true" />;
+};
+
+export const Toast: React.FC<ToastProps> = ({ message, type = 'info', onDismiss }) => {
+  return (
+    <motion.div
+      role="alert"
+      aria-live="polite"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 min-w-72 rounded-2xl shadow-lg flex items-center gap-3 px-4 py-3 text-white ${toastBg[type]}`}
+    >
+      <ToastIcon type={type} />
+      <span className="flex-1 text-sm font-medium">{message}</span>
+      {onDismiss && (
+        <button
+          onClick={onDismiss}
+          aria-label="إغلاق"
+          className="shrink-0 rounded-full p-0.5 hover:bg-white/20 transition-colors duration-150"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </motion.div>
+  );
+};
+
+// ─── PageWrapper ──────────────────────────────────────────────────────────────
+
+export const PageWrapper: React.FC<{ children: React.ReactNode; pageKey: string }> = ({ children, pageKey }) => {
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={pageKey}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.25, ease: [0.2, 0.7, 0.2, 1] }}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+// ─── QuantityControl ──────────────────────────────────────────────────────────
+
+interface QuantityControlProps {
+  value: number;
+  min?: number;
+  max?: number;
+  onIncrement: () => void;
+  onDecrement: () => void;
+  disabled?: boolean;
+}
+
+export const QuantityControl: React.FC<QuantityControlProps> = ({
+  value,
+  min = 1,
+  max = 99,
+  onIncrement,
+  onDecrement,
+  disabled = false,
+}) => {
+  return (
+    <div className="flex items-center gap-0" role="group" aria-label="الكمية">
+      <motion.button
+        type="button"
+        onClick={onDecrement}
+        disabled={disabled || value <= min}
+        whileTap={{ scale: 0.88 }}
+        aria-label="تقليل الكمية"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-ph-border bg-white text-ph-ink hover:border-ph-brand hover:text-ph-brand disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+      >
+        <Minus className="h-3.5 w-3.5" />
+      </motion.button>
+      <span className="min-w-8 text-center font-bold text-sm text-ph-ink select-none">
+        {value}
+      </span>
+      <motion.button
+        type="button"
+        onClick={onIncrement}
+        disabled={disabled || value >= max}
+        whileTap={{ scale: 0.88 }}
+        aria-label="زيادة الكمية"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-ph-border bg-white text-ph-ink hover:border-ph-brand hover:text-ph-brand disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </motion.button>
+    </div>
+  );
+};
+
+// ─── SkeletonCard ─────────────────────────────────────────────────────────────
+
+export const SkeletonCard: React.FC = () => (
+  <div className="ph-product-card overflow-hidden">
+    <div className="ph-skeleton aspect-square w-full" />
+    <div className="p-4 space-y-3">
+      <div className="ph-skeleton h-4 w-3/4 rounded" />
+      <div className="ph-skeleton h-4 w-1/2 rounded" />
+      <div className="ph-skeleton h-8 w-full rounded-lg mt-4" />
+    </div>
+  </div>
+);

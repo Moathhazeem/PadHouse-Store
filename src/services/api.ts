@@ -232,7 +232,9 @@ export function mapBackendProduct(item: any): Product {
     originalPrice:
       Number(item.originalPrice) || Number(item.price) || 0,
     stock: typeof item.stock === 'number' ? item.stock : 0,
-    minThreshold: typeof item.minThreshold === 'number' ? item.minThreshold : 5,
+    minStock: typeof item.minStock === 'number' ? item.minStock : (typeof item.minThreshold === 'number' ? item.minThreshold : 5),
+    maxStock: typeof item.maxStock === 'number' ? item.maxStock : 100,
+    minThreshold: typeof item.minThreshold === 'number' ? item.minThreshold : (typeof item.minStock === 'number' ? item.minStock : 5),
     compatibility: item.compatibility || 'جميع أجهزة iPad المدعومة',
     compatibilityList: item.compatibilityList,
     rating: Number(item.rating) || 0,

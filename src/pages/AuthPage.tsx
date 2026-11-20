@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { User, Mail, Phone, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Lock, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AppUser } from '../types';
 import { PALESTINIAN_CITIES } from '../data/catalog';
 import {
@@ -124,12 +125,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
   return (
     <div className="max-w-md mx-auto px-4 py-16 text-right">
-      <div className="bg-white rounded-3xl p-8 border border-ph-border shadow-xl space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-white rounded-3xl p-8 border border-ph-border shadow-xl space-y-6"
+      >
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-ph-brand text-white flex items-center justify-center font-black text-xl mx-auto shadow-sm">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+            className="w-12 h-12 rounded-2xl bg-ph-brand text-white flex items-center justify-center font-black text-xl mx-auto shadow-sm"
+          >
             PH
-          </div>
+          </motion.div>
           <h1 className="text-2xl font-black text-ph-ink">
             {mode === 'login' ? 'تسجيل الدخول إلى بادهاوس' : 'إنشاء حساب جديد'}
           </h1>
@@ -140,112 +151,164 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           </p>
         </div>
 
-        {errorMsg && (
-          <div className="p-3 bg-red-50 border border-red-200 text-[#DC2626] text-xs rounded-xl font-medium">
-            {errorMsg}
+        {/* Quick Admin Helper Badge */}
+        {mode === 'login' && (
+          <div className="p-3 bg-ph-surface-soft border border-ph-border rounded-2xl flex items-center justify-between text-xs">
+            <div>
+              <span className="font-bold text-ph-ink block">حساب الإدارة الافتراضي:</span>
+              <span className="font-mono text-[11px] text-ph-muted dir-ltr inline-block">admin@gmail.com / 123456789</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('admin@gmail.com');
+                setPassword('123456789');
+              }}
+              className="text-[11px] font-bold text-ph-brand hover:underline px-2.5 py-1 bg-white border border-ph-border rounded-lg shadow-2xs"
+            >
+              تعبئة تلقائية
+            </button>
           </div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === 'register' && (
-            <div>
-              <label className="text-xs font-bold text-ph-ink block mb-1">الاسم الكامل *</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  placeholder="مثال: أحمد الفلسطيني"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white"
-                />
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ph-muted" />
-              </div>
-            </div>
+        <AnimatePresence>
+          {errorMsg && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -6 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{ opacity: 0, height: 0 }}
+              className="p-3 bg-red-50 border border-red-200 text-[#DC2626] text-xs rounded-xl font-medium"
+            >
+              {errorMsg}
+            </motion.div>
           )}
+        </AnimatePresence>
 
-          <div>
-            <label className="text-xs font-bold text-ph-ink block mb-1">البريد الإلكتروني *</label>
-            <div className="relative">
-              <input
-                type="email"
-                required
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white text-left dir-ltr"
-              />
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ph-muted" />
-            </div>
-          </div>
-
-          {mode === 'register' && (
-            <>
+        {/* Form with Mode Switch Animation */}
+        <AnimatePresence mode="wait">
+          <motion.form
+            key={mode}
+            initial={{ opacity: 0, x: mode === 'login' ? -12 : 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: mode === 'login' ? 12 : -12 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
+            {mode === 'register' && (
               <div>
-                <label className="text-xs font-bold text-ph-ink block mb-1">رقم الهاتف (واتساب) *</label>
-                <div className="relative">
+                <label className="text-xs font-bold text-ph-ink block mb-1">الاسم الكامل *</label>
+                <div className="ph-input-wrapper">
+                  <div className="ph-input-icon-start">
+                    <User className="w-4 h-4" />
+                  </div>
                   <input
-                    type="tel"
+                    type="text"
                     required
-                    placeholder="0599123456"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white text-left dir-ltr"
+                    placeholder="مثال: أحمد الفلسطيني"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="ph-input-field text-right"
                   />
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ph-muted" />
                 </div>
               </div>
+            )}
 
-              <div>
-                <label className="text-xs font-bold text-ph-ink block mb-1">المدينة / المحافظة *</label>
-                <select
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white"
-                >
-                  {cities.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+            <div>
+              <label className="text-xs font-bold text-ph-ink block mb-1">البريد الإلكتروني *</label>
+              <div className="ph-input-wrapper">
+                <div className="ph-input-icon-start">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <input
+                  type="email"
+                  required
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  dir="ltr"
+                  className="ph-input-field text-left font-sans"
+                />
               </div>
-            </>
-          )}
-
-          <div>
-            <label className="text-xs font-bold text-ph-ink block mb-1">كلمة المرور *</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:bg-white text-left dir-ltr"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-ph-muted hover:text-ph-muted"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors shadow-md mt-2 flex items-center justify-center gap-2"
-          >
-            {busy && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>
-              {mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب الآن'}
-            </span>
-          </button>
-        </form>
+            {mode === 'register' && (
+              <>
+                <div>
+                  <label className="text-xs font-bold text-ph-ink block mb-1">رقم الهاتف (واتساب) *</label>
+                  <div className="ph-input-wrapper">
+                    <div className="ph-input-icon-start">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="0599123456"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      dir="ltr"
+                      className="ph-input-field text-left font-sans"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-ph-ink block mb-1">المدينة / المحافظة *</label>
+                  <select
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full bg-white border border-ph-border rounded-xl px-3 py-2.5 text-xs text-ph-ink focus:outline-none focus:border-ph-brand focus:ring-2 focus:ring-ph-brand/20 transition-all"
+                  >
+                    {cities.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="text-xs font-bold text-ph-ink block mb-1">كلمة المرور *</label>
+              <div className="ph-input-wrapper">
+                <div className="ph-input-icon-start">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  dir="ltr"
+                  className="ph-input-field text-left font-mono tracking-wider"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  className="ph-input-icon-end text-ph-muted hover:text-ph-ink transition-colors cursor-pointer p-1"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              disabled={busy}
+              className="w-full bg-ph-brand hover:bg-ph-brand-hover disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-xs transition-colors shadow-md mt-2 flex items-center justify-center gap-2"
+            >
+              {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>
+                {mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب الآن'}
+              </span>
+            </motion.button>
+          </motion.form>
+        </AnimatePresence>
 
         {/* Trust note */}
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-ph-muted">
@@ -283,7 +346,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             </p>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
+

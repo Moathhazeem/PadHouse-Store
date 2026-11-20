@@ -279,6 +279,7 @@ class AuthScreen extends ConsumerStatefulWidget {
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   late bool registerMode = widget.initialRegisterMode;
   bool showPassword = false;
+  bool _loading = false;
   String? error;
 
   final email = TextEditingController();
@@ -309,20 +310,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     super.dispose();
   }
 
-  void _login() {
-    final message = ref.read(padhouseProvider).login(email.text, password.text);
-    setState(() => error = message);
+  Future<void> _login() async {
+    if (_loading) return;
+    setState(() { _loading = true; error = null; });
+
+    final message = await ref.read(padhouseProvider).loginAsync(
+      email.text.trim().toLowerCase(),
+      password.text,
+    );
+
+    if (!mounted) return;
+    setState(() { _loading = false; error = message; });
+    if (message == null) Navigator.of(context).pop();
   }
 
-  void _register() {
-    final message = ref.read(padhouseProvider).register(
-          name: name.text,
-          email: regEmail.text,
-          phone: phone.text,
-          city: city,
-          password: regPassword.text,
-        );
-    setState(() => error = message);
+  Future<void> _register() async {
+    if (_loading) return;
+    setState(() { _loading = true; error = null; });
+
+    final message = await ref.read(padhouseProvider).registerAsync(
+      name: name.text,
+      email: regEmail.text.trim().toLowerCase(),
+      phone: phone.text,
+      city: city,
+      password: regPassword.text,
+    );
+
+    if (!mounted) return;
+    setState(() { _loading = false; error = message; });
+    if (message == null) Navigator.of(context).pop();
   }
 
   @override
@@ -390,138 +406,205 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
             ),
             const SizedBox(height: 16),
-            if (error != null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.errorBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const PhIcon(LucideIcons.alertCircle, size: 16, color: AppColors.error),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(error!, style: const TextStyle(fontSize: 12, color: AppColors.error))),
-                  ],
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: error == null
+                  ? const SizedBox.shrink()
+                  : Container(
+                      key: ValueKey(error),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.errorBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const PhIcon(LucideIcons.alertCircle, size: 16, color: AppColors.error),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(error!, style: const TextStyle(fontSize: 12, color: AppColors.error))),
+                        ],
+                      ),
+                    ),
+            ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.04),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
                 ),
               ),
-            if (!registerMode) ...[
-              Container(
-                key: const Key('admin-credentials'),
-                margin: const EdgeInsets.only(bottom: 14),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borderLight),
-                ),
+              child: KeyedSubtree(
+                key: ValueKey(registerMode),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      children: [
-                        const PhIcon(LucideIcons.shieldCheck, size: 14, color: AppColors.success),
-                        const SizedBox(width: 6),
-                        const Expanded(
-                          child: Text('بيانات حساب المسؤول العام:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    if (!registerMode) ...[
+                      Container(
+                        key: const Key('admin-credentials'),
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.borderLight),
                         ),
-                        TextButton(
-                          key: const Key('admin-autofill'),
-                          onPressed: () {
-                            setState(() {
-                              email.text = superAdminEmail;
-                              password.text = superAdminPass;
-                            });
-                          },
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.success,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                            minimumSize: const Size(0, 28),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const PhIcon(LucideIcons.shieldCheck, size: 14, color: AppColors.success),
+                                const SizedBox(width: 6),
+                                const Expanded(
+                                  child: Text('بيانات حساب المسؤول (Admin):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                                ),
+                                TextButton(
+                                  key: const Key('admin-autofill'),
+                                  onPressed: () {
+                                    setState(() {
+                                      email.text = defaultAdminEmail;
+                                      password.text = defaultAdminPass;
+                                    });
+                                  },
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: AppColors.success,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                    minimumSize: const Size(0, 28),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text('تعبئة تلقائية', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            const Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: Text('admin@gmail.com / 123456789', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.turquoise)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const FieldLabel('البريد الإلكتروني'),
+                      IconField(
+                        icon: LucideIcons.mail,
+                        child: TextField(
+                          key: const Key('login-email'),
+                          controller: email,
+                          keyboardType: TextInputType.emailAddress,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.left,
+                          decoration: bareInput('name@domain.com'),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          FieldLabel('كلمة المرور'),
+                          Text('نسيت كلمة المرور؟', style: TextStyle(fontSize: 11, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      IconField(
+                        icon: LucideIcons.keyRound,
+                        child: TextField(
+                          key: const Key('login-password'),
+                          controller: password,
+                          obscureText: !showPassword,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.left,
+                          decoration: bareInput(
+                            '••••••••',
+                            suffix: IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                              splashRadius: 18,
+                              onPressed: () => setState(() => showPassword = !showPassword),
+                              icon: PhIcon(showPassword ? LucideIcons.eyeOff : LucideIcons.eye, size: 16, color: AppColors.textTertiary),
+                            ),
                           ),
-                          child: const Text('تعبئة تلقائية', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    const Directionality(
-                      textDirection: TextDirection.ltr,
-                      child: Text('adimn123@gmail.com / 123456', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                    ),
+                      ),
+                      const SizedBox(height: 16),
+                      PrimaryButton(keyId: const Key('login-submit'), label: _loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول', icon: LucideIcons.arrowRight, onPressed: _loading ? () {} : _login),
+                    ] else ...[
+                      const FieldLabel('الاسم الكامل'),
+                      IconField(
+                        icon: LucideIcons.user,
+                        child: TextField(
+                          controller: name,
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.right,
+                          decoration: bareInput('أحمد الفلسطيني'),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const FieldLabel('البريد الإلكتروني'),
+                      IconField(
+                        icon: LucideIcons.mail,
+                        child: TextField(
+                          controller: regEmail,
+                          keyboardType: TextInputType.emailAddress,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.left,
+                          decoration: bareInput('name@domain.ps'),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const FieldLabel('رقم الهاتف (واتساب)'),
+                      IconField(
+                        icon: LucideIcons.phone,
+                        child: TextField(
+                          controller: phone,
+                          keyboardType: TextInputType.phone,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.left,
+                          decoration: bareInput('+970 59...'),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const FieldLabel('المدينة'),
+                      IconField(
+                        icon: LucideIcons.mapPin,
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: city,
+                            isExpanded: true,
+                            items: [
+                              for (final c in palestinianCities) DropdownMenuItem(value: c.name, child: Text(c.name, style: const TextStyle(fontSize: 13))),
+                            ],
+                            onChanged: (value) => setState(() => city = value ?? city),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const FieldLabel('كلمة المرور (6 خانات على الأقل)'),
+                      IconField(
+                        icon: LucideIcons.keyRound,
+                        child: TextField(
+                          controller: regPassword,
+                          obscureText: !showPassword,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.left,
+                          decoration: bareInput('••••••••'),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      PrimaryButton(keyId: const Key('register-submit'), label: _loading ? 'جاري الإنشاء...' : 'إنشاء الحساب', icon: LucideIcons.arrowRight, onPressed: _loading ? () {} : _register),
+                    ],
                   ],
                 ),
               ),
-              const FieldLabel('البريد الإلكتروني'),
-              IconField(
-                icon: LucideIcons.mail,
-                child: TextField(
-                  key: const Key('login-email'),
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: bareInput('name@domain.com'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  FieldLabel('كلمة المرور'),
-                  Text('نسيت كلمة المرور؟', style: TextStyle(fontSize: 11, color: AppColors.turquoise, fontWeight: FontWeight.w700)),
-                ],
-              ),
-              IconField(
-                icon: LucideIcons.keyRound,
-                child: TextField(
-                  key: const Key('login-password'),
-                  controller: password,
-                  obscureText: !showPassword,
-                  decoration: bareInput(
-                    '••••••',
-                    suffix: IconButton(
-                      onPressed: () => setState(() => showPassword = !showPassword),
-                      icon: PhIcon(showPassword ? LucideIcons.eyeOff : LucideIcons.eye, size: 16, color: AppColors.textTertiary),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              PrimaryButton(keyId: const Key('login-submit'), label: 'تسجيل الدخول', icon: LucideIcons.arrowRight, onPressed: _login),
-            ] else ...[
-              const FieldLabel('الاسم الكامل'),
-              IconField(icon: LucideIcons.user, child: TextField(controller: name, decoration: bareInput('أحمد الفلسطيني'))),
-              const SizedBox(height: 12),
-              const FieldLabel('البريد الإلكتروني'),
-              IconField(icon: LucideIcons.mail, child: TextField(controller: regEmail, decoration: bareInput('name@domain.ps'))),
-              const SizedBox(height: 12),
-              const FieldLabel('رقم الهاتف (واتساب)'),
-              IconField(icon: LucideIcons.phone, child: TextField(controller: phone, decoration: bareInput('+970 59...'))),
-              const SizedBox(height: 12),
-              const FieldLabel('المدينة'),
-              IconField(
-                icon: LucideIcons.mapPin,
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: city,
-                    isExpanded: true,
-                    items: [
-                      for (final c in palestinianCities) DropdownMenuItem(value: c.name, child: Text(c.name, style: const TextStyle(fontSize: 13))),
-                    ],
-                    onChanged: (value) => setState(() => city = value ?? city),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const FieldLabel('كلمة المرور (6 خانات على الأقل)'),
-              IconField(
-                icon: LucideIcons.keyRound,
-                child: TextField(controller: regPassword, obscureText: !showPassword, decoration: bareInput('••••••')),
-              ),
-              const SizedBox(height: 16),
-              PrimaryButton(keyId: const Key('register-submit'), label: 'إنشاء الحساب', icon: LucideIcons.arrowRight, onPressed: _register),
-            ],
+            ),
             const SizedBox(height: 16),
             Center(
               child: TextButton(

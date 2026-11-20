@@ -16,6 +16,11 @@ export interface Product {
   price: number;
   originalPrice: number;
   stock: number;
+  /** Minimum stock level — triggers Low Stock alert when stock < minStock. */
+  minStock?: number;
+  /** Maximum / target stock capacity. */
+  maxStock?: number;
+  /** Legacy alias kept for backwards compat. Use minStock. */
   minThreshold: number;
   compatibility: string;
   compatibilityList?: string[];

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Heart, PackageOpen, ShoppingBag, Star } from 'lucide-react';
+import { Check, Heart, PackageOpen, ShoppingBag, Star, XCircle } from 'lucide-react';
+import { motion } from 'motion/react';
 import type { Product } from '../types';
 import { Button, CompatibilityBadge, useScrollReveal } from './ui';
 
@@ -21,28 +22,61 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   revealDelay = 0,
 }) => {
   const [imageFailed, setImageFailed] = useState(false);
+  const [heartPopping, setHeartPopping] = useState(false);
+  const [addedRecently, setAddedRecently] = useState(false);
   const reveal = useScrollReveal<HTMLElement>(revealDelay);
   const discountPercent =
     product.originalPrice > product.price
       ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
       : 0;
 
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHeartPopping(true);
+    setTimeout(() => setHeartPopping(false), 400);
+    onToggleWishlist(product.id);
+  };
+
+  const handleAddToCartClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (product.stock <= 0) return;
+    setAddedRecently(true);
+    setTimeout(() => setAddedRecently(false), 1400);
+    onAddToCart(product);
+  };
+
   return (
-    <article ref={reveal.ref} style={reveal.style} className={`${reveal.className} ph-product-card group flex flex-col`}>
+    <motion.article
+      ref={reveal.ref as React.Ref<HTMLElement>}
+      style={reveal.style}
+      className={`${reveal.className} ph-product-card group flex flex-col`}
+      whileHover={{ y: -4 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+    >
       <div className="ph-product-media">
+        {/* ── Out-of-stock diagonal ribbon ── */}
+        {product.stock <= 0 && (
+          <div
+            aria-label="نفذت الكمية"
+            className="ph-oos-ribbon pointer-events-none"
+          >
+            نفذت الكمية
+          </div>
+        )}
+
         <div className="absolute end-2.5 top-2.5 z-10 flex flex-col items-end gap-1.5">
           {discountPercent > 0 && (
-            <span className="rounded-full bg-ph-brand px-2 py-1 text-[11px] font-bold text-white">
+            <span className="rounded-full bg-ph-brand px-2 py-1 text-[11px] font-bold text-white shadow-xs">
               خصم {discountPercent}%
             </span>
           )}
           {product.stock <= 0 && (
-            <span className="rounded-full bg-ph-error px-2 py-1 text-[10px] font-bold text-white">
-              نفدت الكمية
+            <span className="rounded-full bg-ph-error px-2 py-1 text-[10px] font-bold text-white shadow-xs">
+              نفذت الكمية
             </span>
           )}
-          {product.stock > 0 && product.stock <= product.minThreshold && (
-            <span className="rounded-full bg-ph-warning px-2 py-1 text-[10px] font-bold text-white">
+          {product.stock > 0 && product.stock <= (product.minStock ?? product.minThreshold) && (
+            <span className="rounded-full bg-ph-warning px-2 py-1 text-[10px] font-bold text-white shadow-xs">
               المتبقي {product.stock} فقط
             </span>
           )}
@@ -50,14 +84,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         <button
           type="button"
-          onClick={() => onToggleWishlist(product.id)}
-          className={`absolute start-2.5 top-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-ph-border bg-white shadow-sm transition-colors hover:text-ph-error focus-visible:outline-offset-2 ${
+          onClick={handleWishlistClick}
+          className={`absolute start-2.5 top-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-ph-border bg-white shadow-sm transition-transform duration-200 active:scale-90 hover:text-ph-error focus-visible:outline-offset-2 ${
             isWishlisted ? 'text-ph-error' : 'text-ph-muted'
-          }`}
+          } ${heartPopping ? 'ph-heart-bounce' : ''}`}
           aria-label={isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
           aria-pressed={isWishlisted}
         >
-          <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
+          <Heart className={`h-4 w-4 transition-all duration-200 ${isWishlisted ? 'fill-current' : ''}`} />
         </button>
 
         <button
@@ -77,7 +111,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               onError={() => setImageFailed(true)}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-contain p-4 transition-transform duration-300 group-hover:scale-[1.035]"
+              className="h-full w-full object-contain p-4 transition-transform duration-500 ease-out group-hover:scale-[1.035]"
             />
           )}
         </button>
@@ -122,15 +156,37 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
           <Button
             size="sm"
-            onClick={() => onAddToCart(product)}
+            onClick={handleAddToCartClick}
             disabled={product.stock <= 0}
-            className="shrink-0"
+            className={`shrink-0 transition-all duration-300 ${
+              addedRecently
+                ? '!bg-emerald-600 !text-white'
+                : product.stock <= 0
+                ? '!bg-red-50 !text-red-500 !border-red-200 cursor-not-allowed opacity-75 shadow-none'
+                : ''
+            }`}
+            aria-disabled={product.stock <= 0}
+            title={product.stock <= 0 ? 'نفذت الكمية من المستودع' : 'إضافة إلى السلة'}
           >
-            <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-            <span>{product.stock > 0 ? 'أضف للسلة' : 'غير متوفر'}</span>
+            {addedRecently ? (
+              <>
+                <Check className="h-4 w-4 ph-check-animated" aria-hidden="true" />
+                <span>تمت الإضافة!</span>
+              </>
+            ) : product.stock <= 0 ? (
+              <>
+                <XCircle className="h-4 w-4 text-red-500" aria-hidden="true" />
+                <span>نفذت الكمية</span>
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+                <span>أضف للسلة</span>
+              </>
+            )}
           </Button>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 };

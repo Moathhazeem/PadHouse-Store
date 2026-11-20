@@ -1,6 +1,22 @@
-import { Controller, Get, Header, Param, Query, StreamableFile } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Header,
+  Param,
+  Patch,
+  Post,
+  Query,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
+import { CreateProductDto, UpdateProductDto } from './dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('Products')
 @Controller('products')
@@ -45,5 +61,51 @@ export class ProductsController {
   @Get(':id')
   async getProduct(@Param('id') id: string) {
     return this.productsService.findOne(id);
+  }
+
+  @ApiOperation({ summary: 'إنشاء منتج جديد مع المخزون والحدود الدنيا/العليا (لوحة الإدارة)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiResponse({ status: 201, description: 'تم إنشاء المنتج بنجاح' })
+  @Post()
+  async createProduct(@Body() dto: CreateProductDto) {
+    return this.productsService.create(dto);
+  }
+
+  @ApiOperation({ summary: 'تحديث بيانات المنتج والمخزون (لوحة الإدارة)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiResponse({ status: 200, description: 'تم تحديث المنتج بنجاح' })
+  @Patch(':id')
+  async updateProduct(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+  ) {
+    return this.productsService.update(id, dto);
+  }
+
+  @ApiOperation({ summary: 'تحديث مباشر لكمية مخزون المنتج (لوحة الإدارة)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiResponse({ status: 200, description: 'تم تحديث المخزون بنجاح' })
+  @Patch(':id/stock')
+  async updateStock(
+    @Param('id') id: string,
+    @Body('stock') stock: number,
+  ) {
+    return this.productsService.updateStock(id, Number(stock));
+  }
+
+  @ApiOperation({ summary: 'حذف منتج (لوحة الإدارة)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiResponse({ status: 200, description: 'تم حذف المنتج بنجاح' })
+  @Delete(':id')
+  async deleteProduct(@Param('id') id: string) {
+    return this.productsService.remove(id);
   }
 }

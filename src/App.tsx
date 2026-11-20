@@ -29,8 +29,11 @@ import { AuthPage } from './pages/AuthPage';
 import { TrackingPage } from './pages/TrackingPage';
 import { StaticPages } from './pages/StaticPages';
 import { UserProfilePage } from './pages/UserProfilePage';
+import { AdminPage } from './pages/AdminPage';
 import { ProductCard } from './components/ProductCard';
-import { CheckCircle2, ChevronLeft, Heart } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronUp, Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Toast } from './components/ui';
 
 /** Convert a backend cart (shared with the mobile app) into renderable cart items. */
 function backendCartToItems(cart: BackendCart | null, products: Product[]): CartItem[] {
@@ -97,6 +100,7 @@ export default function App() {
     | 'warranty_policy'
     | 'privacy_policy'
     | 'terms'
+    | 'admin'
   >('home');
 
   // User Authentication
@@ -148,8 +152,23 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
+    setTimeout(() => setToastMessage(null), 3000);
   };
+
+  // Scroll to top on page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activePage]);
+
+  // Floating scroll-to-top button visibility
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 350);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Sync state to local storage
   useEffect(() => {
@@ -256,6 +275,10 @@ export default function App() {
   /* ------------------------------ Cart ------------------------------ */
 
   const addToCart = async (product: Product, color?: string, qty = 1) => {
+    if (product.stock <= 0) {
+      showToast('عذراً، هذه القطعة نفدت من المخزون حالياً');
+      return;
+    }
     if (!currentUser) {
       if (product.stock <= 0) {
         showToast('عذراً، هذه القطعة نفدت من المخزون حالياً');
@@ -453,12 +476,15 @@ export default function App() {
       className="min-h-screen w-full bg-ph-background text-ph-ink font-sans flex flex-col selection:bg-ph-accent/15"
     >
       {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#0F172A] text-white px-5 py-3 rounded-full shadow-2xl border border-ph-brand/40 text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-3">
-          <CheckCircle2 className="w-4 h-4 text-ph-brand" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {toastMessage && (
+          <Toast
+            message={toastMessage}
+            type="info"
+            onDismiss={() => setToastMessage(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Main Professional Desktop-first Header */}
       <Header
@@ -483,19 +509,28 @@ export default function App() {
         }}
       />
 
-      {/* Page Content View Router */}
+      {/* Page Content View Router with Smooth Transitions */}
       <main className="flex-1 w-full">
-        {/* 1. Homepage */}
-        {activePage === 'home' && (
-          <HomePage
-            products={products}
-            wishlistIds={wishlistIds}
-            onSelectProduct={handleSelectProduct}
-            onAddToCart={addToCart}
-            onToggleWishlist={toggleWishlist}
-            onNavigate={navigateTo}
-          />
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activePage}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full"
+          >
+            {/* 1. Homepage */}
+            {activePage === 'home' && (
+              <HomePage
+                products={products}
+                wishlistIds={wishlistIds}
+                onSelectProduct={handleSelectProduct}
+                onAddToCart={addToCart}
+                onToggleWishlist={toggleWishlist}
+                onNavigate={navigateTo}
+              />
+            )}
 
         {/* 2. All Products & Search Results */}
         {(activePage === 'products' || activePage === 'search') && (
@@ -730,18 +765,47 @@ export default function App() {
           />
         )}
 
-        {/* 11. Static Informational & Policy Pages */}
-        {(activePage === 'about' ||
-          activePage === 'contact' ||
-          activePage === 'faq' ||
-          activePage === 'shipping_policy' ||
-          activePage === 'refund_policy' ||
-          activePage === 'warranty_policy' ||
-          activePage === 'privacy_policy' ||
-          activePage === 'terms') && (
-          <StaticPages pageType={activePage} onNavigate={navigateTo} />
+        {/* 12. Admin Dashboard */}
+        {activePage === 'admin' && (
+          <AdminPage
+            currentUser={currentUser}
+            onNavigate={navigateTo}
+          />
         )}
+
+
+            {/* 11. Static Informational & Policy Pages */}
+            {(activePage === 'about' ||
+              activePage === 'contact' ||
+              activePage === 'faq' ||
+              activePage === 'shipping_policy' ||
+              activePage === 'refund_policy' ||
+              activePage === 'warranty_policy' ||
+              activePage === 'privacy_policy' ||
+              activePage === 'terms') && (
+              <StaticPages pageType={activePage} onNavigate={navigateTo} />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
+
+      {/* Floating Scroll-to-Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.7, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.7, y: 15 }}
+            whileHover={{ scale: 1.1, y: -2 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="العودة لأعلى الصفحة"
+            className="fixed bottom-6 start-6 z-40 w-11 h-11 rounded-full bg-ph-brand text-white shadow-lg border border-white/20 flex items-center justify-center hover:bg-ph-brand-hover transition-colors"
+          >
+            <ChevronUp className="w-5 h-5" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Main Professional E-commerce Footer */}
       <Footer onNavigate={navigateTo} />
