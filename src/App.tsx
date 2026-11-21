@@ -28,12 +28,25 @@ import { CartAndCheckoutPage } from './pages/CartAndCheckoutPage';
 import { AuthPage } from './pages/AuthPage';
 import { TrackingPage } from './pages/TrackingPage';
 import { StaticPages } from './pages/StaticPages';
+import { PoliciesPage, type PolicySectionId } from './pages/PoliciesPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { ProductCard } from './components/ProductCard';
 import { CheckCircle2, ChevronLeft, ChevronUp, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toast } from './components/ui';
+
+/**
+ * Legacy individual policy links now live on the unified policies page.
+ * Each key deep-links to its matching section so no existing link breaks.
+ */
+const POLICY_SECTION_BY_PAGE: Record<string, PolicySectionId> = {
+  shipping_policy: 'shipping',
+  refund_policy: 'returns',
+  warranty_policy: 'warranty',
+  privacy_policy: 'privacy',
+  terms: 'terms',
+};
 
 /** Convert a backend cart (shared with the mobile app) into renderable cart items. */
 function backendCartToItems(cart: BackendCart | null, products: Product[]): CartItem[] {
@@ -95,6 +108,8 @@ export default function App() {
     | 'about'
     | 'contact'
     | 'faq'
+    | 'policies'
+    // Legacy policy keys kept as valid deep-link targets (mapped to 'policies').
     | 'shipping_policy'
     | 'refund_policy'
     | 'warranty_policy'
@@ -148,6 +163,9 @@ export default function App() {
   // Order selected for direct tracking (e.g. from the orders list / checkout)
   const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null);
 
+  // Section to focus on within the unified policies page
+  const [policySection, setPolicySection] = useState<PolicySectionId>('shipping');
+
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const showToast = (msg: string) => {
@@ -155,8 +173,9 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Scroll to top on page change
+  // Scroll to top on page change (the policies page scrolls itself to sections)
   useEffect(() => {
+    if (activePage === 'policies') return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activePage]);
 
@@ -423,6 +442,20 @@ export default function App() {
     if (page === 'tracking' && params?.orderId) {
       setTrackingOrderId(params.orderId);
     }
+
+    // Route every policy target to the unified policies page, deep-linking to
+    // the requested section so the legacy individual links keep working.
+    const policyTarget =
+      page === 'policies'
+        ? ((params?.section as PolicySectionId) ?? 'shipping')
+        : POLICY_SECTION_BY_PAGE[page];
+
+    if (policyTarget) {
+      setPolicySection(policyTarget);
+      setActivePage('policies');
+      return; // The policies page handles its own smooth scroll to the section.
+    }
+
     setActivePage(page as any);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -776,16 +809,16 @@ export default function App() {
         )}
 
 
-            {/* 11. Static Informational & Policy Pages */}
+            {/* 11. Static Informational Pages */}
             {(activePage === 'about' ||
               activePage === 'contact' ||
-              activePage === 'faq' ||
-              activePage === 'shipping_policy' ||
-              activePage === 'refund_policy' ||
-              activePage === 'warranty_policy' ||
-              activePage === 'privacy_policy' ||
-              activePage === 'terms') && (
+              activePage === 'faq') && (
               <StaticPages pageType={activePage} onNavigate={navigateTo} />
+            )}
+
+            {/* 11b. Unified Policies Page (all policy sections in one place) */}
+            {activePage === 'policies' && (
+              <PoliciesPage initialSection={policySection} onNavigate={navigateTo} />
             )}
           </motion.div>
         </AnimatePresence>

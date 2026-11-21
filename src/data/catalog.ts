@@ -22,6 +22,5 @@ export const PALESTINIAN_CITIES = [
   { name: 'أريحا والأغوار', fee: 25 },
   { name: 'سلفيت', fee: 25 },
   { name: 'طوباس', fee: 25 },
-  { name: 'قطاع غزة', fee: 35 },
   { name: 'الداخل المحتل (48)', fee: 50 },
 ];

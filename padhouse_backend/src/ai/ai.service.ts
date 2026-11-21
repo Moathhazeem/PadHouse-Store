@@ -1,4 +1,11 @@
-import { Injectable, GatewayTimeoutException, HttpException, HttpStatus, ServiceUnavailableException } from '@nestjs/common';
+import {
+  GatewayTimeoutException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI, Type, type Schema } from '@google/genai';
 import { Prisma } from '@prisma/client';
@@ -10,6 +17,23 @@ import { ChatRequestDto } from './dto/chat-request.dto';
 
 const REQUEST_TIMEOUT_MS = 45_000;
 const MAX_HISTORY_TURNS = 12;
+
+/** Primary model when `GEMINI_MODEL` is not configured. */
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+/** Alternate model retried once when the primary model call fails. */
+const DEFAULT_GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash-lite';
+
+/**
+ * Normalized keyword sets for the deterministic fallback. Every entry is matched
+ * against `normalize()`-d text, so hamza/taa-marbuta are already folded.
+ */
+const FALLBACK_KEYWORDS = {
+  cheapest: ['ارخص', 'الارخص', 'رخيص', 'رخيصه', 'اوفر', 'الاوفر', 'افضل سعر', 'اقل سعر', 'cheap', 'cheapest', 'lowest price', 'budget'],
+  priciest: ['اغلي', 'الاغلي', 'غالي', 'افخم', 'الافخم', 'premium', 'expensive', 'most expensive'],
+  recommend: ['انصح', 'انصحني', 'تنصح', 'نصيحه', 'اقترح', 'اقتراح', 'توصي', 'توصيه', 'افضل منتج', 'افضل خيار', 'recommend', 'suggest'],
+  addToCart: ['ضيف', 'ضف', 'اضف', 'اضافه', 'حط', 'خلي', 'خليه', 'بالسله', 'السله', 'سله', 'add to cart', 'add it', 'add to basket'],
+  buyNow: ['اشتري', 'اشتر', 'شراء', 'اطلب', 'اطلبلي', 'بدي اشتري', 'اكمل الطلب', 'اتمام الطلب', 'checkout', 'buy', 'purchase', 'order it', 'order this'],
+};
 
 /** What the assistant actually did (or why it needs more information). */
 export type AiChatAction = 'ADDED_TO_CART' | 'ORDER_CREATED' | 'NEEDS_INFO' | 'NONE';
@@ -141,6 +165,8 @@ const AI_DECISION_SCHEMA: Schema = {
 
 @Injectable()
 export class AiService {
+  private readonly logger = new Logger(AiService.name);
+
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
@@ -149,26 +175,70 @@ export class AiService {
   ) {}
 
   async chat(request: ChatRequestDto, user?: ChatUser): Promise<AiChatResponse> {
-    const products = await this.loadProducts();
+    // The chat endpoint is the customer's last line of support: it must always
+    // come back with a readable Arabic answer. Any failure (catalog load, LLM
+    // outage, unexpected runtime error) is converted into a structured reply
+    // instead of an error status the UI would surface as a blank/silent failure.
+    try {
+      const products = await this.loadProducts();
 
-    // A single structured LLM call resolves the intent *and* the product the
-    // customer is referring to, so contextual follow-ups ("ضيفه"، "بدي تشتريلي اياه")
-    // are understood without repeating the product name.
-    const decision = await this.planTurn(request, products);
+      // A single structured LLM call resolves the intent *and* the product the
+      // customer is referring to, so contextual follow-ups ("ضيفه"، "بدي تشتريلي اياه")
+      // are understood without repeating the product name.
+      const decision = await this.planTurnWithFallback(request, products);
 
-    if (decision.action === 'CHAT_REPLY') {
-      return {
-        action: 'NONE',
-        answer: decision.reply || 'لم أفهم طلبك تماماً. هل يمكنك توضيح ما تبحث عنه؟',
-      };
+      if (decision.action === 'CHAT_REPLY') {
+        return this.finalize({
+          action: 'NONE',
+          answer: decision.reply || 'لم أفهم طلبك تماماً. هل يمكنك توضيح ما تبحث عنه؟',
+        });
+      }
+
+      return this.finalize(await this.executeAction(decision, request, products, user));
+    } catch (error) {
+      this.logUnexpectedError(error);
+      const reason =
+        error instanceof HttpException
+          ? this.exceptionMessage(error)
+          : 'تعذّر إكمال طلبك الآن بسبب خطأ غير متوقع. يرجى المحاولة مرة أخرى بعد قليل.';
+      return this.finalize({ action: 'NONE', answer: reason });
     }
+  }
 
-    return this.executeAction(decision, request, products, user);
+  /** Guarantees every response carries a non-empty customer-facing `answer`. */
+  private finalize(response: AiChatResponse): AiChatResponse {
+    const answer = typeof response.answer === 'string' ? response.answer.trim() : '';
+    return answer
+      ? { ...response, answer }
+      : { ...response, answer: 'لم أتمكن من تجهيز رد واضح. هل يمكنك إعادة صياغة طلبك؟' };
   }
 
   /* ------------------------------------------------------------------ */
   /* LLM planning (intent + contextual product resolution)                */
   /* ------------------------------------------------------------------ */
+
+  /** Runs the LLM planner, degrading to a deterministic catalog answer on failure. */
+  private async planTurnWithFallback(
+    request: ChatRequestDto,
+    products: ProductWithVariants[],
+  ): Promise<AiDecision> {
+    try {
+      return await this.planTurn(request, products);
+    } catch (error) {
+      this.logger.warn(
+        `Gemini planning failed (${this.describeError(error)}); answering "${request.message.trim().slice(0, 120)}" from the deterministic catalog fallback.`,
+      );
+      return this.buildFallbackDecision(request, products);
+    }
+  }
+
+  /** Model IDs tried in order: `GEMINI_MODEL`, then the configured/alternate model. */
+  private getModelCandidates(): string[] {
+    const primary = this.config.get<string>('GEMINI_MODEL')?.trim() || DEFAULT_GEMINI_MODEL;
+    const fallback =
+      this.config.get<string>('GEMINI_MODEL_FALLBACK')?.trim() || DEFAULT_GEMINI_MODEL_FALLBACK;
+    return Array.from(new Set([primary, fallback].filter((model): model is string => !!model)));
+  }
 
   private async planTurn(
     request: ChatRequestDto,
@@ -176,6 +246,9 @@ export class AiService {
   ): Promise<AiDecision> {
     const apiKey = this.config.get<string>('GEMINI_API_KEY')?.trim();
     if (!apiKey) {
+      this.logger.error(
+        'Gemini API key is missing: GEMINI_API_KEY is not set (or empty) in the backend environment.',
+      );
       throw new ServiceUnavailableException('المساعد الذكي غير متاح حالياً. يرجى المحاولة لاحقاً.');
     }
 
@@ -188,11 +261,44 @@ export class AiService {
       .join('\n');
 
     const client = new GoogleGenAI({ apiKey });
+    const models = this.getModelCandidates();
+    let lastError: unknown;
+
+    for (const model of models) {
+      try {
+        const raw = await this.generateWithTimeout(client, model, contents, products);
+        return this.parseDecision(raw);
+      } catch (error) {
+        lastError = error;
+        this.logGeminiError(model, error);
+
+        // A hard timeout already consumed the latency budget — retrying the
+        // fallback model would double the wait, so bail out immediately.
+        if (error instanceof GatewayTimeoutException) break;
+        // An invalid/revoked key fails identically on every model: stop retrying.
+        if (this.isAuthError(error)) break;
+      }
+    }
+
+    if (lastError instanceof HttpException) throw lastError;
+    throw new HttpException(
+      'تعذّر الحصول على رد حالياً. يرجى المحاولة بعد قليل.',
+      HttpStatus.BAD_GATEWAY,
+    );
+  }
+
+  /** One Gemini attempt against a single model, guarded by a hard timeout. */
+  private async generateWithTimeout(
+    client: GoogleGenAI,
+    model: string,
+    contents: string,
+    products: ProductWithVariants[],
+  ): Promise<string> {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
       const response = await Promise.race([
         client.models.generateContent({
-          model: this.config.get<string>('GEMINI_MODEL')?.trim() || 'gemini-3.8-flash',
+          model,
           contents,
           config: {
             systemInstruction: this.buildSystemInstruction(products),
@@ -211,15 +317,87 @@ export class AiService {
       ]);
       const raw = response.text?.trim();
       if (!raw) throw new Error('Empty Gemini response');
-      return this.parseDecision(raw);
-    } catch (error) {
-      if (error instanceof HttpException) throw error;
-      throw new HttpException(
-        'تعذّر الحصول على رد حالياً. يرجى المحاولة بعد قليل.',
-        HttpStatus.BAD_GATEWAY,
-      );
+      return raw;
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Error logging                                                       */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Dumps the full underlying Gemini/HTTP error (status, message, response body,
+   * cause and stack) so the exact API failure is visible in the backend logs.
+   */
+  private logGeminiError(model: string, error: unknown): void {
+    const err = error as {
+      name?: string;
+      status?: unknown;
+      statusCode?: unknown;
+      code?: unknown;
+      message?: string;
+      response?: unknown;
+      errorDetails?: unknown;
+      cause?: unknown;
+    } | null;
+
+    this.logger.error(
+      `Gemini request failed [model=${model}] name=${err?.name ?? 'Error'} ` +
+        `status=${this.stringify(err?.status ?? err?.statusCode)} code=${this.stringify(err?.code)} ` +
+        `message=${err?.message ?? 'no message'}`,
+    );
+    if (err?.response !== undefined) {
+      this.logger.error(`[model=${model}] .response: ${this.stringify(err.response)}`);
+    }
+    if (err?.errorDetails !== undefined) {
+      this.logger.error(`[model=${model}] .errorDetails: ${this.stringify(err.errorDetails)}`);
+    }
+    if (err?.cause !== undefined) {
+      this.logger.error(`[model=${model}] .cause: ${this.stringify(err.cause)}`);
+    }
+    if (error instanceof Error && error.stack) {
+      this.logger.error(`[model=${model}] stack: ${error.stack}`);
+    }
+  }
+
+  private logUnexpectedError(error: unknown): void {
+    this.logger.error(`AI chat request failed unexpectedly: ${this.stringify(error)}`);
+    if (error instanceof Error && error.stack) {
+      this.logger.error(`stack: ${error.stack}`);
+    }
+  }
+
+  /** True when the failure is key/project-level (retrying another model is futile). */
+  private isAuthError(error: unknown): boolean {
+    const err = error as { status?: unknown; statusCode?: unknown; message?: string } | null;
+    const status = Number(err?.status ?? err?.statusCode);
+    if (status === 401 || status === 403) return true;
+    const message = String(err?.message ?? '').toUpperCase();
+    return (
+      message.includes('API KEY') ||
+      message.includes('API_KEY') ||
+      message.includes('UNAUTHENTICATED') ||
+      message.includes('PERMISSION_DENIED')
+    );
+  }
+
+  /** Short one-line description of an error for warn logs. */
+  private describeError(error: unknown): string {
+    const err = error as { status?: unknown; statusCode?: unknown; message?: string } | null;
+    const status = err?.status ?? err?.statusCode;
+    return `${err?.message ?? String(error)}${status !== undefined ? ` [status=${this.stringify(status)}]` : ''}`;
+  }
+
+  private stringify(value: unknown): string {
+    if (value === undefined) return 'undefined';
+    if (value === null) return 'null';
+    if (typeof value === 'string') return value;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
     }
   }
 
@@ -310,6 +488,128 @@ export class AiService {
       },
       reply: typeof parsed.reply === 'string' ? parsed.reply.trim() : '',
     };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Deterministic fallback (used when Gemini is unavailable)             */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Answers the common catalog/action questions directly from the loaded catalog
+   * so a Gemini outage (bad key, quota, deprecated model, network error) never
+   * leaves the customer with a bare "try again later" message.
+   */
+  private buildFallbackDecision(
+    request: ChatRequestDto,
+    products: ProductWithVariants[],
+  ): AiDecision {
+    const quantity = this.extractQuantity(request.message);
+    const replyOnly = (reply: string): AiDecision => ({ action: 'CHAT_REPLY', checkout: {}, quantity, reply });
+
+    if (products.length === 0) {
+      return replyOnly('كتالوج المنتجات غير متاح حالياً. يرجى المحاولة بعد قليل.');
+    }
+
+    const text = this.normalize(request.message);
+    const has = (keywords: string[]) => keywords.some((keyword) => text.includes(keyword));
+    const byPrice = this.sortByPrice(products);
+    const cheapest = byPrice[0];
+    const priciest = byPrice[byPrice.length - 1];
+
+    // "Add to cart" / "buy" intents: resolve the referenced product, or fall
+    // back to the cheapest one when the customer asks for it implicitly.
+    if (has(FALLBACK_KEYWORDS.addToCart) || has(FALLBACK_KEYWORDS.buyNow)) {
+      const wantsBuy = has(FALLBACK_KEYWORDS.buyNow);
+      let candidates = this.resolveCandidates(request.message, products);
+      if (candidates.length === 0 && has(FALLBACK_KEYWORDS.cheapest)) {
+        candidates = [{ product: cheapest, quantity }];
+      }
+      if (candidates.length === 1) {
+        return {
+          action: wantsBuy ? 'BUY_NOW' : 'ADD_TO_CART',
+          productId: candidates[0].product.id,
+          variantId: candidates[0].variant?.id,
+          quantity,
+          checkout: {},
+          reply: '',
+        };
+      }
+      if (candidates.length > 1) {
+        const names = candidates.slice(0, 4).map((c) => `"${c.product.nameAr}"`).join('، ');
+        return replyOnly(`وجدت أكثر من منتج مطابق: ${names}. أيّها تقصد؟`);
+      }
+      return replyOnly(
+        wantsBuy
+          ? 'حدد المنتج الذي تريد شراءه (اسمه أو رمزه) وسأكمل الطلب مباشرةً.'
+          : 'حدد المنتج الذي تريد إضافته إلى سلة التسوق (اسمه أو رمزه).',
+      );
+    }
+
+    if (has(FALLBACK_KEYWORDS.cheapest)) {
+      return replyOnly(this.priceAnswer('أرخص منتج لدينا حالياً', cheapest));
+    }
+
+    if (has(FALLBACK_KEYWORDS.priciest)) {
+      return replyOnly(this.priceAnswer('أفخم منتج لدينا حالياً', priciest));
+    }
+
+    // Product lookup by name / SKU / colour token.
+    const candidates = this.resolveCandidates(request.message, products);
+    if (candidates.length === 1) {
+      return replyOnly(this.productAnswer(candidates[0].product));
+    }
+    if (candidates.length > 1) {
+      return replyOnly(this.recommendationAnswer(candidates.map((c) => c.product)));
+    }
+
+    if (has(FALLBACK_KEYWORDS.recommend)) {
+      return replyOnly(this.recommendationAnswer(byPrice.slice(0, 3)));
+    }
+
+    // Unknown intent: stay helpful with a short catalog summary instead of an error.
+    return replyOnly(
+      [
+        'المساعد الذكي مشغول قليلاً الآن، لكنني أستطيع مساعدتك فوراً بالبيانات المتوفرة:',
+        this.priceAnswer('أرخص منتج لدينا', cheapest),
+        'يمكنك أن تسألني عن أرخص منتج، أو أن تطلب إضافة منتج إلى السلة أو شراءه.',
+      ].join('\n'),
+    );
+  }
+
+  /** Sorts products ascending by their effective (sale-aware) price. */
+  private sortByPrice(products: ProductWithVariants[]): ProductWithVariants[] {
+    return [...products].sort((a, b) => this.effectivePrice(a) - this.effectivePrice(b));
+  }
+
+  private effectivePrice(product: ProductWithVariants): number {
+    return Number(product.salePrice ?? product.basePrice);
+  }
+
+  private priceAnswer(prefix: string, product: ProductWithVariants): string {
+    const totalStock = product.variants.reduce(
+      (sum, variant) => sum + (variant.inventory?.currentStock ?? 0),
+      0,
+    );
+    const stock = totalStock > 0 ? ` (المتوفر: ${totalStock} قطعة)` : ' (غير متوفر حالياً)';
+    return `${prefix}: "${product.nameAr}" بسعر ${this.effectivePrice(product)} ₪${stock}.`;
+  }
+
+  private productAnswer(product: ProductWithVariants): string {
+    const compatibility = Array.isArray(product.ipadCompatibility)
+      ? product.ipadCompatibility.join('، ')
+      : String(product.ipadCompatibility ?? '');
+    return [
+      this.priceAnswer('إليك التفاصيل', product),
+      `التوافق: ${compatibility || 'غير محدد'}.`,
+      `الضمان: ${product.warrantyMonths} شهر.`,
+    ].join(' ');
+  }
+
+  private recommendationAnswer(products: ProductWithVariants[]): string {
+    const lines = products
+      .slice(0, 4)
+      .map((product, index) => `${index + 1}. "${product.nameAr}" — ${this.effectivePrice(product)} ₪`);
+    return ['إليك أبرز الخيارات المتوفرة:', ...lines].join('\n');
   }
 
   /* ------------------------------------------------------------------ */
@@ -498,6 +798,9 @@ export class AiService {
     const missing: string[] = [];
     if (!city) missing.push('city');
     if (!street) missing.push('street');
+    // The delivery phone is required by the order/address record, so ask for it
+    // explicitly instead of creating an order the courier cannot call.
+    if (!phone) missing.push('phone');
 
     return {
       city,

@@ -38,6 +38,23 @@ const WELCOME: ChatMessage = {
     'مرحباً! أنا مساعد بادهاوس الذكي. أخبرني بموديل جهازك أو ما تبحث عنه، ويمكنك أن تقول "ضيفه للسلة" للإضافة فقط أو "بدي أشتري" لإتمام الطلب مباشرةً.',
 };
 
+/** Shown whenever the backend returned no usable text, so the bubble is never blank. */
+const EMPTY_REPLY = 'لم يصلني رد واضح. هل يمكنك إعادة صياغة سؤالك؟';
+
+/**
+ * Reads the assistant's text from whichever key the backend used. The API
+ * returns `answer`, but we also accept `reply` / `message` / `text` / `content`
+ * so a response can never be dropped (and rendered as an empty bubble) just
+ * because a field name changes.
+ */
+function pickAssistantText(payload: Record<string, unknown>): string {
+  for (const key of ['answer', 'reply', 'message', 'text', 'content']) {
+    const value = payload[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
 export const AssistantChat: React.FC<AssistantChatProps> = ({
   onCartUpdated,
   onOrderCreated,
@@ -70,33 +87,39 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 50_000);
     try {
-      const response = await sendAssistantMessageApi(message, history, controller.signal);
+      const raw = await sendAssistantMessageApi(message, history, controller.signal);
+      // Defensive: accept any object shape (or a null/empty body) so a malformed
+      // reply still becomes a readable bubble instead of a crashed/blank one.
+      const response = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+      const content = pickAssistantText(response) || EMPTY_REPLY;
+      const action = response.action as AssistantChatAction | undefined;
 
       // Apply the cart snapshot the assistant returned so the shared cart
       // (navbar badge + cart page) updates immediately, without a page reload
       // or a second round-trip that could silently fail.
-      if (response.action === 'ADDED_TO_CART') onCartUpdated?.(response.cart ?? null);
-      if (response.action === 'ORDER_CREATED') onOrderCreated?.();
+      if (action === 'ADDED_TO_CART') onCartUpdated?.((response.cart as BackendCart | null) ?? null);
+      if (action === 'ORDER_CREATED') onOrderCreated?.();
 
+      const order = response.order;
       const orderNumber =
-        response.order && typeof response.order === 'object' && 'orderNumber' in response.order
-          ? String((response.order as { orderNumber?: string }).orderNumber || '')
+        order && typeof order === 'object' && 'orderNumber' in order
+          ? String((order as { orderNumber?: string }).orderNumber || '')
           : undefined;
 
       setMessages((items) => [
         ...items,
         {
           role: 'assistant',
-          content: response.answer,
-          action: response.action,
+          content,
+          action,
           orderNumber: orderNumber || undefined,
-          requiresAuth: response.requiresAuth,
+          requiresAuth: Boolean(response.requiresAuth),
         },
       ]);
     } catch (error) {
       const content = controller.signal.aborted
         ? 'تأخر الرد قليلاً. يرجى المحاولة مرة أخرى.'
-        : error instanceof ApiError
+        : error instanceof ApiError && error.message.trim()
           ? error.message
           : 'تعذّر الاتصال بالمساعد حالياً. يرجى المحاولة بعد قليل.';
       setMessages((items) => [...items, { role: 'assistant', content }]);

@@ -495,7 +495,17 @@ class PadhouseController extends ChangeNotifier {
                 })
             .toList(),
       );
-      final answer = result['answer']?.toString().trim() ?? '';
+      // Accept the text under whichever key the backend used (`answer` today,
+      // but `reply`/`message`/`text`/`content` are tolerated) so a response is
+      // never dropped and rendered as an empty bubble.
+      final answer = (result['answer'] ??
+                  result['reply'] ??
+                  result['message'] ??
+                  result['text'] ??
+                  result['content'])
+              ?.toString()
+              .trim() ??
+          '';
       customerAiChat = [
         ...customerAiChat,
         ChatMessage(

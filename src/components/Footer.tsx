@@ -83,27 +83,27 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </h5>
             <ul className="space-y-2 text-xs text-white/80">
               <li>
-                <button onClick={() => onNavigate('about')} className="hover:text-white transition-colors">
+                <button onClick={() => onNavigate('about')} className="rounded-md transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ph-brand/70">
                   من نحن
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">
+                <button onClick={() => onNavigate('contact')} className="rounded-md transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ph-brand/70">
                   تواصل معنا
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('faq')} className="hover:text-white transition-colors">
+                <button onClick={() => onNavigate('faq')} className="rounded-md transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ph-brand/70">
                   الأسئلة الشائعة (FAQ)
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('orders')} className="hover:text-white transition-colors">
+                <button onClick={() => onNavigate('orders')} className="rounded-md transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ph-brand/70">
                   سجل طلباتي
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('wishlist')} className="hover:text-white transition-colors">
+                <button onClick={() => onNavigate('wishlist')} className="rounded-md transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ph-brand/70">
                   قائمة الرغبات
                 </button>
               </li>

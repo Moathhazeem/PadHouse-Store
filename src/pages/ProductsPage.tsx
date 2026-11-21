@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { SlidersHorizontal, ArrowUpDown, Check, PackageSearch, PenLine, Smartphone, Keyboard, BriefcaseBusiness, Cable, Shield } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, Check, PackageSearch, PenLine, Smartphone, Keyboard, BriefcaseBusiness, Cable, Shield, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product } from '../types';
 import { OFFICIAL_CATEGORIES } from '../data/catalog';
@@ -31,7 +31,10 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
   const [sortBy, setSortBy] = useState<'featured' | 'price_low' | 'price_high' | 'rating'>('featured');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [priceRange, setPriceRange] = useState<number>(200);
-  const [minimumRating, setMinimumRating] = useState(0);
+  // Selected star rating filter: 0 = no rating filter, 1..5 = exact (rounded) star rating.
+  const [ratingFilter, setRatingFilter] = useState(0);
+  // Hover preview for the interactive star filter (0 = not hovering).
+  const [hoverRating, setHoverRating] = useState(0);
 
   // Filtered & Sorted products
   const filteredProducts = useMemo(() => {
@@ -56,7 +59,10 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
         // Price filter
         const matchPrice = p.price <= priceRange;
 
-        return matchCategory && matchSearch && matchStock && matchPrice && p.rating >= minimumRating;
+        // Star rating filter — exact (rounded) rating match, e.g. values 1..5 work accurately.
+        const matchRating = ratingFilter === 0 || Math.round(p.rating) === ratingFilter;
+
+        return matchCategory && matchSearch && matchStock && matchPrice && matchRating;
       })
       .sort((a, b) => {
         if (sortBy === 'price_low') return a.price - b.price;
@@ -64,7 +70,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
         if (sortBy === 'rating') return b.rating - a.rating;
         return 0; // featured/default
       });
-  }, [products, selectedCategory, internalSearch, inStockOnly, priceRange, minimumRating, sortBy]);
+  }, [products, selectedCategory, internalSearch, inStockOnly, priceRange, ratingFilter, sortBy]);
 
   const activeCategoryTitle =
     OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'جميع المنتجات';
@@ -132,14 +138,14 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                 <SlidersHorizontal className="w-4 h-4 text-ph-brand" />
                 تصفية المنتجات
               </span>
-              {(selectedCategory !== 'all' || internalSearch || inStockOnly || priceRange < 200 || minimumRating > 0) && (
+              {(selectedCategory !== 'all' || internalSearch || inStockOnly || priceRange < 200 || ratingFilter > 0) && (
                 <button
                   onClick={() => {
                     onSelectCategory('all');
                     setInternalSearch('');
                     setInStockOnly(false);
                     setPriceRange(200);
-                    setMinimumRating(0);
+                    setRatingFilter(0);
                   }}
                   className="text-[11px] font-semibold text-ph-brand hover:underline"
                 >
@@ -148,11 +154,59 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
               )}
             </div>
 
+            {/* Star Rating Filter */}
             <div>
-              <label htmlFor="minimum-rating" className="text-xs font-bold text-ph-ink block mb-2">الحد الأدنى للتقييم</label>
-              <select id="minimum-rating" value={minimumRating} onChange={(event) => setMinimumRating(Number(event.target.value))} className="w-full rounded-xl border border-ph-border bg-white px-3 py-2 text-xs text-ph-ink focus:border-ph-brand">
-                <option value={0}>كل التقييمات</option><option value={4}>4 نجوم فأعلى</option><option value={3}>3 نجوم فأعلى</option>
-              </select>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-ph-ink">التقييم</span>
+                {ratingFilter > 0 && (
+                  <span className="rounded-full bg-ph-star/10 px-2 py-0.5 text-[11px] font-bold text-ph-star">
+                    تقييم {ratingFilter}
+                  </span>
+                )}
+              </div>
+              <div
+                className="flex items-center gap-1"
+                role="group"
+                aria-label="التصفية حسب عدد النجوم"
+                dir="rtl"
+              >
+                {[1, 2, 3, 4, 5].map((value) => {
+                  const displayRating = hoverRating || ratingFilter;
+                  const active = displayRating > 0 && value <= displayRating;
+                  const selected = ratingFilter === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() =>
+                        setRatingFilter((prev) => (prev === value ? 0 : value))
+                      }
+                      onMouseEnter={() => setHoverRating(value)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      aria-pressed={selected}
+                      aria-label={`${value} من 5 نجوم`}
+                      title={`${value} من 5 نجوم`}
+                      className={`rounded-lg p-0.5 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ph-brand/40 ${
+                        selected ? 'scale-105' : ''
+                      }`}
+                    >
+                      <Star
+                        className={`h-6 w-6 transition-colors ${
+                          active
+                            ? 'fill-ph-star text-ph-star'
+                            : 'fill-transparent text-ph-border'
+                        }`}
+                        strokeWidth={1.7}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-[10px] text-ph-muted">
+                {ratingFilter > 0
+                  ? 'اضغط على التقييم مرة أخرى لإلغاء التصفية'
+                  : 'اختر عدد النجوم لعرض المنتجات بهذا التقييم'}
+              </p>
             </div>
 
             {/* Category Filter */}
@@ -226,6 +280,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                     setInternalSearch('');
                     setInStockOnly(false);
                     setPriceRange(200);
+                    setRatingFilter(0);
                   }}
                 >
                   عرض كل المنتجات

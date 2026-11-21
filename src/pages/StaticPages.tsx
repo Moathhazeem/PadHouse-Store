@@ -4,33 +4,33 @@ import {
   Truck,
   RotateCcw,
   CreditCard,
-  HelpCircle,
   Phone,
   Mail,
   MapPin,
+  Clock,
   CheckCircle2,
-  FileText,
-  Lock,
-  ChevronDown
+  ChevronDown,
+  Store,
+  Target,
+  Lightbulb,
+  Headset,
+  MessageCircle,
+  Send,
+  AlertCircle
 } from 'lucide-react';
-import { useScrollReveal } from '../components/ui';
+import { Button, useScrollReveal } from '../components/ui';
 
 interface StaticPagesProps {
-  pageType:
-    | 'about'
-    | 'contact'
-    | 'faq'
-    | 'shipping_policy'
-    | 'refund_policy'
-    | 'warranty_policy'
-    | 'privacy_policy'
-    | 'terms';
+  pageType: 'about' | 'contact' | 'faq';
   onNavigate: (page: string) => void;
 }
 
 export const StaticPages: React.FC<StaticPagesProps> = ({ pageType, onNavigate }) => {
   // FAQ questions toggle
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const aboutHeroReveal = useScrollReveal<HTMLElement>();
+  const aboutStoryReveal = useScrollReveal<HTMLDivElement>();
+  const aboutStatsReveal = useScrollReveal<HTMLElement>();
   const aboutBenefitsReveal = useScrollReveal<HTMLDivElement>();
 
   const faqs = [
@@ -40,7 +40,7 @@ export const StaticPages: React.FC<StaticPagesProps> = ({ pageType, onNavigate }
     },
     {
       q: 'كم تستغرق مدة التوصيل، وهل الدفع عند الاستلام متاح؟',
-      a: 'يتم التوصيل إلى جميع مدن ومحافظات الضفة الغربية والقدس وضواحيها خلال 24 إلى 48 ساعة كحد أقصى، وقطاع غزة بحسب الظروف الميدانية المتاحة. الدفع عند الاستلام متاح نقداً بعد فحص ومعاينة الطرد وسلامته.'
+      a: 'يتم التوصيل إلى جميع مدن ومحافظات الضفة الغربية والقدس وضواحيها خلال 24 إلى 48 ساعة كحد أقصى. الدفع عند الاستلام متاح نقداً بعد فحص ومعاينة الطرد وسلامته.'
     },
     {
       q: 'ما هي كفالة وضمان المنتجات المباعة من بادهاوس؟',
@@ -56,11 +56,54 @@ export const StaticPages: React.FC<StaticPagesProps> = ({ pageType, onNavigate }
     }
   ];
 
-  // Contact form submission
+  // Contact form (UI/UX only — submission flow unchanged)
+  const [contactForm, setContactForm] = useState({ name: '', phone: '', message: '' });
+  const [contactErrors, setContactErrors] = useState<{ name?: string; phone?: string; message?: string }>({});
+  const [contactSubmitting, setContactSubmitting] = useState(false);
   const [contactSubmitted, setContactSubmitted] = useState(false);
+  const contactHeroReveal = useScrollReveal<HTMLElement>();
+  const contactGridReveal = useScrollReveal<HTMLDivElement>();
+
+  const contactChannels: { icon: typeof MapPin; title: string; value: React.ReactNode; href?: string; ltr?: boolean }[] = [
+    { icon: MapPin, title: 'المقر والمستودعات', value: 'فلسطين — رام الله والبيرة، شارع الماصيون' },
+    { icon: Phone, title: 'الهاتف المباشر والواتساب', value: '+970 59 912 3456', href: 'tel:+970599123456', ltr: true },
+    { icon: Mail, title: 'البريد الإلكتروني', value: 'support@padhouse.ps', href: 'mailto:support@padhouse.ps', ltr: true },
+    {
+      icon: Clock,
+      title: 'أوقات العمل والدعم',
+      value: (
+        <>
+          يومياً من <span dir="ltr" className="ph-ltr">9:00</span> صباحاً حتى{' '}
+          <span dir="ltr" className="ph-ltr">9:00</span> مساءً
+        </>
+      ),
+    },
+  ];
+
+  const contactPills = ['دعم واتساب مباشر', 'رد خلال ساعات العمل', 'ضمان استبدال 12 شهراً'];
+
+  const updateContactField = (field: 'name' | 'phone' | 'message', value: string) => {
+    setContactForm((prev) => ({ ...prev, [field]: value }));
+    setContactErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  };
+
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setContactSubmitted(true);
+    if (contactSubmitting) return;
+
+    const nextErrors: { name?: string; phone?: string; message?: string } = {};
+    if (contactForm.name.trim().length < 2) nextErrors.name = 'يرجى إدخال الاسم الكريم.';
+    if (contactForm.phone.replace(/\D/g, '').length < 7) nextErrors.phone = 'يرجى إدخال رقم هاتف صحيح.';
+    if (contactForm.message.trim().length < 10) nextErrors.message = 'يرجى كتابة استفسارك بما لا يقل عن 10 أحرف.';
+
+    setContactErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setContactSubmitting(true);
+    window.setTimeout(() => {
+      setContactSubmitting(false);
+      setContactSubmitted(true);
+    }, 700);
   };
 
   return (
@@ -68,33 +111,116 @@ export const StaticPages: React.FC<StaticPagesProps> = ({ pageType, onNavigate }
       {/* 1. ABOUT US */}
       {pageType === 'about' && (
         <div className="space-y-8 bg-white p-6 sm:p-10 rounded-3xl border border-ph-border shadow-xl">
-          <div className="space-y-3">
-            <span className="text-xs font-bold text-ph-brand">قصة بادهاوس</span>
-            <h1 className="text-2xl sm:text-3xl font-black text-ph-ink">
-              المتجر الفلسطيني المتخصص لملحقات أجهزة الآيباد
-            </h1>
-            <p className="text-sm text-ph-muted leading-relaxed">
-              بدأت حكاية بادهاوس في رام الله من حاجة بسيطة: أن يجد مستخدم الآيباد في فلسطين ملحقاً مناسباً لجهازه مع وصف واضح وخدمة محلية موثوقة. نعمل على جمع خيارات عملية للطلاب والمصممين والمهنيين، مع مساعدة العملاء على اختيار القطعة المتوافقة قبل الشراء.
-            </p>
-          </div>
-          <section className="grid gap-5 border-t border-ph-border pt-7 md:grid-cols-2">
-            <div><h2 className="mb-2 text-sm font-bold text-ph-ink">رسالتنا في فلسطين</h2><p className="text-sm leading-7 text-ph-muted">نسهّل استخدام الآيباد للدراسة والعمل والإبداع عبر ملحقات مختارة بعناية، ومعلومات توافق مفهومة، وخدمة تنطلق من رام الله وتصل إلى مختلف المحافظات بحسب ترتيبات التوصيل المتاحة.</p></div>
-            <div><h2 className="mb-2 text-sm font-bold text-ph-ink">لماذا الملحقات المتخصصة؟</h2><p className="text-sm leading-7 text-ph-muted">اختيار القلم أو الكفر أو لوحة المفاتيح وفق موديل الجهاز يحسّن الكتابة والحماية والإنتاجية، ويقلّل من القطع غير المناسبة. لذلك نوضح الاستخدام والتوافق ونشجع على التحقق من رقم الموديل قبل الطلب.</p></div>
-            <div><h2 className="mb-2 text-sm font-bold text-ph-ink">كيف نراجع الجودة؟</h2><p className="text-sm leading-7 text-ph-muted">نراجع جودة التصنيع والتشطيب، ونجرب الوظائف الأساسية مثل الاقتران والشحن واستجابة الأزرار عند توفر عينات الاختبار، ثم نتحقق من بيانات التوافق والضمان قبل عرض المنتج. تفاصيل كل منتج تبقى مرجع الاختيار النهائي.</p></div>
-            <div><h2 className="mb-2 text-sm font-bold text-ph-ink">محطاتنا</h2><p className="text-sm leading-7 text-ph-muted">من متجر متخصص انطلق من رام الله، إلى كتالوج يضم فئات الأقلام والكفرات ولوحات المفاتيح والحوامل والشحن والحماية، مع خدمة استفسارات تساعد على مطابقة الملحق مع جهاز العميل.</p></div>
-          </section>
-          <div className="grid grid-cols-2 gap-3 border-t border-ph-border pt-6 sm:grid-cols-4">
-            {[['6', 'فئات ملحقات'], ['رام الله', 'نقطة انطلاقنا'], ['iPad', 'توافق موجّه حسب الموديل'], ['12 شهراً', 'مدة الضمان حسب المنتج']].map(([value, label]) => <div key={label} className="rounded-2xl bg-ph-background p-4 text-center"><strong className="block text-lg font-black text-ph-brand">{value}</strong><span className="mt-1 block text-xs text-ph-muted">{label}</span></div>)}
-          </div>
+          {/* Hero */}
+          <header
+            ref={aboutHeroReveal.ref}
+            style={aboutHeroReveal.style}
+            className={`${aboutHeroReveal.className} relative overflow-hidden`}
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-24 left-1/2 h-52 w-52 -translate-x-1/2 rounded-full bg-ph-brand/10 blur-3xl"
+            />
+            <div className="relative space-y-4">
+              <span className="inline-flex items-center gap-2 rounded-full border border-ph-brand/25 bg-ph-brand/10 px-3 py-1 text-[11px] font-bold text-ph-brand">
+                <Store className="h-3.5 w-3.5" aria-hidden="true" />
+                قصة بادهاوس
+              </span>
+              <h1 className="text-2xl font-black leading-[1.35] text-ph-ink sm:text-3xl lg:text-[2.1rem]">
+                المتجر الفلسطيني المتخصص لملحقات أجهزة الآيباد
+              </h1>
+              <p className="max-w-3xl text-sm leading-7 text-ph-muted sm:text-[15px] sm:leading-8">
+                بدأت حكاية بادهاوس في رام الله من حاجة بسيطة: أن يجد مستخدم الآيباد في فلسطين ملحقاً مناسباً لجهازه مع وصف واضح وخدمة محلية موثوقة. نجمع خيارات عملية للطلاب والمصممين والمهنيين، ونساعد العملاء على اختيار القطعة المتوافقة قبل الشراء.
+              </p>
+            </div>
+          </header>
 
-          <div>
-            <h2 className="mb-4 text-sm font-bold text-ph-ink">لماذا تختار بادهاوس؟</h2>
-            <div ref={aboutBenefitsReveal.ref} style={aboutBenefitsReveal.style} className={`${aboutBenefitsReveal.className} ph-stagger-reveal grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
+          {/* Mission & approach */}
+          <section aria-labelledby="about-approach-title" className="border-t border-ph-border pt-7">
+            <h2 id="about-approach-title" className="mb-4 text-sm font-bold text-ph-ink">
+              رسالتنا ونهجنا
+            </h2>
+            <div
+              ref={aboutStoryReveal.ref}
+              style={aboutStoryReveal.style}
+              className={`${aboutStoryReveal.className} ph-stagger-reveal grid grid-cols-1 gap-4 sm:grid-cols-2`}
+            >
+              {[
+                {
+                  icon: Target,
+                  title: 'رسالتنا في فلسطين',
+                  body: 'نسهّل استخدام الآيباد للدراسة والعمل والإبداع عبر ملحقات مختارة بعناية ومعلومات توافق واضحة، مع خدمة تنطلق من رام الله وتصل إلى مختلف المحافظات.',
+                },
+                {
+                  icon: Lightbulb,
+                  title: 'لماذا الملحقات المتخصصة؟',
+                  body: 'اختيار القلم أو الكفر أو لوحة المفاتيح وفق موديل الجهاز يحسّن الكتابة والحماية والإنتاجية ويقلّل القطع غير المناسبة، لذلك نوضح التوافق والاستخدام قبل الطلب.',
+                },
+                {
+                  icon: ShieldCheck,
+                  title: 'كيف نراجع الجودة؟',
+                  body: 'نفحص التصنيع والتشطيب ونجرّب الوظائف الأساسية مثل الاقتران والشحن واستجابة الأزرار، ثم نتحقق من بيانات التوافق والضمان قبل عرض المنتج.',
+                },
+                {
+                  icon: MapPin,
+                  title: 'محطاتنا',
+                  body: 'من متجر متخصص انطلق من رام الله إلى كتالوج يضم الأقلام والكفرات ولوحات المفاتيح والحوامل والشحن والحماية، مع دعم لمطابقة الملحق مع جهازك.',
+                },
+              ].map(({ icon: Icon, title, body }, index) => (
+                <div
+                  key={title}
+                  className="ph-stagger-item"
+                  style={{ '--ph-stagger-index': index } as React.CSSProperties}
+                >
+                  <article className="group h-full rounded-2xl border border-ph-border bg-ph-surface-soft p-5 transition-all duration-300 hover:-translate-y-1 hover:border-ph-brand/40 hover:bg-white hover:shadow-lg">
+                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-ph-brand ring-1 ring-ph-border transition-colors duration-300 group-hover:bg-ph-brand group-hover:text-white group-hover:ring-ph-brand">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <h3 className="mb-1.5 text-sm font-bold text-ph-ink">{title}</h3>
+                    <p className="text-xs leading-6 text-ph-muted sm:text-[13px] sm:leading-7">{body}</p>
+                  </article>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Quick stats */}
+          <section
+            ref={aboutStatsReveal.ref}
+            style={aboutStatsReveal.style}
+            className={`${aboutStatsReveal.className} grid grid-cols-2 gap-3 border-t border-ph-border pt-6 sm:grid-cols-4`}
+          >
+            {[
+              ['6', 'فئات ملحقات'],
+              ['رام الله', 'نقطة انطلاقنا'],
+              ['iPad', 'توافق حسب الموديل'],
+              ['12 شهراً', 'ضمان على المنتجات'],
+            ].map(([value, label]) => (
+              <div
+                key={label}
+                className="rounded-2xl border border-ph-border bg-ph-background p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:border-ph-brand/40 hover:bg-white hover:shadow-md"
+              >
+                <strong className="block text-lg font-black text-ph-brand">{value}</strong>
+                <span className="mt-1 block text-xs text-ph-muted">{label}</span>
+              </div>
+            ))}
+          </section>
+
+          {/* Value propositions */}
+          <section aria-labelledby="about-values-title" className="border-t border-ph-border pt-7">
+            <h2 id="about-values-title" className="mb-4 text-sm font-bold text-ph-ink">
+              لماذا تختار بادهاوس؟
+            </h2>
+            <div
+              ref={aboutBenefitsReveal.ref}
+              style={aboutBenefitsReveal.style}
+              className={`${aboutBenefitsReveal.className} ph-stagger-reveal grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4`}
+            >
               {[
                 {
                   icon: Truck,
                   title: 'توصيل سريع وموثوق',
-                  description: 'توصيل لجميع محافظات الضفة، القدس، وغزة خلال 24-48 ساعة.',
+                  description: 'توصيل لجميع محافظات الضفة والقدس وضواحيها خلال 24-48 ساعة.',
                 },
                 {
                   icon: ShieldCheck,
@@ -112,153 +238,261 @@ export const StaticPages: React.FC<StaticPagesProps> = ({ pageType, onNavigate }
                   description: 'ادفع نقداً عند باب منزلك بعد فحص ومعاينة الطرد وسلامته.',
                 },
               ].map(({ icon: Icon, title, description }, index) => (
-                <article
+                <div
                   key={title}
-                  className="ph-stagger-item rounded-2xl border border-ph-border bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                  className="ph-stagger-item"
                   style={{ '--ph-stagger-index': index } as React.CSSProperties}
                 >
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-ph-surface-soft text-ph-brand">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </div>
-                  <h3 className="mb-1 text-xs font-bold text-ph-ink">{title}</h3>
-                  <p className="text-xs leading-relaxed text-ph-muted">{description}</p>
-                </article>
+                  <article className="group h-full rounded-2xl border border-ph-border bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-ph-brand/40 hover:shadow-lg">
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-ph-surface-soft text-ph-brand transition-colors duration-300 group-hover:bg-ph-brand group-hover:text-white">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <h3 className="mb-1 text-xs font-bold text-ph-ink">{title}</h3>
+                    <p className="text-xs leading-relaxed text-ph-muted">{description}</p>
+                  </article>
+                </div>
               ))}
             </div>
-          </div>
+          </section>
         </div>
       )}
 
       {/* 2. CONTACT US */}
       {pageType === 'contact' && (
-        <div className="space-y-8 bg-white p-6 sm:p-10 rounded-3xl border border-ph-border shadow-xl">
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-ph-brand">يسعدنا تواصلكم دائماً</span>
-            <h1 className="text-2xl sm:text-3xl font-black text-ph-ink">تواصل مع فريق خدمة عملاء بادهاوس</h1>
-            <p className="text-xs text-ph-muted">
-              فريق الدعم الفني والمبيعات جاهز للرد على استفساراتكم حول التوافق والشحن.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            {/* Contact Details */}
-            <div className="space-y-5 bg-white p-6 rounded-2xl border border-ph-border">
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-ph-brand shrink-0 mt-0.5" />
-                <div>
-                  <strong className="block text-xs text-ph-ink">المقر والمستودعات:</strong>
-                  <span className="text-xs text-ph-muted">فلسطين — رام الله والبيرة، شارع الماصيون</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-ph-brand shrink-0 mt-0.5" />
-                <div>
-                  <strong className="block text-xs text-ph-ink">الهاتف المباشر والواتساب:</strong>
-                  <span className="text-xs text-ph-muted dir-ltr block text-right">+970 59 912 3456</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-ph-brand shrink-0 mt-0.5" />
-                <div>
-                  <strong className="block text-xs text-ph-ink">البريد الإلكتروني:</strong>
-                  <span className="text-xs text-ph-muted">support@padhouse.ps</span>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-ph-border">
-                <span className="text-xs font-bold text-ph-ink block mb-1">أوقات العمل والدعم:</span>
-                <span className="text-xs text-ph-muted block">يومياً من 9:00 صباحاً حتى 9:00 مساءً</span>
+        <div className="space-y-8 rounded-3xl border border-ph-border bg-white p-6 shadow-[0_2px_12px_rgba(15,23,42,0.06)] sm:p-10">
+          <header
+            ref={contactHeroReveal.ref}
+            style={contactHeroReveal.style}
+            className={`${contactHeroReveal.className} relative overflow-hidden`}
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-24 left-1/2 h-52 w-52 -translate-x-1/2 rounded-full bg-ph-brand/10 blur-3xl"
+            />
+            <div className="relative space-y-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-ph-brand/25 bg-ph-brand/10 px-3 py-1 text-[11px] font-bold text-ph-brand">
+                <Headset className="h-3.5 w-3.5" aria-hidden="true" />
+                دعم ومبيعات بادهاوس
+              </span>
+              <h1 className="text-2xl font-black text-ph-ink sm:text-3xl">تواصل مع فريق خدمة عملاء بادهاوس</h1>
+              <p className="max-w-2xl text-xs leading-6 text-ph-muted sm:text-sm">
+                فريق الدعم الفني والمبيعات جاهز للرد على استفساراتكم حول التوافق والشحن واختيار الملحقات الأنسب لجهازك.
+              </p>
+              <div className="flex flex-wrap gap-2 pt-2">
+                {contactPills.map((pill) => (
+                  <span
+                    key={pill}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-ph-border bg-ph-surface-soft px-3 py-1.5 text-[11px] font-semibold text-ph-muted transition-colors duration-200 hover:border-ph-brand/30 hover:text-ph-brand"
+                  >
+                    <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-ph-brand/70" />
+                    {pill}
+                  </span>
+                ))}
               </div>
             </div>
+          </header>
+
+          <div
+            ref={contactGridReveal.ref}
+            style={contactGridReveal.style}
+            className={`${contactGridReveal.className} grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8`}
+          >
+            {/* Contact Details */}
+            <section aria-labelledby="contact-channels-title" className="flex h-full flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ph-brand/10 text-ph-brand">
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <h2 id="contact-channels-title" className="text-sm font-bold text-ph-ink">
+                  قنوات التواصل المباشر
+                </h2>
+              </div>
+              <ul className="flex flex-1 flex-col gap-2.5">
+                {contactChannels.map(({ icon: Icon, title, value, href, ltr }) => (
+                  <li key={title} className="flex-1">
+                    <div className="group flex h-full items-center gap-3 rounded-2xl border border-ph-border bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:border-ph-brand/40 hover:shadow-[0_6px_18px_rgba(28,168,158,0.10)]">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ph-surface-soft text-ph-brand transition-colors duration-300 group-hover:bg-ph-brand group-hover:text-white">
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <strong className="block text-xs font-bold text-ph-ink">{title}</strong>
+                        {href ? (
+                          <a
+                            href={href}
+                            className={`mt-0.5 block text-xs leading-6 text-ph-muted transition-colors duration-200 hover:text-ph-brand ${ltr ? 'ph-ltr' : ''}`}
+                          >
+                            {value}
+                          </a>
+                        ) : (
+                          <span className="mt-0.5 block text-xs leading-6 text-ph-muted">{value}</span>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
             {/* Contact Form */}
-            <div>
+            <section aria-labelledby="contact-form-title" className="flex h-full flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ph-brand/10 text-ph-brand">
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <h2 id="contact-form-title" className="text-sm font-bold text-ph-ink">
+                  أرسل استفسارك
+                </h2>
+              </div>
+
+              <div className="flex flex-1 flex-col rounded-2xl border border-ph-border bg-ph-surface-soft/60 p-5 shadow-[0_2px_12px_rgba(15,23,42,0.06)] sm:p-6">
+
               {contactSubmitted ? (
-                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3">
-                  <CheckCircle2 className="w-8 h-8 text-[#16A34A] mx-auto" />
+                <div role="status" className="flex flex-1 flex-col items-center justify-center space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
+                  <span className="ph-check-animated mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+                    <CheckCircle2 className="h-6 w-6 text-[#16A34A]" aria-hidden="true" />
+                  </span>
                   <h3 className="text-sm font-bold text-emerald-900">تم إرسال رسالتك بنجاح!</h3>
-                  <p className="text-xs text-emerald-700">
+                  <p className="text-xs leading-6 text-emerald-700">
                     سيقوم فريق الدعم بالتواصل معك عبر الواتساب أو الهاتف خلال ساعات قليلة.
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleContactSubmit} className="space-y-4">
+                <form onSubmit={handleContactSubmit} noValidate className="flex flex-1 flex-col gap-4">
+                  {Object.values(contactErrors).some(Boolean) && (
+                    <div role="alert" className="flex items-center gap-2 rounded-xl border border-ph-error/25 bg-ph-error/5 px-3 py-2.5">
+                      <AlertCircle className="h-4 w-4 shrink-0 text-ph-error" aria-hidden="true" />
+                      <p className="text-xs font-bold text-ph-error">يرجى تصحيح الحقول المطلوبة أدناه.</p>
+                    </div>
+                  )}
+
                   <div>
-                    <label className="text-xs font-bold text-ph-ink block mb-1">الاسم الكريم *</label>
+                    <label htmlFor="contact-name" className="ph-input-label">الاسم الكريم *</label>
                     <input
+                      id="contact-name"
                       type="text"
-                      required
+                      value={contactForm.name}
+                      onChange={(e) => updateContactField('name', e.target.value)}
                       placeholder="أدخل اسمك"
-                      className="w-full bg-white border border-ph-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-ph-brand"
+                      className="ph-input"
+                      aria-invalid={contactErrors.name ? true : undefined}
+                      aria-describedby={contactErrors.name ? 'contact-name-error' : undefined}
                     />
+                    {contactErrors.name && (
+                      <p id="contact-name-error" role="alert" className="ph-input-error">{contactErrors.name}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-ph-ink block mb-1">رقم الهاتف *</label>
+                    <label htmlFor="contact-phone" className="ph-input-label">رقم الهاتف *</label>
                     <input
+                      id="contact-phone"
                       type="tel"
-                      required
+                      inputMode="tel"
+                      value={contactForm.phone}
+                      onChange={(e) => updateContactField('phone', e.target.value)}
                       placeholder="059xxxxxxx"
-                      className="w-full bg-white border border-ph-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-ph-brand"
+                      className="ph-input"
+                      aria-invalid={contactErrors.phone ? true : undefined}
+                      aria-describedby={contactErrors.phone ? 'contact-phone-error' : undefined}
                     />
+                    {contactErrors.phone && (
+                      <p id="contact-phone-error" role="alert" className="ph-input-error">{contactErrors.phone}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-ph-ink block mb-1">الرسالة أو الاستفسار *</label>
+                    <label htmlFor="contact-message" className="ph-input-label">الرسالة أو الاستفسار *</label>
                     <textarea
-                      required
+                      id="contact-message"
                       rows={4}
+                      value={contactForm.message}
+                      onChange={(e) => updateContactField('message', e.target.value)}
                       placeholder="اكتب استفسارك عن التوافق أو طلبك..."
-                      className="w-full bg-white border border-ph-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-ph-brand"
+                      className="ph-input resize-y"
+                      aria-invalid={contactErrors.message ? true : undefined}
+                      aria-describedby={contactErrors.message ? 'contact-message-error' : undefined}
                     />
+                    {contactErrors.message && (
+                      <p id="contact-message-error" role="alert" className="ph-input-error">{contactErrors.message}</p>
+                    )}
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full bg-ph-brand hover:bg-ph-brand-hover text-white py-2.5 rounded-xl font-bold text-xs transition-colors shadow-sm"
-                  >
-                    إرسال الرسالة
-                  </button>
+                  <Button type="submit" variant="primary" loading={contactSubmitting} className="mt-auto w-full">
+                    {contactSubmitting ? 'جارٍ الإرسال...' : 'إرسال الرسالة'}
+                  </Button>
                 </form>
               )}
-            </div>
+              </div>
+            </section>
           </div>
         </div>
       )}
 
       {/* 3. FAQ */}
       {pageType === 'faq' && (
-        <div className="space-y-6 bg-white p-6 sm:p-10 rounded-3xl border border-ph-border shadow-xl">
-          <div className="space-y-2">
+        <div className="space-y-6 rounded-3xl border border-ph-border bg-white p-6 shadow-[0_2px_12px_rgba(15,23,42,0.06)] sm:p-10">
+          <header className="space-y-2">
             <span className="text-xs font-bold text-ph-brand">إجابات فورية</span>
-            <h1 className="text-2xl sm:text-3xl font-black text-ph-ink">الأسئلة الشائعة والأكثر تكراراً</h1>
-            <p className="text-xs text-ph-muted">
+            <h1 className="text-2xl font-black text-ph-ink sm:text-3xl">الأسئلة الشائعة والأكثر تكراراً</h1>
+            <p className="max-w-2xl text-xs leading-6 text-ph-muted">
               كل ما تود معرفته حول ملحقات الآيباد، الشحن، الضمان والدفع.
             </p>
-          </div>
+          </header>
 
           <div className="space-y-3 pt-4">
             {faqs.map((f, idx) => {
               const isOpen = openFaq === idx;
+              const panelId = `ph-faq-panel-${idx}`;
+              const buttonId = `ph-faq-button-${idx}`;
               return (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-ph-border bg-white overflow-hidden transition-all"
+                  className={`overflow-hidden rounded-2xl border bg-white transition-all duration-300 ${
+                    isOpen
+                      ? 'border-ph-brand shadow-[0_8px_24px_rgba(28,168,158,0.12)]'
+                      : 'border-ph-border hover:border-ph-brand/50 hover:shadow-[0_2px_12px_rgba(15,23,42,0.06)]'
+                  }`}
                 >
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full p-4 flex items-center justify-between text-right font-bold text-xs sm:text-sm text-ph-ink"
+                  <h2>
+                    <button
+                      id={buttonId}
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      onClick={() => setOpenFaq(isOpen ? null : idx)}
+                      className="flex w-full items-center justify-between gap-4 p-4 text-right sm:p-5"
+                    >
+                      <span
+                        className={`text-xs font-bold leading-6 transition-colors duration-200 sm:text-sm ${
+                          isOpen ? 'text-ph-brand' : 'text-ph-ink'
+                        }`}
+                      >
+                        {f.q}
+                      </span>
+                      <span
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all duration-300 ${
+                          isOpen ? 'rotate-180 bg-ph-brand text-white' : 'bg-ph-surface-soft text-ph-muted'
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </span>
+                    </button>
+                  </h2>
+                  <div
+                    id={panelId}
+                    role="region"
+                    aria-labelledby={buttonId}
+                    className={`grid transition-all duration-300 ease-out ${
+                      isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                    }`}
                   >
-                    <span>{f.q}</span>
-                    <ChevronDown className={`w-4 h-4 text-ph-muted transition-transform ${isOpen ? 'rotate-180 text-ph-brand' : ''}`} />
-                  </button>
-                  {isOpen && (
-                    <div className="p-4 pt-0 text-xs text-ph-muted leading-relaxed border-t border-ph-border mt-2">
-                      {f.a}
+                    <div className="overflow-hidden">
+                      <p className="mx-4 border-t border-ph-border pb-4 pt-3 text-xs leading-7 text-ph-muted sm:mx-5">
+                        {f.a}
+                      </p>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
@@ -266,120 +500,6 @@ export const StaticPages: React.FC<StaticPagesProps> = ({ pageType, onNavigate }
         </div>
       )}
 
-      {/* 4. SHIPPING POLICY */}
-      {pageType === 'shipping_policy' && (
-        <div className="space-y-6 bg-white p-6 sm:p-10 rounded-3xl border border-ph-border shadow-xl">
-          <h1 className="text-2xl font-black text-ph-ink">سياسة الشحن والتوصيل</h1>
-          <div className="space-y-4 text-xs text-ph-muted leading-relaxed">
-            <p>
-              يحرص متجر **بادهاوس** على تقديم تجربة شحن سريعة وآمنة لكافة زبائننا في فلسطين. فيما يلي تفاصيل الشحن:
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">1. مدة التوصيل:</h3>
-            <p>
-              يتم توصيل الطلبات خلال 24 إلى 48 ساعة كحد أقصى لكافة مدن الضفة الغربية والقدس وضواحيها. يتم التواصل هاتفياً من قبل شركة الشحن قبل الوصول لتأكيد الموعد والعنوان.
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">2. تكلفة الشحن:</h3>
-            <ul className="list-disc pr-5 space-y-1">
-              <li>رام الله والبيرة: 20 ₪</li>
-              <li>القدس وضواحيها: 30 ₪</li>
-              <li>باقي محافظات الضفة (نابلس، الخليل، بيت لحم، جنين، طولكرم، قلقيلية، أريحا، سلفيت، طوباس): 25 ₪</li>
-              <li>قطاع غزة: 35 ₪ (عند فتح المعابر وتوفر المسارات الآمنة)</li>
-            </ul>
-            <h3 className="text-sm font-bold text-ph-ink">3. التغليف الآمن:</h3>
-            <p>
-              يتم تغليف كفرات الآيباد، شاشات الحماية، والأقلام الذكية بعلب مقواة ومبطنة بمواد مضادة للصدمات لضمان وصولها بحالتها المصنعية الأصلية.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 5. REFUND & RETURN POLICY */}
-      {pageType === 'refund_policy' && (
-        <div className="space-y-6 bg-white p-6 sm:p-10 rounded-3xl border border-ph-border shadow-xl">
-          <h1 className="text-2xl font-black text-ph-ink">سياسة الاستبدال والاسترجاع</h1>
-          <div className="space-y-4 text-xs text-ph-muted leading-relaxed">
-            <p>
-              رضاكم هو أولويتنا الأولى في متجر بادهاوس. إذا كان المنتج غير متوافق مع جهازك أو وصل بحالة غير مطابقة:
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">1. فترة الاستبدال:</h3>
-            <p>
-              يحق للعميل طلب استبدال المنتج خلال مدة 7 أيام من تاريخ الاستلام، شريطة أن يكون المنتج بحالته الأصلية وبتغليفه المصنعي.
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">2. في حال وجود خلل مصنعي:</h3>
-            <p>
-              يتم استبدال القطعة فوراً بقطعة جديدة على حساب المتجر بالكامل دون تحميل العميل أي رسوم شحن إضافية.
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">3. المنتجات المستثناة من الاسترجاع:</h3>
-            <p>
-              شاشات الحماية التي تم نزع اللصاقة الوقائية منها وتركيبها لا يمكن استرجاعها إلا في حال وجود عيب مصنعي في مقاس الشاشة أو خامتها.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 6. WARRANTY POLICY */}
-      {pageType === 'warranty_policy' && (
-        <div className="space-y-6 bg-white p-6 sm:p-10 rounded-3xl border border-ph-border shadow-xl">
-          <h1 className="text-2xl font-black text-ph-ink">سياسة الضمان والكفالة المعتمدة</h1>
-          <div className="space-y-4 text-xs text-ph-muted leading-relaxed">
-            <p>
-              نحن نلتزم بتقديم كفالة حقيقية تضمن راحة بالك وأداء جهازك اللوحي:
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">1. ضمان الأقلام والكيبوردات (12 شهراً):</h3>
-            <p>
-              يشمل الضمان استبدال قلم بادهاوس الذكي أو لوحات المفاتيح في حال توقف الاستجابة، تعطل شحن البطارية، أو خلل في الاتصال بالبلوتوث.
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">2. ضمان كابلات الشحن Yesido (6-12 شهراً):</h3>
-            <p>
-              ضمان ضد التوقف المفاجئ لنقل الطاقة والشحن السريع.
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">3. ما لا يشمله الضمان:</h3>
-            <p>
-              الأضرار الناتجة عن سوء الاستخدام، السقوط الشديد في المياه، أو الكسر المتعمد.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 7. PRIVACY POLICY */}
-      {pageType === 'privacy_policy' && (
-        <div className="space-y-6 bg-white p-6 sm:p-10 rounded-3xl border border-ph-border shadow-xl">
-          <h1 className="text-2xl font-black text-ph-ink">سياسة الخصوصية وأمان البيانات</h1>
-          <div className="space-y-4 text-xs text-ph-muted leading-relaxed">
-            <p>
-              نحن في متجر بادهاوس نحترم خصوصيتك ونلتزم بحماية بياناتك الشخصية:
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">1. البيانات التي نجمعها:</h3>
-            <p>
-              نجمع فقط البيانات الضرورية لتنفيذ وتوصيل طلبك (الاسم، رقم الهاتف، وعنوان التسليم في فلسطين).
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">2. سرية المعلومات:</h3>
-            <p>
-              لا نشارك بياناتك أو نبيعها لأي طرف ثالث، وتستخدم فقط من قبل شركة الشحن لإتمام عملية التوصيل بنجاح.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 8. TERMS & CONDITIONS */}
-      {pageType === 'terms' && (
-        <div className="space-y-6 bg-white p-6 sm:p-10 rounded-3xl border border-ph-border shadow-xl">
-          <h1 className="text-2xl font-black text-ph-ink">الشروط والأحكام</h1>
-          <div className="space-y-4 text-xs text-ph-muted leading-relaxed">
-            <p>
-              مرحباً بكم في متجر بادهاوس. باستخدامك لهذا الموقع وإجراء الطلبات، فإنك توافق على الشروط التالية:
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">1. الأسعار والعملة:</h3>
-            <p>
-              جميع الأسعار المعروضة على الموقع هي بالشيكل الفلسطيني (₪) وشاملة للضرائب المقررة.
-            </p>
-            <h3 className="text-sm font-bold text-ph-ink">2. صحة معلومات التوصيل:</h3>
-            <p>
-              يتحمل العميل مسؤولية تزويدنا برقم هاتف وعنوان دقيق لضمان وصول الشحنة في الموعد المحدد دون تأخير.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
