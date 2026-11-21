@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { mapCatalogProduct } from '../products/product.mapper';
 import { CreateBundleDto } from './dto/bundle.dto';
 
@@ -12,7 +13,10 @@ const PRODUCT_INCLUDE = {
 
 @Injectable()
 export class BundlesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   private mapBundle(bundle: any) {
     const items = (bundle.items ?? []).map((item: any) => {
@@ -133,7 +137,7 @@ export class BundlesService {
       }),
     );
 
-    return this.prisma.bundle.create({
+    const bundle = await this.prisma.bundle.create({
       data: {
         slug: dto.slug,
         titleAr: dto.titleAr,
@@ -149,5 +153,18 @@ export class BundlesService {
         items: { include: { product: { include: PRODUCT_INCLUDE } } },
       },
     });
+
+    // Announce a newly created live bundle to all customers as a promotion.
+    if (bundle.isActive) {
+      await this.notifications.promote({
+        title: `عرض مجمّع جديد: ${bundle.titleAr}`,
+        message: bundle.descriptionAr
+          ? `${bundle.descriptionAr} استفد من العرض المجمّع الآن!`
+          : `تم إطلاق عرض مجمّع جديد (${bundle.titleAr}). استفد منه الآن!`,
+        metadata: { bundleSlug: bundle.slug, action: 'view_promotions' },
+      });
+    }
+
+    return bundle;
   }
 }

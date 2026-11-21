@@ -507,6 +507,19 @@ export interface BackendOrder {
   items: BackendOrderItem[];
   statusHistory?: { status: string; notes?: string | null; createdAt: string }[];
   pointsEarned?: number;
+  /* Live tracking / ETA */
+  courierLocation?: string | null;
+  destinationLocation?: string | null;
+  distanceKm?: number | null;
+  manualEtaMinutes?: number | null;
+  autoEtaMinutes?: number | null;
+  etaUpdatedAt?: string | null;
+  /* Urgent Crisis */
+  isUrgentCrisis?: boolean;
+  crisisType?: string | null;
+  crisisReason?: string | null;
+  crisisStartedAt?: string | null;
+  crisisResolvedAt?: string | null;
 }
 
 export interface OrderStatusInfo {
@@ -575,6 +588,87 @@ export async function fetchMyWarrantiesApi(): Promise<any[]> {
   } catch {
     return [];
   }
+}
+
+/* ------------------------ Tracking & Crisis ----------------------- */
+
+export interface OrderTrackingInput {
+  courierLocation?: string;
+  destinationLocation?: string;
+  originLat?: number;
+  originLng?: number;
+  destLat?: number;
+  destLng?: number;
+  manualEtaMinutes?: number;
+  notes?: string;
+}
+
+/** Admin: update courier/destination locations and (re)compute the AVG ETA. */
+export async function updateOrderTrackingApi(
+  orderId: string,
+  body: OrderTrackingInput,
+): Promise<BackendOrder> {
+  return apiFetch<BackendOrder>(`/orders/${encodeURIComponent(orderId)}/tracking`, {
+    method: 'PATCH',
+    body,
+  });
+}
+
+/** Admin: enable the reusable "Urgent Crisis" red-alert state on an order. */
+export async function enableOrderCrisisApi(
+  orderId: string,
+  body?: { crisisType?: string; crisisReason?: string; notes?: string },
+): Promise<BackendOrder> {
+  return apiFetch<BackendOrder>(`/orders/${encodeURIComponent(orderId)}/crisis`, {
+    method: 'POST',
+    body: body || {},
+  });
+}
+
+/** Admin: resolve the crisis and resume delivery with a freshly computed ETA. */
+export async function resolveOrderCrisisApi(
+  orderId: string,
+  notes?: string,
+): Promise<BackendOrder> {
+  return apiFetch<BackendOrder>(`/orders/${encodeURIComponent(orderId)}/crisis`, {
+    method: 'DELETE',
+    body: { notes },
+  });
+}
+
+/* --------------------- Customer Notifications --------------------- */
+
+export interface UserNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  orderId?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export async function fetchMyNotificationsApi(): Promise<{
+  notifications: UserNotification[];
+  unreadCount: number;
+}> {
+  try {
+    return await apiFetch<{ notifications: UserNotification[]; unreadCount: number }>(
+      '/notifications/my',
+    );
+  } catch {
+    return { notifications: [], unreadCount: 0 };
+  }
+}
+
+export async function markMyNotificationReadApi(id: string): Promise<UserNotification> {
+  return apiFetch<UserNotification>(`/notifications/my/${encodeURIComponent(id)}/read`, {
+    method: 'PATCH',
+  });
+}
+
+export async function markAllMyNotificationsReadApi(): Promise<{ success: boolean; updatedCount: number }> {
+  return apiFetch('/notifications/my/read-all', { method: 'PATCH' });
 }
 
 /** Parse a decimal that the API may serialize as a string. */
@@ -652,6 +746,18 @@ export function backendOrderToOrder(
       createdAt: h.createdAt,
     })),
     createdAt: b.createdAt,
+    courierLocation: b.courierLocation ?? null,
+    destinationLocation: b.destinationLocation ?? null,
+    distanceKm: b.distanceKm ?? null,
+    manualEtaMinutes: b.manualEtaMinutes ?? null,
+    autoEtaMinutes: b.autoEtaMinutes ?? null,
+    etaMinutes: b.manualEtaMinutes ?? b.autoEtaMinutes ?? null,
+    etaUpdatedAt: b.etaUpdatedAt ?? null,
+    isUrgentCrisis: Boolean(b.isUrgentCrisis),
+    crisisType: b.crisisType ?? null,
+    crisisReason: b.crisisReason ?? null,
+    crisisStartedAt: b.crisisStartedAt ?? null,
+    crisisResolvedAt: b.crisisResolvedAt ?? null,
   };
 }
 

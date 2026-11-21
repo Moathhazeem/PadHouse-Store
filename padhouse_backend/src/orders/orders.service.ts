@@ -1,7 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateOrderDto, UpdateOrderStatusDto, ORDER_STATUSES } from './dto/order.dto';
+import {
+  CreateOrderDto,
+  UpdateOrderStatusDto,
+  UpdateOrderTrackingDto,
+  EnableUrgentCrisisDto,
+  ResolveUrgentCrisisDto,
+  ORDER_STATUSES,
+  ORDER_STATUS_LABELS,
+} from './dto/order.dto';
 import { CouponsService } from '../coupons/coupons.service';
 import { LoyaltyService, POINTS_PER_ILS } from '../loyalty/loyalty.service';
 import { GiftCardsService } from '../gift-cards/gift-cards.service';
@@ -15,8 +23,21 @@ import {
   isValidPalestinianPhone,
   normalizePalestinianPhone,
 } from '../common/utils/phone.util';
+import { computeAutoEtaMinutes, resolveCoordinates } from '../common/utils/geo.util';
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/** ETA (minutes) at or below which the courier is considered "approaching". */
+const APPROACHING_ETA_MINUTES = 20;
+
+/** Human-readable ETA label used in notifications and API responses. */
+const formatEtaLabel = (minutes?: number | null): string | null => {
+  if (minutes === null || minutes === undefined) return null;
+  if (minutes < 60) return `${minutes} دقيقة`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} ساعة و${rest} دقيقة` : `${hours} ساعة`;
+};
 
 @Injectable()
 export class OrdersService {
@@ -307,6 +328,23 @@ export class OrdersService {
       return created;
     });
 
+    // Confirm the purchase immediately with the order number, total and a
+    // deep link the customer can tap to track the order.
+    if (order.userId) {
+      await this.notificationsService.createForUser({
+        userId: order.userId,
+        orderId: order.id,
+        type: 'ORDER_CONFIRMATION',
+        title: `تم تأكيد طلبك ${order.orderNumber}`,
+        message: `شكراً لك! تم إنشاء طلبك بنجاح بإجمالي ${Number(order.grandTotal)} ₪. اضغط لمتابعة حالة الطلب لحظة بلحظة.`,
+        metadata: {
+          orderNumber: order.orderNumber,
+          total: Number(order.grandTotal),
+          action: 'track_order',
+        },
+      });
+    }
+
     return { ...order, pointsEarned };
   }
 
@@ -566,7 +604,294 @@ export class OrdersService {
         },
       });
 
+      // Push a user-targeted progress notification (skipped while in Urgent Crisis
+      // so the customer is not misled by a status/ETA during the emergency).
+      if (order.userId && !order.isUrgentCrisis && dto.status !== 'CANCELLED') {
+        const label = ORDER_STATUS_LABELS[dto.status] || dto.status;
+        const etaLabel = formatEtaLabel(order.manualEtaMinutes ?? order.autoEtaMinutes);
+        await this.notificationsService.createForUser(
+          {
+            userId: order.userId,
+            orderId,
+            type: 'ORDER_PROGRESS',
+            title: `تحديث حالة الطلب ${order.orderNumber}`,
+            message: etaLabel
+              ? `حالة طلبك الآن: ${label}. الوقت المتوقع للوصول: ${etaLabel}.`
+              : `حالة طلبك الآن: ${label}.`,
+          },
+          tx,
+        );
+
+        // Announce the arrival once the order is delivered.
+        if (dto.status === 'DELIVERED') {
+          await this.notifyOnce({
+            userId: order.userId,
+            orderId,
+            type: 'ORDER_ARRIVED',
+            title: `وصل طلبك ${order.orderNumber}`,
+            message: `وصل طلبك ${order.orderNumber} إلى وجهته بنجاح. نأمل أن تكون تجربتك رائعة!`,
+            metadata: { orderNumber: order.orderNumber, action: 'track_order' },
+          });
+        }
+      }
+
       return updated;
+    });
+  }
+
+  /**
+   * Updates the courier's current location and the delivery destination, then
+   * derives an AVG ETA from the distance unless a manual duration was provided.
+   * Text locations are resolved to approximate coordinates; explicit lat/lng are
+   * accepted so real-time GPS can be plugged in later.
+   */
+  async updateTracking(orderId: string, dto: UpdateOrderTrackingDto, actorId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { shippingAddress: true },
+    });
+    if (!order) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+
+    const courierLocation = dto.courierLocation?.trim() || order.courierLocation;
+    const destinationLocation =
+      dto.destinationLocation?.trim() ||
+      order.destinationLocation ||
+      order.shippingAddress?.city ||
+      null;
+
+    const origin =
+      dto.originLat !== undefined && dto.originLng !== undefined
+        ? { lat: dto.originLat, lng: dto.originLng }
+        : resolveCoordinates(courierLocation);
+    const destination =
+      dto.destLat !== undefined && dto.destLng !== undefined
+        ? { lat: dto.destLat, lng: dto.destLng }
+        : resolveCoordinates(destinationLocation);
+
+    const computed = computeAutoEtaMinutes(origin, destination);
+    const autoEtaMinutes = computed?.autoEtaMinutes ?? order.autoEtaMinutes ?? null;
+    const distanceKm = computed?.distanceKm ?? order.distanceKm ?? null;
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        courierLocation,
+        destinationLocation,
+        originLat: origin?.lat ?? order.originLat,
+        originLng: origin?.lng ?? order.originLng,
+        destLat: destination?.lat ?? order.destLat,
+        destLng: destination?.lng ?? order.destLng,
+        distanceKm,
+        autoEtaMinutes,
+        manualEtaMinutes:
+          dto.manualEtaMinutes !== undefined ? dto.manualEtaMinutes : order.manualEtaMinutes,
+        etaUpdatedAt: new Date(),
+      },
+      include: {
+        items: { include: { product: { include: { images: true } }, variant: true } },
+        shippingAddress: true,
+        statusHistory: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    // Inform the customer where the order is and when it should arrive.
+    if (order.userId && !updated.isUrgentCrisis) {
+      const etaMinutes = updated.manualEtaMinutes ?? updated.autoEtaMinutes;
+      const etaLabel = formatEtaLabel(etaMinutes);
+      const statusLabel = ORDER_STATUS_LABELS[updated.status] || updated.status;
+      const parts: string[] = [`موقع طلبك الحالي: ${courierLocation || 'غير محدد'}.`];
+      parts.push(`الحالة: ${statusLabel}.`);
+      if (etaLabel) parts.push(`الوقت المتوقع للوصول: ${etaLabel}.`);
+      await this.notificationsService.createForUser({
+        userId: order.userId,
+        orderId,
+        type: 'ORDER_PROGRESS',
+        title: `تتبع الطلب ${order.orderNumber}`,
+        message: parts.join(' '),
+      });
+
+      // Approaching / arrival milestones (created once per order to avoid spam).
+      if (updated.status === 'DELIVERED') {
+        await this.notifyOnce({
+          userId: order.userId,
+          orderId,
+          type: 'ORDER_ARRIVED',
+          title: `وصل طلبك ${order.orderNumber}`,
+          message: `وصل طلبك ${order.orderNumber} إلى وجهته بنجاح. نأمل أن تكون تجربتك رائعة!`,
+          metadata: { orderNumber: order.orderNumber, action: 'track_order' },
+        });
+      } else if (etaMinutes !== null && etaMinutes <= APPROACHING_ETA_MINUTES) {
+        await this.notifyOnce({
+          userId: order.userId,
+          orderId,
+          type: 'ORDER_APPROACHING',
+          title: `المندوب يقترب من موقعك (${order.orderNumber})`,
+          message: etaLabel
+            ? `المندوب على وشك الوصول إليك. الوقت المتوقع المتبقي: ${etaLabel}. يرجى الاستعداد لاستلام طلبك.`
+            : 'المندوب يقترب من موقعك، يرجى الاستعداد لاستلام طلبك.',
+          metadata: { orderNumber: order.orderNumber, action: 'track_order' },
+        });
+      }
+    }
+
+    return updated;
+  }
+
+  /**
+   * Enables the reusable "Urgent Crisis" red-alert state (checkpoints, road
+   * closures, emergency delays) and notifies the customer immediately.
+   */
+  async enableCrisis(orderId: string, dto: EnableUrgentCrisisDto, actorId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+    if (order.isUrgentCrisis) {
+      throw new BadRequestException('الطلب في حالة أزمة طارئة بالفعل');
+    }
+
+    const crisisType = dto.crisisType?.trim() || 'EMERGENCY_DELAY';
+    const crisisReason = dto.crisisReason?.trim() || null;
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        isUrgentCrisis: true,
+        crisisType,
+        crisisReason,
+        crisisStartedAt: new Date(),
+        crisisResolvedAt: null,
+      },
+      include: {
+        items: { include: { product: { include: { images: true } }, variant: true } },
+        shippingAddress: true,
+        statusHistory: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    await this.prisma.orderStatusHistory.create({
+      data: {
+        orderId,
+        status: order.status,
+        notes: dto.notes || `تم تفعيل حالة الأزمة الطارئة: ${crisisReason || crisisType}`,
+        updatedBy: actorId,
+      },
+    });
+
+    if (order.userId) {
+      await this.notificationsService.createForUser({
+        userId: order.userId,
+        orderId,
+        type: 'URGENT_CRISIS',
+        title: `حالة طارئة على الطلب ${order.orderNumber}`,
+        isUrgentCrisis: true,
+        metadata: { orderNumber: order.orderNumber, action: 'track_order' },
+        message: crisisReason
+          ? `الطلب/المندوب في حالة "أزمة طارئة" (نقطة تفتيش أو تأخير طارئ): ${crisisReason}. تم إيقاف العدّاد مؤقتاً وسنحدّثك فور استئناف التوصيل.`
+          : `الطلب/المندوب في حالة "أزمة طارئة" (نقطة تفتيش أو تأخير طارئ). تم إيقاف العدّاد مؤقتاً وسنحدّثك فور استئناف التوصيل.`,
+      });
+    }
+
+    return updated;
+  }
+
+  /**
+   * Clears the crisis, resumes delivery and recalculates a fresh approximate ETA
+   * from the courier's current location to the destination.
+   */
+  async resolveCrisis(orderId: string, dto: ResolveUrgentCrisisDto, actorId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { shippingAddress: true },
+    });
+    if (!order) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+    if (!order.isUrgentCrisis) {
+      throw new BadRequestException('الطلب ليس في حالة أزمة طارئة');
+    }
+
+    // Recalculate ETA from the courier's current location to the destination.
+    const origin = resolveCoordinates(order.courierLocation);
+    const destination =
+      resolveCoordinates(order.destinationLocation || order.shippingAddress?.city) ||
+      (order.destLat !== null && order.destLng !== null
+        ? { lat: order.destLat, lng: order.destLng }
+        : null);
+    const computed = computeAutoEtaMinutes(origin, destination);
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        isUrgentCrisis: false,
+        crisisResolvedAt: new Date(),
+        distanceKm: computed?.distanceKm ?? order.distanceKm,
+        autoEtaMinutes: computed?.autoEtaMinutes ?? order.autoEtaMinutes,
+        etaUpdatedAt: new Date(),
+      },
+      include: {
+        items: { include: { product: { include: { images: true } }, variant: true } },
+        shippingAddress: true,
+        statusHistory: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    await this.prisma.orderStatusHistory.create({
+      data: {
+        orderId,
+        status: order.status,
+        notes: dto.notes || 'تم إنهاء حالة الأزمة الطارئة واستئناف التوصيل',
+        updatedBy: actorId,
+      },
+    });
+
+    if (order.userId) {
+      const etaMinutes = updated.manualEtaMinutes ?? updated.autoEtaMinutes;
+      const etaLabel = formatEtaLabel(etaMinutes);
+      await this.notificationsService.createForUser({
+        userId: order.userId,
+        orderId,
+        type: 'CRISIS_RESOLVED',
+        title: `انتهت الأزمة على الطلب ${order.orderNumber}`,
+        metadata: { orderNumber: order.orderNumber, action: 'track_order' },
+        message: etaLabel
+          ? `انتهت حالة الأزمة الطارئة وعاد التوصيل لطبيعته. الوقت المتوقع الجديد للوصول: ${etaLabel}.`
+          : 'انتهت حالة الأزمة الطارئة وعاد التوصيل لطبيعته. سيتم تحديث الوقت المتوقع للوصول قريباً.',
+      });
+    }
+
+    return updated;
+  }
+
+  /**
+   * Creates a customer notification only once per (order, type) pair so milestone
+   * alerts (approaching / arrival) are not duplicated on every tracking update.
+   */
+  private async notifyOnce(params: {
+    userId: string;
+    orderId: string;
+    type: string;
+    title: string;
+    message: string;
+    metadata?: Prisma.InputJsonValue;
+    isUrgentCrisis?: boolean;
+  }) {
+    const existing = await this.prisma.notification.findFirst({
+      where: { orderId: params.orderId, type: params.type },
+      select: { id: true },
+    });
+    if (existing) return null;
+
+    return this.notificationsService.createForUser({
+      userId: params.userId,
+      orderId: params.orderId,
+      type: params.type,
+      title: params.title,
+      message: params.message,
+      metadata: params.metadata,
+      isUrgentCrisis: params.isUrgentCrisis,
     });
   }
 }

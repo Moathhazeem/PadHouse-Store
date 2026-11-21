@@ -1,7 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ShoppingBag,
-  Search,
   Heart,
   User,
   Menu,
@@ -17,19 +16,45 @@ import {
   FileText,
   Bell,
   Settings,
+  Tag,
+  PackageCheck,
+  AlertTriangle,
+  CheckCircle2,
+  Inbox,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { OFFICIAL_CATEGORIES } from '../data/catalog';
-import { AppUser } from '../types';
-import { adminFetchNotificationsApi } from '../services/adminApi';
+import { SearchBar } from './SearchBar';
+import { AppUser, Product } from '../types';
+import {
+  fetchMyNotificationsApi,
+  markMyNotificationReadApi,
+  markAllMyNotificationsReadApi,
+  type UserNotification,
+} from '../services/api';
+
+/** Arabic relative-time label for a notification timestamp. */
+function relativeAr(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return '';
+  const diffMin = Math.floor((Date.now() - then) / 60000);
+  if (diffMin < 1) return 'الآن';
+  if (diffMin < 60) return `منذ ${diffMin} دقيقة`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `منذ ${diffH} ساعة`;
+  return `منذ ${Math.floor(diffH / 24)} يوم`;
+}
 
 interface HeaderProps {
   cartCount: number;
   wishlistCount: number;
   currentUser: AppUser | null;
   activePage: string;
+  /** Full catalog, used by the search bar for instant results and suggestions. */
+  products: Product[];
   onNavigate: (page: string, params?: any) => void;
   onSearch: (query: string) => void;
+  onSelectProduct: (product: Product) => void;
   onLogout: () => void;
   /** True while the shared backend cart is being updated. */
   cartSyncing?: boolean;
@@ -40,40 +65,102 @@ export const Header: React.FC<HeaderProps> = ({
   wishlistCount,
   currentUser,
   activePage,
+  products,
   onNavigate,
   onSearch,
+  onSelectProduct,
   onLogout,
   cartSyncing = false
 }) => {
-  const [searchVal, setSearchVal] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
   const badgeRef = useRef<HTMLSpanElement>(null);
 
-  /* ── Admin notification bell state ── */
+  /* ── Admin check (used by the account dropdown) ── */
   const isAdmin = currentUser && ['super_admin', 'admin'].includes(currentUser.role);
-  const [adminUnread, setAdminUnread] = useState(0);
+
+  /* ── Customer notifications bell + drawer ── */
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
+  const [notifUnread, setNotifUnread] = useState(0);
+  const [notifLoading, setNotifLoading] = useState(false);
+
+  const loadMyNotifications = useCallback(async () => {
+    if (!currentUser) return;
+    setNotifLoading(true);
+    try {
+      const { notifications: list, unreadCount } = await fetchMyNotificationsApi();
+      setNotifications(list);
+      setNotifUnread(unreadCount);
+    } finally {
+      setNotifLoading(false);
+    }
+  }, [currentUser]);
 
   useEffect(() => {
-    if (!isAdmin) return;
-    const fetchUnread = async () => {
-      try {
-        const { unreadCount } = await adminFetchNotificationsApi();
-        setAdminUnread(unreadCount);
-      } catch {}
-    };
-    fetchUnread();
-    const timer = setInterval(fetchUnread, 30_000);
-    return () => clearInterval(timer);
-  }, [isAdmin]);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchVal.trim()) {
-      onSearch(searchVal.trim());
-      onNavigate('search', { query: searchVal.trim() });
+    if (!currentUser) {
+      setNotifications([]);
+      setNotifUnread(0);
+      return;
     }
+    loadMyNotifications();
+    const timer = setInterval(loadMyNotifications, 30_000);
+    return () => clearInterval(timer);
+  }, [currentUser, loadMyNotifications]);
+
+  /** Visual treatment (icon + colors) for each notification category. */
+  const notifStyle = (type: string) => {
+    switch (type) {
+      case 'URGENT_CRISIS':
+        return { icon: AlertTriangle, color: '#EF4444', bg: '#EF44441A' };
+      case 'CRISIS_RESOLVED':
+      case 'ORDER_ARRIVED':
+        return { icon: CheckCircle2, color: '#16A34A', bg: '#16A34A14' };
+      case 'PROMOTION':
+        return { icon: Tag, color: '#D97706', bg: '#D9770614' };
+      case 'ORDER_CONFIRMATION':
+        return { icon: PackageCheck, color: '#0EA5A4', bg: '#0EA5A414' };
+      case 'ORDER_APPROACHING':
+        return { icon: Truck, color: '#4F46E5', bg: '#4F46E514' };
+      case 'CART_REMINDER':
+        return { icon: ShoppingBag, color: '#D97706', bg: '#D9770614' };
+      default:
+        return { icon: Truck, color: '#0EA5A4', bg: '#0EA5A414' };
+    }
+  };
+
+  const handleOpenNotification = async (n: UserNotification) => {
+    if (!n.isRead) {
+      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
+      setNotifUnread((c) => Math.max(0, c - 1));
+      try {
+        await markMyNotificationReadApi(n.id);
+      } catch {}
+    }
+    setNotifOpen(false);
+    if (n.type === 'CART_REMINDER') {
+      onNavigate('cart');
+    } else if (n.orderId) {
+      onNavigate('tracking', { orderId: n.orderId });
+    } else if (n.type === 'PROMOTION') {
+      onNavigate('products');
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    setNotifications((prev) => prev.map((x) => ({ ...x, isRead: true })));
+    setNotifUnread(0);
+    try {
+      await markAllMyNotificationsReadApi();
+    } catch {}
+  };
+
+  const handleSearchSubmit = (query: string) => {
+    const q = query.trim();
+    if (!q) return;
+    onSearch(q);
+    onNavigate('search', { query: q });
   };
 
   // Cart badge pop animation on cartCount change
@@ -135,22 +222,11 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Desktop Search Bar */}
           <div className="hidden md:flex flex-1 max-w-xl mx-4">
-            <form onSubmit={handleSearchSubmit} className="relative w-full">
-              <input
-                type="text"
-                value={searchVal}
-                onChange={(e) => setSearchVal(e.target.value)}
-                placeholder="ابحث عن قلم بادهاوس، كفر آيباد برو، كيبورد، شاشة PaperFeel..."
-                className="w-full bg-white text-ph-ink placeholder-ph-muted text-sm rounded-xl py-2.5 pr-11 pl-24 border border-ph-border focus:outline-none focus:border-ph-brand focus:bg-white focus:ring-2 focus:ring-ph-brand/20 transition-all duration-200"
-              />
-              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ph-muted" />
-              <button
-                type="submit"
-                className="absolute left-1.5 top-1/2 -translate-y-1/2 bg-ph-brand hover:bg-ph-brand-hover text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors duration-200"
-              >
-                بحث
-              </button>
-            </form>
+            <SearchBar
+              products={products}
+              onSelectProduct={onSelectProduct}
+              onSubmit={handleSearchSubmit}
+            />
           </div>
 
           <button onClick={() => onNavigate('products')} className="hidden sm:inline-flex shrink-0 items-center rounded-xl border border-ph-brand px-3 py-2 text-xs font-bold text-ph-brand hover:bg-ph-brand hover:text-white transition-colors duration-200">جميع المنتجات</button>
@@ -273,20 +349,122 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Admin Notification Bell — only for admins */}
-            {isAdmin && (
-              <button
-                onClick={() => onNavigate('admin')}
-                className="relative p-2.5 rounded-xl text-ph-ink hover:text-amber-600 hover:bg-amber-50 transition-colors duration-200"
-                title="تنبيهات المخزون"
-              >
-                <Bell className="w-5 h-5" />
-                {adminUnread > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white animate-pulse">
-                    {adminUnread}
-                  </span>
-                )}
-              </button>
+            {/* Customer Notifications Bell + Drawer */}
+            {currentUser && (
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setNotifOpen((v) => !v);
+                    if (!notifOpen) loadMyNotifications();
+                  }}
+                  className="relative p-2.5 rounded-xl text-ph-ink hover:text-ph-brand hover:bg-white transition-colors duration-200"
+                  title="التنبيهات"
+                  aria-label="التنبيهات"
+                >
+                  <Bell className="w-5 h-5" />
+                  {notifUnread > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-ph-brand px-1 text-[10px] font-black text-white">
+                      {notifUnread > 99 ? '99+' : notifUnread}
+                    </span>
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {notifOpen && (
+                    <>
+                      {/* click-away backdrop */}
+                      <button
+                        aria-label="إغلاق"
+                        onClick={() => setNotifOpen(false)}
+                        className="fixed inset-0 z-40 cursor-default"
+                      />
+                      <motion.div
+                        variants={dropdownVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        transition={dropdownTransition}
+                        style={{ transformOrigin: 'top left' }}
+                        className="absolute left-0 mt-2 w-[340px] sm:w-[380px] max-w-[90vw] bg-white rounded-2xl shadow-2xl border border-ph-border z-50 overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-ph-border">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-ph-ink">مركز التنبيهات</span>
+                            {notifUnread > 0 && (
+                              <span className="bg-ph-brand text-white text-[10px] font-black rounded-full px-2 py-0.5">
+                                {notifUnread}
+                              </span>
+                            )}
+                          </div>
+                          {notifUnread > 0 && (
+                            <button
+                              onClick={handleMarkAllRead}
+                              className="text-[11px] font-bold text-ph-brand hover:underline"
+                            >
+                              تحديد الكل كمقروء
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="max-h-[380px] overflow-y-auto">
+                          {notifLoading && notifications.length === 0 ? (
+                            <div className="py-10 text-center text-xs text-ph-muted">جارٍ التحميل…</div>
+                          ) : notifications.length === 0 ? (
+                            <div className="py-10 px-6 text-center">
+                              <Inbox className="w-8 h-8 text-ph-muted mx-auto mb-2" />
+                              <p className="text-xs font-bold text-ph-ink">لا توجد تنبيهات حالياً</p>
+                              <p className="text-[11px] text-ph-muted mt-1">
+                                ستظهر هنا تحديثات طلباتك والعروض وحالات الطوارئ.
+                              </p>
+                            </div>
+                          ) : (
+                            notifications.map((n) => {
+                              const style = notifStyle(n.type);
+                              const Icon = style.icon;
+                              return (
+                                <button
+                                  key={n.id}
+                                  onClick={() => handleOpenNotification(n)}
+                                  className={`w-full text-right px-4 py-3 flex items-start gap-3 border-b border-ph-border/60 transition-colors duration-200 hover:bg-ph-brand/5 ${
+                                    n.isRead ? 'bg-white' : 'bg-ph-brand/[0.04]'
+                                  }`}
+                                >
+                                  <span
+                                    className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                                    style={{ backgroundColor: style.bg, color: style.color }}
+                                  >
+                                    <Icon className="w-4 h-4" />
+                                  </span>
+                                  <span className="flex-1 min-w-0">
+                                    <span className="flex items-center gap-2">
+                                      <span
+                                        className={`text-xs leading-tight line-clamp-1 ${
+                                          n.isRead ? 'font-bold text-ph-ink' : 'font-black text-ph-ink'
+                                        }`}
+                                      >
+                                        {n.title}
+                                      </span>
+                                      {!n.isRead && (
+                                        <span className="shrink-0 w-2 h-2 rounded-full bg-ph-brand" />
+                                      )}
+                                    </span>
+                                    <span className="block text-[11px] text-ph-muted leading-relaxed mt-1 line-clamp-2">
+                                      {n.message}
+                                    </span>
+                                    <span className="block text-[10px] text-ph-muted/80 mt-1">
+                                      {relativeAr(n.createdAt)}
+                                    </span>
+                                  </span>
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             )}
 
             {/* Shopping Cart Button */}
@@ -313,22 +491,12 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Mobile Search Input */}
         <div className="mt-3 md:hidden">
-          <form onSubmit={handleSearchSubmit} className="relative w-full">
-            <input
-              type="text"
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-              placeholder="ابحث في المتجر..."
-              className="w-full bg-white text-sm rounded-xl py-2 pr-10 pl-20 border border-ph-border focus:outline-none focus:border-ph-brand transition-all duration-200"
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ph-muted" />
-            <button
-              type="submit"
-              className="absolute left-1.5 top-1/2 -translate-y-1/2 bg-ph-brand text-white text-xs px-2.5 py-1 rounded-lg"
-            >
-              بحث
-            </button>
-          </form>
+          <SearchBar
+            products={products}
+            onSelectProduct={onSelectProduct}
+            onSubmit={handleSearchSubmit}
+            placeholder="ابحث في المتجر..."
+          />
         </div>
       </div>
 

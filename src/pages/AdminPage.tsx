@@ -23,11 +23,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { AppUser, Product } from '../types';
-import { fetchProductsApi } from '../services/api';
 import {
   adminFetchNotificationsApi,
   adminMarkNotificationReadApi,
   adminMarkAllNotificationsReadApi,
+  adminFetchProductsApi,
   adminCreateProductApi,
   adminUpdateProductApi,
   adminDeleteProductApi,
@@ -41,6 +41,7 @@ import {
   AdminProductFormModal,
   AdminInventoryTable,
   AdminRestockModal,
+  AdminOrdersPanel,
   type AdminRestockTarget,
   calculateStockStatus,
 } from '../components/admin';
@@ -54,6 +55,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
   /* ── Products state ── */
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'low' | 'out' | 'healthy'>('all');
 
@@ -93,14 +95,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
     }
   }, []);
 
-  /* ── Load products from NestJS ── */
+  /* ── Load products from NestJS (admin scope: includes inactive products) ── */
   const loadProducts = useCallback(async () => {
     setProductsLoading(true);
     try {
-      const data = await fetchProductsApi();
+      const data = await adminFetchProductsApi();
       setProducts(data);
+      setProductsError(null);
     } catch (err: any) {
-      showToast(err?.message || 'تعذر جلب المنتجات', 'err');
+      const message = err?.message || 'تعذر جلب المنتجات من الخادم';
+      setProducts([]);
+      setProductsError(message);
+      showToast(message, 'err');
     } finally {
       setProductsLoading(false);
     }
@@ -404,6 +410,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
         </div>
       </div>
 
+      {/* ── Orders Tracking / ETA / Urgent Crisis Panel ── */}
+      <AdminOrdersPanel onToast={showToast} />
+
       {/* ── Collapsible Low-Stock Alerts Panel ── */}
       <AnimatePresence>
         {notifPanelOpen && (
@@ -451,6 +460,33 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
           onDelete={(id) => setDeleteConfirmId(id)}
           onQuickRestock={openRestockFromProduct}
         />
+
+        {productsError && (
+          <div
+            role="alert"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3"
+          >
+            <div className="flex items-start gap-2 text-red-800">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-black">تعذر تحميل قائمة المنتجات</p>
+                <p className="text-[11px] text-red-700 mt-0.5">{productsError}</p>
+                <p className="text-[10px] text-red-600/80 mt-1">
+                  تأكد من تشغيل الخادم (npm run dev:all) ومن تنفيذ بيانات البذور (seed).
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={loadProducts}
+              disabled={productsLoading}
+              className="shrink-0 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${productsLoading ? 'animate-spin' : ''}`} />
+              <span>إعادة المحاولة</span>
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );

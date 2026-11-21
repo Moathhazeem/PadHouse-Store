@@ -81,6 +81,7 @@ model User {
   customerProfile CustomerProfile?
   refreshTokens   RefreshToken[]
   orders          Order[]
+  notifications   Notification[]
   contentAssigned ContentCalendarItem[]
   auditLogs       AuditLog[]
 
@@ -246,6 +247,9 @@ model Cart {
   items             CartItem[]
   couponCode        String?
   discountAmount    Decimal         @default(0.00) @db.Decimal(10, 2)
+  // Set when the 5-minute "abandoned order" reminder is sent to the customer.
+  // Reset to null on any cart change so each idle window reminds at most once.
+  reminderSentAt    DateTime?
   updatedAt         DateTime        @updatedAt
 }
 
@@ -281,6 +285,23 @@ model Order {
   grandTotal       Decimal              @db.Decimal(10, 2)
   internalNotes    String?
   customerNotes    String?
+  // ── Live tracking / ETA (admin-entered today, GPS-ready for later) ──
+  courierLocation     String?
+  destinationLocation String?
+  originLat           Float?
+  originLng           Float?
+  destLat             Float?
+  destLng             Float?
+  distanceKm          Float?
+  manualEtaMinutes    Int?
+  autoEtaMinutes      Int?
+  etaUpdatedAt        DateTime?
+  // ── "Urgent Crisis" (checkpoints / road closures / emergency delays) ──
+  isUrgentCrisis   Boolean              @default(false)
+  crisisType       String?
+  crisisReason     String?
+  crisisStartedAt  DateTime?
+  crisisResolvedAt DateTime?
   items            OrderItem[]
   statusHistory    OrderStatusHistory[]
   warranties       Warranty[]
@@ -290,6 +311,7 @@ model Order {
   @@index([userId])
   @@index([orderNumber])
   @@index([status])
+  @@index([isUrgentCrisis])
 }
 
 model OrderItem {
@@ -655,14 +677,29 @@ model Notification {
   id        String   @id @default(uuid())
   title     String
   message   String
+  // LOW_STOCK (admin) | PROMOTION | ORDER_CONFIRMATION | ORDER_PROGRESS
+  // | ORDER_APPROACHING | ORDER_ARRIVED | URGENT_CRISIS | CRISIS_RESOLVED
+  // | CART_REMINDER (abandoned/unfinished order reminder)
   type      String   @default("LOW_STOCK")
   productId String?
   product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // When set, the notification is delivered to that customer (order progress/crisis).
+  // Null keeps the notification admin/global scoped (e.g. low-stock alerts) OR
+  // turns it into a broadcast when `type` is a customer-facing type (promotions).
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String?
+  // Optional structured payload for deep links (order number, total, coupon code…).
+  metadata  Json?
+  // Mirrors the order "Urgent Crisis" red-alert state for quick UI styling.
+  isUrgentCrisis Boolean @default(false)
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([productId])
+  @@index([userId])
+  @@index([orderId])
   @@index([isRead])
   @@index([createdAt])
 }

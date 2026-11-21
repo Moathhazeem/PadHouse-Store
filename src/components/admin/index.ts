@@ -3,3 +3,4 @@ export * from './AdminLowStockPanel';
 export * from './AdminProductFormModal';
 export * from './AdminInventoryTable';
 export * from './AdminRestockModal';
+export * from './AdminOrdersPanel';

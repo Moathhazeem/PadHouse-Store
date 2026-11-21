@@ -492,8 +492,10 @@ export default function App() {
         wishlistCount={wishlistIds.length}
         currentUser={currentUser}
         activePage={activePage}
+        products={products}
         onNavigate={navigateTo}
         cartSyncing={cartSyncing}
+        onSelectProduct={handleSelectProduct}
         onSearch={(q) => {
           setSearchQuery(q);
           navigateTo('search', { query: q });

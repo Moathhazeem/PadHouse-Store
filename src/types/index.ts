@@ -97,6 +97,21 @@ export interface Order {
   pointsEarned?: number;
   statusHistory?: OrderStatusHistoryEntry[];
   createdAt?: string;
+  /* ── Live tracking / ETA (admin-entered today, GPS-ready for later) ── */
+  courierLocation?: string | null;
+  destinationLocation?: string | null;
+  distanceKm?: number | null;
+  /** Effective ETA in minutes (manual override or distance-based average). */
+  etaMinutes?: number | null;
+  manualEtaMinutes?: number | null;
+  autoEtaMinutes?: number | null;
+  etaUpdatedAt?: string | null;
+  /* ── "Urgent Crisis" red-alert state ── */
+  isUrgentCrisis?: boolean;
+  crisisType?: string | null;
+  crisisReason?: string | null;
+  crisisStartedAt?: string | null;
+  crisisResolvedAt?: string | null;
 }
 
 export interface CategoryInfo {

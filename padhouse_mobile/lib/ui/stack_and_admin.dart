@@ -35,7 +35,7 @@ class CustomerStackBody extends StatelessWidget {
       case CustomerStack.support:
         return const _Support();
       case CustomerStack.notifications:
-        return const _Notifications();
+        return _Notifications(store: store);
       case CustomerStack.addresses:
         return _Addresses(store: store);
       case CustomerStack.settings:
@@ -877,6 +877,9 @@ class _Tracking extends StatefulWidget {
 }
 
 class _TrackingState extends State<_Tracking> {
+  /// Red accent for the “Urgent Crisis” (red alert) mode.
+  static const Color _crisisRed = Color(0xFFEF4444);
+
   /// Verified local fallback, mirroring the backend `ORDER_STATUSES` lifecycle.
   static const List<(String, String)> _fallbackSteps = [
     ('PENDING', 'طلب جديد'),
@@ -919,6 +922,12 @@ class _TrackingState extends State<_Tracking> {
         status == null ? -1 : steps.indexWhere((s) => s.$1 == status);
     final currentStep = matchedIndex < 0 ? 0 : matchedIndex;
 
+    // ── Urgent Crisis / live ETA state ─────────────────────────────
+    final isCrisis = order?.isUrgentCrisis ?? false;
+    final etaLabel = PadhouseController.formatEtaMinutes(order?.etaMinutes);
+    final courierLocation = order?.courierLocation ?? '';
+    final destinationLocation = order?.destinationLocation ?? '';
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -958,6 +967,85 @@ class _TrackingState extends State<_Tracking> {
           ),
         ),
         const SizedBox(height: 16),
+
+        // ── Urgent Crisis (red alert) banner ───────────────────────
+        if (isCrisis) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _crisisRed.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _crisisRed, width: 1.5),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PhIcon(LucideIcons.alertOctagon,
+                    color: _crisisRed, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('حالة أزمة طارئة',
+                          style: TextStyle(
+                              color: _crisisRed,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text(
+                          (order?.crisisReason?.isNotEmpty ?? false)
+                              ? order!.crisisReason!
+                              : 'تأخير طارئ على الطريق (نقطة تفتيش / إغلاق طريق) بين المدن.',
+                          style: const TextStyle(
+                              color: _crisisRed,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              height: 1.5)),
+                      const SizedBox(height: 4),
+                      const Text(
+                          'تم إيقاف العدّاد والوقت المتوقع مؤقتاً حتى انتهاء الأزمة.',
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // ── Live ETA + courier location (hidden during crisis) ─────
+        if (!isCrisis &&
+            !isCancelled &&
+            (etaLabel.isNotEmpty || courierLocation.isNotEmpty)) ...[
+          const Text('الوقت المتوقع للوصول (ETA)',
+              style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  color: AppColors.navy)),
+          const SizedBox(height: 8),
+          SoftCard(
+            child: Column(
+              children: [
+                if (etaLabel.isNotEmpty)
+                  _infoRow(
+                      LucideIcons.clock,
+                      'الوقت المتوقع للوصول',
+                      order?.distanceKm != null
+                          ? '$etaLabel • ${order!.distanceKm} كم'
+                          : etaLabel),
+                if (courierLocation.isNotEmpty)
+                  _infoRow(
+                      LucideIcons.navigation, 'موقع المندوب الحالي', courierLocation),
+                if (destinationLocation.isNotEmpty)
+                  _infoRow(LucideIcons.mapPin, 'وجهة التسليم', destinationLocation),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
 
         // ── Timeline stepper (RTL) ─────────────────────────────────
         const Text('مسار الطلب',
@@ -1580,38 +1668,91 @@ class _SupportCard extends StatelessWidget {
 
 // ─── Notifications ─────────────────────────────────────────────────────────
 
-class _Notifications extends StatelessWidget {
-  const _Notifications();
+class _Notifications extends StatefulWidget {
+  const _Notifications({required this.store});
+  final PadhouseController store;
 
-  static const _items = [
-    _NotifItem(
-      icon: LucideIcons.packageCheck,
-      iconColor: AppColors.turquoise,
-      title: 'تم تأكيد طلبك #PH-2026-1042',
-      body: 'طلبك قيد التجهيز وسيصلك خلال يومي عمل. شكراً لثقتك ببادهاوس!',
-      time: 'منذ ٣٠ دقيقة',
-      read: false,
-    ),
-    _NotifItem(
-      icon: LucideIcons.tag,
-      iconColor: AppColors.turquoise,
-      title: 'عرض خاص: خصم ١٥٪ على الكيبوردات',
-      body: 'استخدم كود KEYBOARD15 لتوفير حتى ٢٤ شيكل على أفضل لوحات المفاتيح.',
-      time: 'منذ ساعتين',
-      read: false,
-    ),
-    _NotifItem(
-      icon: LucideIcons.packageOpen,
-      iconColor: AppColors.navy,
-      title: 'تم تحديث كتالوج المنتجات',
-      body: 'أضفنا ٥ منتجات جديدة: قلم بادهاوس برو، شاشة ملمس الورق X2، وأكثر.',
-      time: 'أمس',
-      read: true,
-    ),
-  ];
+  @override
+  State<_Notifications> createState() => _NotificationsState();
+}
+
+class _NotificationsState extends State<_Notifications> {
+  /// Red accent matching the “Urgent Crisis” (red alert) mode.
+  static const Color _crisisRed = Color(0xFFEF4444);
+
+  @override
+  void initState() {
+    super.initState();
+    widget.store.loadUserNotifications();
+  }
+
+  /// Amber accent for promotions & discounts.
+  static const Color _promoAmber = Color(0xFFD97706);
+
+  /// Indigo accent for "courier approaching" updates.
+  static const Color _approachingIndigo = Color(0xFF4F46E5);
+
+  IconData _iconFor(UserNotificationModel n) {
+    if (n.isCrisis) return LucideIcons.siren;
+    if (n.isCrisisResolved || n.isArrived) return LucideIcons.checkCircle2;
+    if (n.isPromotion) return LucideIcons.tag;
+    if (n.isCartReminder) return LucideIcons.shoppingCart;
+    if (n.isApproaching) return LucideIcons.truck;
+    if (n.isOrderConfirmation) return LucideIcons.packageCheck;
+    return LucideIcons.packageCheck;
+  }
+
+  Color _colorFor(UserNotificationModel n) {
+    if (n.isCrisis) return _crisisRed;
+    if (n.isCrisisResolved || n.isArrived) return AppColors.success;
+    if (n.isPromotion) return _promoAmber;
+    if (n.isApproaching) return _approachingIndigo;
+    return AppColors.turquoise;
+  }
+
+  String _relativeTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'الآن';
+    if (diff.inMinutes < 60) return 'منذ ${diff.inMinutes} دقيقة';
+    if (diff.inHours < 24) return 'منذ ${diff.inHours} ساعة';
+    return 'منذ ${diff.inDays} يوم';
+  }
+
+  /// Opens the tracking screen for a notification's order, or the store for a
+  /// promotions/discounts broadcast.
+  void _open(UserNotificationModel n) {
+    final store = widget.store;
+    store.markUserNotificationRead(n.id);
+    if (n.isCartReminder) {
+      store.setCustomerTab(CustomerTab.cart);
+      return;
+    }
+    if (n.orderId == null || n.orderId!.isEmpty) {
+      if (n.isPromotion) {
+        store.setCustomerTab(CustomerTab.home);
+      }
+      return;
+    }
+    String? targetId;
+    for (final o in store.orders) {
+      if (o.backendId != null && o.backendId == n.orderId) {
+        targetId = o.id;
+        break;
+      }
+    }
+    targetId ??= n.orderId;
+    if (targetId != null && targetId.isNotEmpty) {
+      store.activeTrackingOrderId = targetId;
+      store.setStack(CustomerStack.tracking);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final store = widget.store;
+    final items = store.userNotifications;
+    final unread = store.userUnreadNotificationCount;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -1629,107 +1770,113 @@ class _Notifications extends StatelessWidget {
                   color: AppColors.turquoise,
                   borderRadius: BorderRadius.circular(99)),
               child: Text(
-                '${_items.where((n) => !n.read).length}',
+                '$unread',
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
                     fontWeight: FontWeight.w900),
               ),
             ),
+            const Spacer(),
+            if (items.any((n) => !n.isRead))
+              TextButton(
+                onPressed: store.markAllUserNotificationsRead,
+                child: const Text('تحديد الكل كمقروء'),
+              ),
           ],
         ),
         const SizedBox(height: 12),
-        for (final item in _items)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Container(
-              decoration: BoxDecoration(
-                color: item.read
-                    ? Colors.white
-                    : AppColors.turquoise.withValues(alpha: 0.05),
+        if (store.isLoadingUserNotifications && items.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (items.isEmpty)
+          const _EmptyState(
+            icon: LucideIcons.bell,
+            title: 'لا توجد تنبيهات حالياً',
+            subtitle: 'ستظهر هنا تحديثات طلباتك ومواعيد الوصول وحالات الطوارئ.',
+          )
+        else
+          for (final n in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: InkWell(
+                onTap: () => _open(n),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: item.read
-                        ? AppColors.borderLight
-                        : AppColors.turquoise.withValues(alpha: 0.25)),
-              ),
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.offWhiteAlt,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                        child:
-                            PhIcon(item.icon, size: 18, color: item.iconColor)),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: n.isRead
+                        ? Colors.white
+                        : AppColors.turquoise.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: n.isRead
+                            ? AppColors.borderLight
+                            : AppColors.turquoise.withValues(alpha: 0.25)),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.offWhiteAlt,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                            child:
+                                PhIcon(_iconFor(n), size: 18, color: _colorFor(n))),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(item.title,
-                                  style: TextStyle(
-                                      fontWeight: item.read
-                                          ? FontWeight.w700
-                                          : FontWeight.w900,
-                                      fontSize: 13)),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(n.title,
+                                      style: TextStyle(
+                                          fontWeight: n.isRead
+                                              ? FontWeight.w700
+                                              : FontWeight.w900,
+                                          fontSize: 13)),
+                                ),
+                                if (!n.isRead)
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                        color: AppColors.turquoise,
+                                        shape: BoxShape.circle),
+                                  ),
+                              ],
                             ),
-                            if (!item.read)
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                    color: AppColors.turquoise,
-                                    shape: BoxShape.circle),
-                              ),
+                            const SizedBox(height: 4),
+                            Text(n.message,
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                    height: 1.5)),
+                            const SizedBox(height: 4),
+                            Text(_relativeTime(n.createdAt),
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textTertiary)),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(item.body,
-                            style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                                height: 1.5)),
-                        const SizedBox(height: 4),
-                        Text(item.time,
-                            style: const TextStyle(
-                                fontSize: 11, color: AppColors.textTertiary)),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
       ],
     );
   }
-}
-
-class _NotifItem {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String body;
-  final String time;
-  final bool read;
-  const _NotifItem({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.body,
-    required this.time,
-    required this.read,
-  });
 }
 
 // ─── Addresses ─────────────────────────────────────────────────────────────
@@ -2664,6 +2811,15 @@ class _Inventory extends StatelessWidget {
   }
 }
 
+/// Crisis reasons offered to admins — mirrors the reusable backend crisis types.
+const crisisTypes = <String, String>{
+  'CHECKPOINT': 'نقطة تفتيش',
+  'ROAD_CLOSURE': 'إغلاق طريق',
+  'EMERGENCY_DELAY': 'تأخير طارئ',
+  'WEATHER': 'أحوال جوية',
+  'OTHER': 'أخرى',
+};
+
 class _AdminOrders extends StatelessWidget {
   const _AdminOrders({required this.store});
   final PadhouseController store;
@@ -2683,8 +2839,16 @@ class _AdminOrders extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${order.id} • ${order.customerName}',
-                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('${order.id} • ${order.customerName}',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w800)),
+                      ),
+                      if (order.isUrgentCrisis) const _CrisisChip(),
+                    ],
+                  ),
                   const SizedBox(height: 6),
                   DropdownButton<String>(
                     value: orderStatuses.contains(order.status)
@@ -2693,7 +2857,8 @@ class _AdminOrders extends StatelessWidget {
                     isExpanded: true,
                     items: [
                       for (final status in orderStatuses)
-                        DropdownMenuItem(value: status, child: Text(status))
+                        DropdownMenuItem(
+                            value: status, child: Text(store.statusLabel(status)))
                     ],
                     onChanged: (value) {
                       if (value != null) {
@@ -2705,10 +2870,312 @@ class _AdminOrders extends StatelessWidget {
                       '${order.city} • ${order.items.length} أصناف • ${order.total} ₪',
                       style: const TextStyle(
                           fontSize: 12, color: AppColors.textSecondary)),
+                  if (order.etaMinutes != null || order.courierLocation != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'التتبع: ${order.courierLocation ?? '—'} ← ${order.destinationLocation ?? order.city}'
+                      '${order.etaMinutes != null ? ' • الوقت المتوقع ${PadhouseController.formatEtaMinutes(order.etaMinutes)}' : ''}',
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textTertiary),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const PhIcon(LucideIcons.navigation, size: 14),
+                          label: const Text('الموقع والوقت'),
+                          onPressed: () =>
+                              showOrderTrackingDialog(context, store, order),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: order.isUrgentCrisis
+                            ? FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                    backgroundColor: AppColors.success),
+                                icon: const PhIcon(LucideIcons.checkCircle2,
+                                    size: 14, color: Colors.white),
+                                label: const Text('إنهاء الأزمة'),
+                                onPressed: () =>
+                                    store.resolveOrderCrisis(order.id),
+                              )
+                            : FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                    backgroundColor: AppColors.crisis),
+                                icon: const PhIcon(LucideIcons.siren,
+                                    size: 14, color: Colors.white),
+                                label: const Text('أزمة طارئة'),
+                                onPressed: () =>
+                                    showOrderTrackingDialog(context, store, order),
+                              ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _CrisisChip extends StatelessWidget {
+  const _CrisisChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.crisisBg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.crisis),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PhIcon(LucideIcons.alertOctagon, size: 12, color: AppColors.crisis),
+          SizedBox(width: 4),
+          Text('أزمة طارئة',
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.crisis)),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> showOrderTrackingDialog(
+    BuildContext context, PadhouseController store, ShopOrder order) async {
+  await showDialog<void>(
+    context: context,
+    builder: (_) => _OrderTrackingDialog(store: store, order: order),
+  );
+}
+
+/// Admin editor for the courier/destination locations, manual ETA and the
+/// reusable “Urgent Crisis” toggle. Kept as a form so real-time GPS capture can
+/// replace the text fields later without touching the rest of the UI.
+class _OrderTrackingDialog extends StatefulWidget {
+  const _OrderTrackingDialog({required this.store, required this.order});
+  final PadhouseController store;
+  final ShopOrder order;
+
+  @override
+  State<_OrderTrackingDialog> createState() => _OrderTrackingDialogState();
+}
+
+class _OrderTrackingDialogState extends State<_OrderTrackingDialog> {
+  late final TextEditingController courier =
+      TextEditingController(text: widget.order.courierLocation ?? '');
+  late final TextEditingController destination =
+      TextEditingController(text: widget.order.destinationLocation ?? '');
+  late final TextEditingController eta = TextEditingController(
+      text: widget.order.manualEtaMinutes?.toString() ?? '');
+  late final TextEditingController reason =
+      TextEditingController(text: widget.order.crisisReason ?? '');
+  late String crisisType =
+      crisisTypes.containsKey(widget.order.crisisType)
+          ? widget.order.crisisType!
+          : 'CHECKPOINT';
+  bool busy = false;
+
+  @override
+  void dispose() {
+    courier.dispose();
+    destination.dispose();
+    eta.dispose();
+    reason.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveTracking() async {
+    setState(() => busy = true);
+    final minutes = int.tryParse(eta.text.trim());
+    await widget.store.updateOrderTracking(
+      widget.order.id,
+      courierLocation: courier.text,
+      destinationLocation: destination.text,
+      manualEtaMinutes: minutes,
+    );
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _enableCrisis() async {
+    setState(() => busy = true);
+    await widget.store.enableOrderCrisis(
+      widget.order.id,
+      crisisType: crisisType,
+      crisisReason: reason.text.trim(),
+    );
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _resolveCrisis() async {
+    setState(() => busy = true);
+    await widget.store.resolveOrderCrisis(widget.order.id,
+        notes: reason.text.trim());
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final order = widget.order;
+    final isCrisis = order.isUrgentCrisis;
+    return AlertDialog(
+      title: Text('تتبع الطلب ${order.id}',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'الوجهة: ${order.destinationLocation ?? order.city}'
+                '${order.distanceKm != null ? ' • المسافة ${order.distanceKm!.toStringAsFixed(1)} كم' : ''}'
+                '${order.autoEtaMinutes != null ? ' • الوقت التلقائي ${PadhouseController.formatEtaMinutes(order.autoEtaMinutes)}' : ''}',
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.textTertiary),
+              ),
+              const SizedBox(height: 12),
+              AppInput(
+                label: 'موقع المندوب الحالي',
+                icon: LucideIcons.navigation,
+                child: TextField(
+                  controller: courier,
+                  decoration: bareInput('مثال: نقطة تفتيش حوارة - قرب نابلس'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              AppInput(
+                label: 'وجهة التسليم',
+                icon: LucideIcons.mapPin,
+                child: TextField(
+                  controller: destination,
+                  decoration: bareInput('مثال: رام الله والبيرة'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              AppInput(
+                label: 'الوقت المتوقع (دقائق) - اختياري',
+                icon: LucideIcons.clock,
+                helperText: 'اتركه فارغاً ليُحسب تلقائياً من المسافة',
+                child: TextField(
+                  controller: eta,
+                  keyboardType: TextInputType.number,
+                  decoration: bareInput('مثال: 90'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isCrisis ? AppColors.crisisBg : AppColors.offWhite,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: isCrisis ? AppColors.crisis : AppColors.borderLight),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        PhIcon(
+                            isCrisis
+                                ? LucideIcons.alertOctagon
+                                : LucideIcons.siren,
+                            size: 16,
+                            color: isCrisis
+                                ? AppColors.crisis
+                                : AppColors.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(isCrisis ? 'حالة أزمة طارئة نشطة' : 'حالة الأزمة الطارئة',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: isCrisis
+                                    ? AppColors.crisis
+                                    : AppColors.navy)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const FieldLabel('نوع الأزمة'),
+                    DropdownButton<String>(
+                      value: crisisType,
+                      isExpanded: true,
+                      items: [
+                        for (final entry in crisisTypes.entries)
+                          DropdownMenuItem(
+                              value: entry.key, child: Text(entry.value))
+                      ],
+                      onChanged: (value) {
+                        if (value != null) setState(() => crisisType = value);
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: reason,
+                      decoration: bareInput('سبب الأزمة (يظهر للعميل)'),
+                    ),
+                    const SizedBox(height: 8),
+                    if (isCrisis)
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.success),
+                          icon: const PhIcon(LucideIcons.checkCircle2,
+                              size: 14, color: Colors.white),
+                          label: const Text('إنهاء الأزمة واستئناف التوصيل'),
+                          onPressed: busy ? null : _resolveCrisis,
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.crisis),
+                          icon: const PhIcon(LucideIcons.alertOctagon,
+                              size: 14, color: Colors.white),
+                          label: const Text('تفعيل الأزمة الطارئة'),
+                          onPressed: busy ? null : _enableCrisis,
+                        ),
+                      ),
+                    if (isCrisis)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6),
+                        child: Text(
+                            'يتم إخفاء العدّاد والوقت الثابت لدى العميل حتى انتهاء الأزمة.',
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.textSecondary)),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: busy ? null : () => Navigator.of(context).pop(),
+          child: const Text('إغلاق'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.turquoise),
+          onPressed: busy ? null : _saveTracking,
+          child: const Text('حفظ الموقع والوقت'),
+        ),
       ],
     );
   }

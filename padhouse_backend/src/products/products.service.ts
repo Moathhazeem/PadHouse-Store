@@ -97,8 +97,16 @@ async findAll(query: {
     search?: string;
     featured?: boolean;
     compatibility?: string;
+    includeInactive?: boolean;
   }) {
-    const conditions: any[] = [{ isActive: true }];
+    const conditions: any[] = [];
+
+    // The storefront only ever shows active products; the admin dashboard
+    // passes includeInactive=true (role-checked in the controller) so that
+    // deactivated products stay manageable.
+    if (!query.includeInactive) {
+      conditions.push({ isActive: true });
+    }
 
     if (query.category && query.category !== 'all') {
       conditions.push({

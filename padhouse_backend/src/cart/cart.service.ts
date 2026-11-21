@@ -18,6 +18,17 @@ export class CartService {
     return cart;
   }
 
+  /**
+   * Bumps the cart's activity (via `@updatedAt`) and clears the abandoned-cart
+   * reminder flag so a fresh 5-minute idle window can trigger a new reminder.
+   */
+  private async touchCart(cartId: string) {
+    await this.prisma.cart.update({
+      where: { id: cartId },
+      data: { reminderSentAt: null },
+    });
+  }
+
   async getCart(customerProfileId: string) {
     const cart = await this.getOrCreateCart(customerProfileId);
 
@@ -137,6 +148,8 @@ export class CartService {
       });
     }
 
+    await this.touchCart(cart.id);
+
     return this.getCart(customerProfileId);
   }
 
@@ -161,6 +174,8 @@ export class CartService {
       data: { quantity: dto.quantity },
     });
 
+    await this.touchCart(cart.id);
+
     return this.getCart(customerProfileId);
   }
 
@@ -169,6 +184,7 @@ export class CartService {
     await this.prisma.cartItem.deleteMany({
       where: { id: itemId, cartId: cart.id },
     });
+    await this.touchCart(cart.id);
     return this.getCart(customerProfileId);
   }
 
@@ -177,6 +193,7 @@ export class CartService {
     await this.prisma.cartItem.deleteMany({
       where: { cartId: cart.id },
     });
+    await this.touchCart(cart.id);
     return this.getCart(customerProfileId);
   }
 }

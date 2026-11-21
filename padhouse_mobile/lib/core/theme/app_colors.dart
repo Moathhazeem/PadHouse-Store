@@ -47,6 +47,11 @@ class AppColors {
   static const Color warningBg = Color(0xFFFFFBEB);
   static const Color error = Color(0xFFDC2626);
   static const Color errorBg = Color(0xFFFEF2F2);
+
+  /// “Urgent Crisis” (red alert) accent — reusable across order tracking,
+  /// checkpoint/road-closure delays and other emergency contexts.
+  static const Color crisis = Color(0xFFEF4444);
+  static const Color crisisBg = Color(0x14EF4444);
   static const Color info = turquoise;
   static const Color infoBg = Color(0xFFF0FDFA);
   static const Color starGold = Color(0xFFF59E0B);

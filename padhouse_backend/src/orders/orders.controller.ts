@@ -1,7 +1,23 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto, UpdateOrderStatusDto, CancelOrderDto } from './dto/order.dto';
+import {
+  CreateOrderDto,
+  UpdateOrderStatusDto,
+  CancelOrderDto,
+  UpdateOrderTrackingDto,
+  EnableUrgentCrisisDto,
+  ResolveUrgentCrisisDto,
+} from './dto/order.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -81,6 +97,42 @@ export class OrdersController {
     @Body() dto: UpdateOrderStatusDto,
   ) {
     return this.ordersService.updateStatus(id, dto, actorId);
+  }
+
+  @ApiOperation({ summary: 'تحديث موقع المندوب ووجهة التسليم وحساب الوقت المتوقع (الإدارة)' })
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Patch(':id/tracking')
+  async updateTracking(
+    @CurrentUser('id') actorId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateOrderTrackingDto,
+  ) {
+    return this.ordersService.updateTracking(id, dto, actorId);
+  }
+
+  @ApiOperation({ summary: 'تفعيل حالة "الأزمة الطارئة" (نقطة تفتيش/إغلاق طريق) على الطلب' })
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Post(':id/crisis')
+  async enableCrisis(
+    @CurrentUser('id') actorId: string,
+    @Param('id') id: string,
+    @Body() dto: EnableUrgentCrisisDto,
+  ) {
+    return this.ordersService.enableCrisis(id, dto, actorId);
+  }
+
+  @ApiOperation({ summary: 'إنهاء حالة "الأزمة الطارئة" واستئناف التوصيل مع حساب وقت جديد' })
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Delete(':id/crisis')
+  async resolveCrisis(
+    @CurrentUser('id') actorId: string,
+    @Param('id') id: string,
+    @Body() dto: ResolveUrgentCrisisDto,
+  ) {
+    return this.ordersService.resolveCrisis(id, dto, actorId);
   }
 }
 

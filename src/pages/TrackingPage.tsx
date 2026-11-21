@@ -7,6 +7,8 @@ import {
   Package,
   Search,
   AlertCircle,
+  AlertOctagon,
+  Navigation,
   XCircle,
   Loader2,
   MessageCircle,
@@ -28,6 +30,18 @@ interface TrackingPageProps {
 }
 
 const SUPPORT_WHATSAPP = '970599000000';
+
+/** Red accent reserved for the reusable "Urgent Crisis" state. */
+const CRISIS_RED = '#EF4444';
+
+/** Formats an ETA in minutes into a friendly Arabic label. */
+function formatEtaMinutes(minutes?: number | null): string | null {
+  if (minutes === null || minutes === undefined) return null;
+  if (minutes < 60) return `${minutes} دقيقة`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} ساعة و${rest} دقيقة` : `${hours} ساعة`;
+}
 
 export const TrackingPage: React.FC<TrackingPageProps> = ({
   orders,
@@ -103,6 +117,10 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
   const stepDate = (code: string) =>
     order?.statusHistory?.find((h) => h.status === code)?.createdAt;
 
+  const isCrisis = Boolean(order?.isUrgentCrisis);
+  const etaMinutes = order?.etaMinutes ?? null;
+  const etaLabel = formatEtaMinutes(etaMinutes);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-8 text-right">
       <div className="text-center space-y-2">
@@ -176,6 +194,68 @@ export const TrackingPage: React.FC<TrackingPageProps> = ({
               </span>
             </div>
           </div>
+
+          {/* ── Urgent Crisis banner (red accent) ── */}
+          {isCrisis && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 p-4 rounded-2xl border-2 text-right animate-pulse"
+              style={{ borderColor: `${CRISIS_RED}66`, backgroundColor: `${CRISIS_RED}14` }}
+            >
+              <AlertOctagon className="w-6 h-6 shrink-0 mt-0.5" style={{ color: CRISIS_RED }} />
+              <div className="space-y-1">
+                <p className="text-sm font-black" style={{ color: CRISIS_RED }}>
+                  حالة أزمة طارئة — Urgent Crisis
+                </p>
+                <p className="text-xs font-medium" style={{ color: '#B91C1C' }}>
+                  {order.crisisReason || 'نقطة تفتيش أو إغلاق طريق أو تأخير طارئ بين المدن.'}
+                </p>
+                <p className="text-[11px]" style={{ color: '#B91C1C' }}>
+                  تم إيقاف العدّاد والوقت التقديري مؤقتاً حتى لا يعطيك تقديراً غير دقيق، وسنُشعرك فور
+                  استئناف التوصيل وتحديث الوصول المتوقع.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Live ETA + courier location (hidden during Urgent Crisis) ── */}
+          {!isCrisis && !isCancelled && (etaLabel || order.courierLocation) && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-ph-border bg-ph-background p-4">
+                <div className="flex items-center gap-1.5 text-ph-muted mb-1.5">
+                  <Navigation className="w-3.5 h-3.5 text-ph-brand" />
+                  <span className="text-[11px] font-bold">موقع المندوب الحالي</span>
+                </div>
+                <p className="text-xs font-bold text-ph-ink">
+                  {order.courierLocation || 'قيد التحديث'}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-ph-border bg-ph-background p-4">
+                <div className="flex items-center gap-1.5 text-ph-muted mb-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-ph-brand" />
+                  <span className="text-[11px] font-bold">وجهة التسليم</span>
+                </div>
+                <p className="text-xs font-bold text-ph-ink">
+                  {order.destinationLocation || order.city || '—'}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-ph-brand/30 bg-ph-brand/5 p-4">
+                <div className="flex items-center gap-1.5 text-ph-muted mb-1.5">
+                  <Clock className="w-3.5 h-3.5 text-ph-brand" />
+                  <span className="text-[11px] font-bold">الوقت المتوقع للوصول (ETA)</span>
+                </div>
+                <p className="text-sm font-black text-ph-brand">
+                  {etaLabel || 'قيد الحساب'}
+                </p>
+                {order.distanceKm !== null && order.distanceKm !== undefined && (
+                  <p className="text-[10px] text-ph-muted mt-0.5">
+                    المسافة التقديرية: {order.distanceKm} كم
+                    {order.manualEtaMinutes ? ' (مدة يدوية)' : ' (متوسط تلقائي)'}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {isCancelled ? (
             <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-[#DC2626] text-xs font-medium">

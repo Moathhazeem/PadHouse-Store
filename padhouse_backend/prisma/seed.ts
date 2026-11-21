@@ -181,6 +181,10 @@ async function main() {
         descriptionEn: p.description,
         basePrice: p.originalPrice || p.price,
         salePrice: p.originalPrice > p.price ? p.price : null,
+        // Product.stock is the value exposed by the catalog API (admin + storefront),
+        // so it must mirror the seeded inventory quantity.
+        stock: p.stock,
+        minStock: p.minThreshold || 5,
         ipadCompatibility: [p.compatibility],
         categoryId,
         images: {
@@ -201,6 +205,8 @@ async function main() {
         descriptionEn: p.description,
         basePrice: p.originalPrice || p.price,
         salePrice: p.originalPrice > p.price ? p.price : null,
+        stock: p.stock,
+        minStock: p.minThreshold || 5,
         ipadCompatibility: [p.compatibility],
         categoryId,
         images: {
@@ -223,6 +229,7 @@ async function main() {
       const variant = await prisma.productVariant.upsert({
         where: { sku: variantSku },
         update: {
+          productId: product.id,
           colorNameAr: color,
           colorNameEn: color,
         },
@@ -232,13 +239,24 @@ async function main() {
           colorNameAr: color,
           colorNameEn: color,
           priceDelta: 0,
-          inventory: {
-            create: {
-              currentStock: p.stock,
-              minThreshold: p.minThreshold || 5,
-              costPrice: Math.round(p.price * 0.6),
-            },
-          },
+        },
+      });
+
+      // Inventory is a 1:1 relation on the variant, so it is upserted separately
+      // to keep the seeded quantity in sync on every re-run (idempotent).
+      const costPrice = Math.round(p.price * 0.6);
+      await prisma.inventory.upsert({
+        where: { variantId: variant.id },
+        update: {
+          currentStock: p.stock,
+          minThreshold: p.minThreshold || 5,
+          costPrice,
+        },
+        create: {
+          variantId: variant.id,
+          currentStock: p.stock,
+          minThreshold: p.minThreshold || 5,
+          costPrice,
         },
       });
     }

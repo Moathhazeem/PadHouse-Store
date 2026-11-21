@@ -194,6 +194,49 @@ class PadhouseApi {
         if (reason != null && reason.isNotEmpty) 'reason': reason,
       }));
 
+  /// Admin: advances an order through the canonical lifecycle.
+  Future<Map<String, dynamic>> updateOrderStatus(String orderId, String status) async =>
+      _asMap(await _patch('/orders/$orderId/status', {'status': status}));
+
+  /// Admin: updates the courier/store location, destination, optional
+  /// coordinates and the manual ETA. Text fields are GPS-ready — explicit
+  /// `originLat/originLng/destLat/destLng` may be supplied later by a live feed.
+  Future<Map<String, dynamic>> updateOrderTracking(
+          String orderId, Map<String, dynamic> body) async =>
+      _asMap(await _patch('/orders/$orderId/tracking', body));
+
+  /// Admin: switches the “Urgent Crisis” (red alert) mode ON for an order.
+  Future<Map<String, dynamic>> enableOrderCrisis(
+    String orderId, {
+    String? crisisType,
+    String? crisisReason,
+    String? notes,
+  }) async =>
+      _asMap(await _post('/orders/$orderId/crisis', {
+        if (crisisType != null && crisisType.isNotEmpty) 'crisisType': crisisType,
+        if (crisisReason != null && crisisReason.isNotEmpty)
+          'crisisReason': crisisReason,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      }));
+
+  /// Admin: resolves the crisis and recalculates a fresh approximate ETA.
+  Future<Map<String, dynamic>> resolveOrderCrisis(String orderId,
+          {String? notes}) async =>
+      _asMap(await _delete('/orders/$orderId/crisis', {
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      }));
+
+  // ─── Customer Notifications (order progress / crisis) ─────────────────────
+
+  Future<UserNotificationsResult> getMyNotifications() async =>
+      UserNotificationsResult.fromJson(_asMap(await _get('/notifications/my')));
+
+  Future<Map<String, dynamic>> markMyNotificationAsRead(String id) async =>
+      _asMap(await _patch('/notifications/my/$id/read'));
+
+  Future<Map<String, dynamic>> markAllMyNotificationsAsRead() async =>
+      _asMap(await _patch('/notifications/my/read-all'));
+
   // ─── Wishlist / Recently viewed / Stock alerts ───────────────────────────
 
   Future<List<Map<String, dynamic>>> getWishlist() async => _asList(await _get('/wishlist'));
@@ -374,6 +417,32 @@ class AdminNotificationsResult {
     return AdminNotificationsResult(
       notifications: list,
       unreadCount: (json['unreadCount'] as num?)?.toInt() ?? list.where((n) => !n.isRead).length,
+    );
+  }
+}
+
+class UserNotificationsResult {
+  final List<UserNotificationModel> notifications;
+  final int unreadCount;
+
+  const UserNotificationsResult({
+    required this.notifications,
+    required this.unreadCount,
+  });
+
+  factory UserNotificationsResult.fromJson(Map<String, dynamic> json) {
+    final rawList = json['notifications'];
+    final list = rawList is List
+        ? rawList
+            .whereType<Map<dynamic, dynamic>>()
+            .map((e) =>
+                UserNotificationModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList()
+        : <UserNotificationModel>[];
+    return UserNotificationsResult(
+      notifications: list,
+      unreadCount: (json['unreadCount'] as num?)?.toInt() ??
+          list.where((n) => !n.isRead).length,
     );
   }
 }

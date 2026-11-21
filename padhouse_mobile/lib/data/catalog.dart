@@ -345,7 +345,8 @@ class OrderLine {
 }
 
 class ShopOrder {
-  final String id;
+  final String id; // human-readable order number (e.g. PH-2026-1042)
+  final String? backendId; // backend UUID used by admin tracking/crisis endpoints
   final String date;
   final List<OrderLine> items;
   final String customerName;
@@ -359,8 +360,21 @@ class ShopOrder {
   final int total;
   final String status;
 
+  // ─── Live tracking / ETA (structured so real GPS can plug in later) ────────
+  final String? courierLocation; // free-text current courier/store location
+  final String? destinationLocation; // free-text delivery destination
+  final double? distanceKm; // resolved distance used for the AVG ETA
+  final int? manualEtaMinutes; // admin-entered ETA (takes priority)
+  final int? autoEtaMinutes; // distance-based AVG ETA fallback
+
+  // ─── Urgent Crisis (red alert mode) ────────────────────────────────────────
+  final bool isUrgentCrisis;
+  final String? crisisType; // e.g. CHECKPOINT, ROAD_CLOSURE, EMERGENCY_DELAY
+  final String? crisisReason;
+
   const ShopOrder({
     required this.id,
+    this.backendId,
     required this.date,
     required this.items,
     required this.customerName,
@@ -373,10 +387,33 @@ class ShopOrder {
     required this.discount,
     required this.total,
     required this.status,
+    this.courierLocation,
+    this.destinationLocation,
+    this.distanceKm,
+    this.manualEtaMinutes,
+    this.autoEtaMinutes,
+    this.isUrgentCrisis = false,
+    this.crisisType,
+    this.crisisReason,
   });
 
-  ShopOrder copyWith({String? status}) => ShopOrder(
+  /// Manual ETA wins; otherwise fall back to the distance-based AVG ETA.
+  int? get etaMinutes => manualEtaMinutes ?? autoEtaMinutes;
+
+  ShopOrder copyWith({
+    String? status,
+    String? courierLocation,
+    String? destinationLocation,
+    double? distanceKm,
+    int? manualEtaMinutes,
+    int? autoEtaMinutes,
+    bool? isUrgentCrisis,
+    String? crisisType,
+    String? crisisReason,
+  }) =>
+      ShopOrder(
         id: id,
+        backendId: backendId,
         date: date,
         items: items,
         customerName: customerName,
@@ -389,6 +426,87 @@ class ShopOrder {
         discount: discount,
         total: total,
         status: status ?? this.status,
+        courierLocation: courierLocation ?? this.courierLocation,
+        destinationLocation: destinationLocation ?? this.destinationLocation,
+        distanceKm: distanceKm ?? this.distanceKm,
+        manualEtaMinutes: manualEtaMinutes ?? this.manualEtaMinutes,
+        autoEtaMinutes: autoEtaMinutes ?? this.autoEtaMinutes,
+        isUrgentCrisis: isUrgentCrisis ?? this.isUrgentCrisis,
+        crisisType: crisisType ?? this.crisisType,
+        crisisReason: crisisReason ?? this.crisisReason,
+      );
+}
+
+/// Customer-targeted notification returned by `GET /notifications/my`.
+class UserNotificationModel {
+  final String id;
+  final String title;
+  final String message;
+  final String? type; // PROMOTION | ORDER_CONFIRMATION | ORDER_PROGRESS
+  // | ORDER_APPROACHING | ORDER_ARRIVED | URGENT_CRISIS | CRISIS_RESOLVED
+  final String? orderId;
+  final bool isRead;
+  final DateTime createdAt;
+
+  const UserNotificationModel({
+    required this.id,
+    required this.title,
+    required this.message,
+    this.type,
+    this.orderId,
+    required this.isRead,
+    required this.createdAt,
+  });
+
+  bool get isCrisis => type == 'URGENT_CRISIS';
+  bool get isCrisisResolved => type == 'CRISIS_RESOLVED';
+  bool get isPromotion => type == 'PROMOTION';
+  bool get isOrderConfirmation => type == 'ORDER_CONFIRMATION';
+  bool get isApproaching => type == 'ORDER_APPROACHING';
+  bool get isArrived => type == 'ORDER_ARRIVED';
+  bool get isCartReminder => type == 'CART_REMINDER';
+  bool get isOrderUpdate =>
+      isOrderConfirmation || isApproaching || isArrived || type == 'ORDER_PROGRESS';
+
+  factory UserNotificationModel.fromJson(Map<String, dynamic> json) {
+    DateTime parseDate(dynamic val) {
+      if (val is DateTime) return val;
+      if (val is String) {
+        final parsed = DateTime.tryParse(val);
+        if (parsed != null) return parsed;
+      }
+      return DateTime.now();
+    }
+
+    return UserNotificationModel(
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      message: json['message']?.toString() ?? '',
+      type: json['type']?.toString(),
+      orderId: json['orderId']?.toString(),
+      isRead: json['isRead'] == true,
+      createdAt: parseDate(json['createdAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'message': message,
+        'type': type,
+        'orderId': orderId,
+        'isRead': isRead,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  UserNotificationModel copyWith({bool? isRead}) => UserNotificationModel(
+        id: id,
+        title: title,
+        message: message,
+        type: type,
+        orderId: orderId,
+        isRead: isRead ?? this.isRead,
+        createdAt: createdAt,
       );
 }
 

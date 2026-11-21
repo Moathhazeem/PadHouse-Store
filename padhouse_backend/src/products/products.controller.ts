@@ -15,8 +15,10 @@ import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth, ApiResponse } from '@ne
 import { ProductsService } from './products.service';
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Products')
 @Controller('products')
@@ -36,18 +38,30 @@ export class ProductsController {
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'compatibility', required: false })
   @ApiQuery({ name: 'featured', required: false, type: Boolean })
+  @ApiQuery({
+    name: 'includeInactive',
+    required: false,
+    type: Boolean,
+    description: 'لوحة الإدارة فقط: تضمين المنتجات غير المفعّلة (يتطلب دور ADMIN)',
+  })
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
   async getProducts(
     @Query('category') category?: string,
     @Query('search') search?: string,
     @Query('compatibility') compatibility?: string,
     @Query('featured') featured?: string,
+    @Query('includeInactive') includeInactive?: string,
+    @CurrentUser() user?: { role?: string },
   ) {
+    const isAdmin = !!user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role ?? '');
+
     return this.productsService.findAll({
       category,
       search,
       compatibility,
       featured: featured === undefined ? undefined : featured === 'true',
+      includeInactive: isAdmin && includeInactive === 'true',
     });
   }
 

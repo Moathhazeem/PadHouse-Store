@@ -218,14 +218,17 @@ class _Header extends ConsumerWidget {
             onPressed: () => store.setCustomerTab(CustomerTab.search),
             icon: const PhIcon(LucideIcons.search, size: 20, color: AppColors.textSecondary),
           ),
-          // Notifications with dot badge
+          // Notifications with unread count badge
           IconButton(
-            onPressed: () => store.setStack(CustomerStack.notifications),
-            icon: const Badge(
-              isLabelVisible: true,
-              smallSize: 8,
+            onPressed: () {
+              store.loadUserNotifications();
+              store.setStack(CustomerStack.notifications);
+            },
+            icon: Badge(
+              isLabelVisible: store.userUnreadNotificationCount > 0,
+              label: Text('${store.userUnreadNotificationCount}'),
               backgroundColor: AppColors.turquoise,
-              child: PhIcon(LucideIcons.bell, size: 20, color: AppColors.textSecondary),
+              child: const PhIcon(LucideIcons.bell, size: 20, color: AppColors.textSecondary),
             ),
           ),
         ],

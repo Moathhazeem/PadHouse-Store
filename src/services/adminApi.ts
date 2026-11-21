@@ -2,7 +2,8 @@
  * adminApi.ts — Admin-specific API calls
  * Covers: Notifications, Admin Product CRUD, Restock
  */
-import { getAccessToken } from './api';
+import { getAccessToken, mapBackendProduct } from './api';
+import type { Product } from '../types';
 
 const API_BASE =
   (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
@@ -105,6 +106,29 @@ export async function adminMarkAllNotificationsReadApi(): Promise<{ success: boo
 /* Product Admin CRUD                                                   */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Admin catalog listing. Unlike the storefront call this one:
+ *  - asks for inactive products too (admins must be able to re-enable them),
+ *  - throws when the request fails so the dashboard can show an error state
+ *    instead of silently rendering an empty table,
+ *  - tolerates both a bare array and a wrapped payload
+ *    (`{ data | items | products: [...] }`).
+ */
+export async function adminFetchProductsApi(): Promise<Product[]> {
+  const payload = await adminFetch<any>('/products?includeInactive=true');
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+    ? payload.data
+    : Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload?.products)
+    ? payload.products
+    : [];
+
+  return list.map(mapBackendProduct);
+}
+
 export async function adminCreateProductApi(data: AdminProductFormData): Promise<any> {
   return adminFetch('/products', {
     method: 'POST',
@@ -121,6 +145,93 @@ export async function adminUpdateProductApi(id: string, data: Partial<AdminProdu
 
 export async function adminDeleteProductApi(id: string): Promise<void> {
   return adminFetch(`/products/${id}`, { method: 'DELETE' });
+}
+
+/* ------------------------------------------------------------------ */
+/* Orders (tracking / ETA / Urgent Crisis)                              */
+/* ------------------------------------------------------------------ */
+
+export interface AdminOrderItem {
+  id: string;
+  productId: string;
+  quantity: number;
+  unitPrice: number | string;
+  product?: { nameAr?: string; sku?: string } | null;
+}
+
+export interface AdminOrder {
+  id: string;
+  orderNumber: string;
+  status: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  grandTotal: number | string;
+  createdAt: string;
+  user?: { fullName?: string; email?: string; phone?: string | null } | null;
+  shippingAddress?: { city: string; street: string; phone?: string | null } | null;
+  items?: AdminOrderItem[];
+  /* Live tracking / ETA */
+  courierLocation?: string | null;
+  destinationLocation?: string | null;
+  distanceKm?: number | null;
+  manualEtaMinutes?: number | null;
+  autoEtaMinutes?: number | null;
+  etaUpdatedAt?: string | null;
+  /* Urgent Crisis */
+  isUrgentCrisis: boolean;
+  crisisType?: string | null;
+  crisisReason?: string | null;
+  crisisStartedAt?: string | null;
+  crisisResolvedAt?: string | null;
+}
+
+export interface AdminOrderTrackingInput {
+  courierLocation?: string;
+  destinationLocation?: string;
+  originLat?: number;
+  originLng?: number;
+  destLat?: number;
+  destLng?: number;
+  manualEtaMinutes?: number;
+  notes?: string;
+}
+
+export async function adminFetchOrdersApi(): Promise<AdminOrder[]> {
+  const payload = await adminFetch<any>('/orders/admin/all');
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.orders)) return payload.orders;
+  return [];
+}
+
+export async function adminUpdateOrderTrackingApi(
+  orderId: string,
+  body: AdminOrderTrackingInput,
+): Promise<AdminOrder> {
+  return adminFetch<AdminOrder>(`/orders/${orderId}/tracking`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminEnableOrderCrisisApi(
+  orderId: string,
+  body?: { crisisType?: string; crisisReason?: string; notes?: string },
+): Promise<AdminOrder> {
+  return adminFetch<AdminOrder>(`/orders/${orderId}/crisis`, {
+    method: 'POST',
+    body: JSON.stringify(body || {}),
+  });
+}
+
+export async function adminResolveOrderCrisisApi(
+  orderId: string,
+  notes?: string,
+): Promise<AdminOrder> {
+  return adminFetch<AdminOrder>(`/orders/${orderId}/crisis`, {
+    method: 'DELETE',
+    body: JSON.stringify({ notes }),
+  });
 }
 
 /* ------------------------------------------------------------------ */

@@ -145,6 +145,12 @@ class PadhouseController extends ChangeNotifier {
   int adminUnreadNotificationCount = 0;
   bool isLoadingNotifications = false;
 
+  // ─── Customer notifications (order progress / Urgent Crisis) ─────────────
+
+  List<UserNotificationModel> userNotifications = const [];
+  int userUnreadNotificationCount = 0;
+  bool isLoadingUserNotifications = false;
+
   // ─── Remote cart bookkeeping ───────────────────────────────────────────────
 
   int? _remoteSubtotal;
@@ -393,6 +399,7 @@ class PadhouseController extends ChangeNotifier {
       _syncCart(),
       _syncWishlist(),
       refreshMyOrders(),
+      loadUserNotifications(),
     ]);
     _notify();
   }
@@ -1211,6 +1218,7 @@ class PadhouseController extends ChangeNotifier {
 
     return ShopOrder(
       id: o['orderNumber']?.toString() ?? o['id']?.toString() ?? '',
+      backendId: o['id']?.toString(),
       date: _formatDate(o['createdAt']),
       items: lines,
       customerName: user?.name ?? '',
@@ -1224,7 +1232,27 @@ class PadhouseController extends ChangeNotifier {
       discount: _toNum(o['discountTotal']).round(),
       total: _toNum(o['grandTotal']).round(),
       status: o['status']?.toString() ?? 'PENDING',
+      courierLocation: _nullIfEmpty(o['courierLocation']),
+      destinationLocation: _nullIfEmpty(o['destinationLocation']),
+      distanceKm: o['distanceKm'] == null ? null : _toNum(o['distanceKm']),
+      manualEtaMinutes: _toIntOrNull(o['manualEtaMinutes']),
+      autoEtaMinutes: _toIntOrNull(o['autoEtaMinutes']),
+      isUrgentCrisis: o['isUrgentCrisis'] == true,
+      crisisType: _nullIfEmpty(o['crisisType']),
+      crisisReason: _nullIfEmpty(o['crisisReason']),
     );
+  }
+
+  String? _nullIfEmpty(dynamic value) {
+    final text = value?.toString().trim();
+    return (text == null || text.isEmpty) ? null : text;
+  }
+
+  int? _toIntOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   String _formatDate(dynamic raw) {
@@ -1430,12 +1458,204 @@ class PadhouseController extends ChangeNotifier {
     _notify();
   }
 
-  void updateOrderStatus(String orderId, String status) {
+  /// Admin: advances an order's lifecycle status on the shared backend.
+  Future<void> updateOrderStatus(String orderId, String status) async {
+    final backendId = _backendIdOf(orderId);
+    if (backendId == null) {
+      showToast('تعذّر تحديد الطلب على الخادم');
+      return;
+    }
+    try {
+      final data = await _api.updateOrderStatus(backendId, status);
+      _mergeUpdatedOrder(data, fallbackId: orderId, status: status);
+      showToast('تم تحديث حالة الطلب إلى: ${statusLabel(status)}');
+    } catch (e) {
+      showToast(
+          _dioMessage(e, fallback: 'تعذّر تحديث حالة الطلب، يرجى المحاولة لاحقاً'));
+    }
+  }
+
+  /// Admin: updates courier location / destination / manual ETA and lets the
+  /// backend derive an AVG ETA from the resolved distance.
+  Future<bool> updateOrderTracking(
+    String orderId, {
+    String? courierLocation,
+    String? destinationLocation,
+    int? manualEtaMinutes,
+  }) async {
+    final backendId = _backendIdOf(orderId);
+    if (backendId == null) {
+      showToast('تعذّر تحديد الطلب على الخادم');
+      return false;
+    }
+    try {
+      final data = await _api.updateOrderTracking(backendId, {
+        if (courierLocation != null && courierLocation.trim().isNotEmpty)
+          'courierLocation': courierLocation.trim(),
+        if (destinationLocation != null && destinationLocation.trim().isNotEmpty)
+          'destinationLocation': destinationLocation.trim(),
+        if (manualEtaMinutes != null) 'manualEtaMinutes': manualEtaMinutes,
+      });
+      _mergeUpdatedOrder(data, fallbackId: orderId);
+      showToast('تم تحديث الموقع وإشعار العميل بالوقت المتوقع');
+      return true;
+    } catch (e) {
+      showToast(_dioMessage(e,
+          fallback: 'تعذّر تحديث بيانات التتبع، يرجى المحاولة لاحقاً'));
+      return false;
+    }
+  }
+
+  /// Admin: switches an order into the red “Urgent Crisis” state.
+  Future<bool> enableOrderCrisis(
+    String orderId, {
+    String? crisisType,
+    String? crisisReason,
+  }) async {
+    final backendId = _backendIdOf(orderId);
+    if (backendId == null) {
+      showToast('تعذّر تحديد الطلب على الخادم');
+      return false;
+    }
+    try {
+      final data = await _api.enableOrderCrisis(
+        backendId,
+        crisisType: crisisType ?? 'EMERGENCY_DELAY',
+        crisisReason: crisisReason,
+      );
+      _mergeUpdatedOrder(data, fallbackId: orderId, isUrgentCrisis: true);
+      showToast('تم تفعيل حالة الأزمة الطارئة وإخطار العميل');
+      return true;
+    } catch (e) {
+      showToast(_dioMessage(e,
+          fallback: 'تعذّر تفعيل حالة الأزمة، يرجى المحاولة لاحقاً'));
+      return false;
+    }
+  }
+
+  /// Admin: resolves the crisis and recalculates a fresh approximate ETA.
+  Future<bool> resolveOrderCrisis(String orderId, {String? notes}) async {
+    final backendId = _backendIdOf(orderId);
+    if (backendId == null) {
+      showToast('تعذّر تحديد الطلب على الخادم');
+      return false;
+    }
+    try {
+      final data = await _api.resolveOrderCrisis(backendId, notes: notes);
+      _mergeUpdatedOrder(data, fallbackId: orderId, isUrgentCrisis: false);
+      showToast('تم إنهاء الأزمة واستئناف التوصيل بوقت متوقع جديد');
+      return true;
+    } catch (e) {
+      showToast(_dioMessage(e,
+          fallback: 'تعذّر إنهاء حالة الأزمة، يرجى المحاولة لاحقاً'));
+      return false;
+    }
+  }
+
+  /// Resolves the backend UUID for a locally-tracked order number.
+  String? _backendIdOf(String orderId) {
+    for (final o in orders) {
+      if (o.id == orderId) {
+        final backend = o.backendId;
+        if (backend != null && backend.isNotEmpty) return backend;
+        break;
+      }
+    }
+    // Fall back to the raw id (works when callers already hold the UUID).
+    return orderId.isEmpty ? null : orderId;
+  }
+
+  /// Merges an updated backend order payload back into [orders].
+  void _mergeUpdatedOrder(
+    Map<String, dynamic> data, {
+    required String fallbackId,
+    String? status,
+    bool? isUrgentCrisis,
+  }) {
+    if (data.isEmpty) {
+      _patchLocalOrder(fallbackId, status: status, isUrgentCrisis: isUrgentCrisis);
+      _notify();
+      return;
+    }
+    final updated = _mapOrder(data);
+    final isKnown = orders.any((o) => o.id == updated.id || o.id == fallbackId);
+    orders = isKnown
+        ? orders
+            .map((o) => (o.id == updated.id || o.id == fallbackId) ? updated : o)
+            .toList()
+        : [updated, ...orders];
+    _notify();
+  }
+
+  void _patchLocalOrder(String orderId,
+      {String? status, bool? isUrgentCrisis}) {
     orders = orders
-        .map((order) =>
-            order.id == orderId ? order.copyWith(status: status) : order)
+        .map((o) => o.id == orderId
+            ? o.copyWith(status: status, isUrgentCrisis: isUrgentCrisis)
+            : o)
         .toList();
-    showToast('تم تحديث حالة الطلب إلى: $status');
+  }
+
+  // ─── Customer notifications (order progress / crisis) ─────────────────────
+
+  /// Loads the signed-in customer's notifications from `GET /notifications/my`.
+  Future<void> loadUserNotifications() async {
+    if (!_isLoggedInCustomer || _isTestEnvironment) return;
+    isLoadingUserNotifications = true;
+    _notify();
+    try {
+      final res = await _api.getMyNotifications();
+      userNotifications = res.notifications;
+      userUnreadNotificationCount = res.unreadCount;
+      // Keep tracked orders in sync with the latest backend state (deduped).
+      final orderIds = <String>{
+        for (final n in res.notifications)
+          if (n.orderId != null && n.orderId!.isNotEmpty) n.orderId!,
+      };
+      for (final id in orderIds) {
+        unawaited(loadOrder(id));
+      }
+    } catch (_) {
+      // Keep the last known list on failure.
+    } finally {
+      isLoadingUserNotifications = false;
+      _notify();
+    }
+  }
+
+  Future<void> markUserNotificationRead(String id) async {
+    userNotifications = userNotifications
+        .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
+        .toList();
+    userUnreadNotificationCount =
+        userNotifications.where((n) => !n.isRead).length;
+    _notify();
+    if (!_isTestEnvironment) {
+      try {
+        await _api.markMyNotificationAsRead(id);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> markAllUserNotificationsRead() async {
+    userNotifications =
+        userNotifications.map((n) => n.copyWith(isRead: true)).toList();
+    userUnreadNotificationCount = 0;
+    _notify();
+    if (!_isTestEnvironment) {
+      try {
+        await _api.markAllMyNotificationsAsRead();
+      } catch (_) {}
+    }
+  }
+
+  /// Formats an ETA in minutes into a compact Arabic label.
+  static String formatEtaMinutes(int? minutes) {
+    if (minutes == null || minutes <= 0) return '';
+    if (minutes < 60) return '$minutes دقيقة';
+    final hours = minutes ~/ 60;
+    final rest = minutes % 60;
+    return rest == 0 ? '$hours ساعة' : '$hours ساعة و$rest دقيقة';
   }
 
   void saveProduct({

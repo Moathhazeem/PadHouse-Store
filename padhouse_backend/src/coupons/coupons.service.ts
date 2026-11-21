@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateCouponDto, UpdateCouponDto } from './dto/coupon.dto';
 
 export interface CouponEvaluation {
@@ -16,7 +17,10 @@ export interface CouponEvaluation {
 
 @Injectable()
 export class CouponsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   private async getOrCreateCart(profileId: string) {
     let cart = await this.prisma.cart.findUnique({ where: { customerProfileId: profileId } });
@@ -173,7 +177,7 @@ export class CouponsService {
     if (existing) {
       throw new BadRequestException('كود الخصم مستخدم مسبقاً');
     }
-    return this.prisma.coupon.create({
+    const coupon = await this.prisma.coupon.create({
       data: {
         code,
         type: dto.type,
@@ -187,6 +191,35 @@ export class CouponsService {
         descriptionAr: dto.descriptionAr,
         isActive: dto.isActive ?? true,
       },
+    });
+
+    // Announce a live coupon to all customers as a promotions notification.
+    if (coupon.isActive) {
+      await this.announcePromotion(coupon);
+    }
+
+    return coupon;
+  }
+
+  /** Broadcasts a promotions & discounts notification for a coupon. */
+  private async announcePromotion(coupon: {
+    code: string;
+    type: string;
+    value: unknown;
+    descriptionAr: string | null;
+  }) {
+    const value = Number(coupon.value);
+    const benefit =
+      coupon.type === 'PERCENT'
+        ? `خصم ${value}%`
+        : coupon.type === 'FIXED'
+          ? `خصم ${value} ₪`
+          : 'توصيل مجاني';
+    const description = coupon.descriptionAr ? ` ${coupon.descriptionAr}` : '';
+    await this.notifications.promote({
+      title: `عرض جديد: كود خصم ${coupon.code}`,
+      message: `تم إطلاق كود خصم جديد (${coupon.code}) يمنحك ${benefit}.${description}`,
+      metadata: { couponCode: coupon.code, action: 'view_promotions' },
     });
   }
 
@@ -205,7 +238,7 @@ export class CouponsService {
     if (!coupon) {
       throw new NotFoundException('كود الخصم غير موجود');
     }
-    return this.prisma.coupon.update({
+    const updated = await this.prisma.coupon.update({
       where: { id },
       data: {
         isActive: dto.isActive,
@@ -214,5 +247,12 @@ export class CouponsService {
         endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
       },
     });
+
+    // Announce the coupon when it transitions to active from Admin.
+    if (!coupon.isActive && updated.isActive) {
+      await this.announcePromotion(updated);
+    }
+
+    return updated;
   }
 }
