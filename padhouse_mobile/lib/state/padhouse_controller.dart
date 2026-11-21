@@ -504,6 +504,22 @@ class PadhouseController extends ChangeNotifier {
                 ? 'لم يصلني رد واضح. هل يمكنك إعادة صياغة سؤالك؟'
                 : answer),
       ];
+
+      // Keep the shared cart / order state in sync with what the assistant did.
+      // Prefer the cart snapshot returned with the reply so the badge updates on
+      // the same notify; only refetch when the reply carried no snapshot.
+      final action = result['action']?.toString();
+      if (action == 'ADDED_TO_CART') {
+        final cartJson = result['cart'];
+        if (cartJson is Map) {
+          _applyCartSnapshot(
+              CartSnapshot.fromJson(Map<String, dynamic>.from(cartJson)));
+        } else {
+          unawaited(_syncCart());
+        }
+      } else if (action == 'ORDER_CREATED') {
+        unawaited(refreshMyOrders());
+      }
     } catch (error) {
       if (error is DioException) {
         debugPrint(

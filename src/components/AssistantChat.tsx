@@ -1,18 +1,48 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bot, MessageCircle, Send, X } from 'lucide-react';
-import { ApiError, sendAssistantMessageApi, type AssistantChatTurn } from '../services/api';
+import { Bot, LogIn, MessageCircle, Send, ShoppingBag, ShoppingCart, X } from 'lucide-react';
+import {
+  ApiError,
+  sendAssistantMessageApi,
+  type AssistantChatAction,
+  type AssistantChatTurn,
+  type BackendCart,
+} from '../services/api';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  /** Set on assistant replies so the bubble can show action-specific feedback. */
+  action?: AssistantChatAction;
+  /** Order number, present when the assistant created an order. */
+  orderNumber?: string;
+  /** True when the action needs the customer to sign in first. */
+  requiresAuth?: boolean;
+}
+
+interface AssistantChatProps {
+  /**
+   * Called after the assistant adds an item. Receives the fresh cart snapshot
+   * the backend returned with the reply so the caller can apply it immediately
+   * (no extra round-trip). Falls back to `null` when no snapshot was included.
+   */
+  onCartUpdated?: (cart?: BackendCart | null) => void;
+  /** Called after the assistant places an order so the order history can be reloaded. */
+  onOrderCreated?: () => void;
+  /** Lets the chat route the customer to login / tracking when needed. */
+  onNavigate?: (page: string, params?: { orderId?: string }) => void;
 }
 
 const WELCOME: ChatMessage = {
   role: 'assistant',
-  content: 'مرحباً! أنا مساعد بادهاوس الذكي. أخبرني بموديل جهازك أو ما تبحث عنه لأساعدك في اختيار الملحق المناسب.',
+  content:
+    'مرحباً! أنا مساعد بادهاوس الذكي. أخبرني بموديل جهازك أو ما تبحث عنه، ويمكنك أن تقول "ضيفه للسلة" للإضافة فقط أو "بدي أشتري" لإتمام الطلب مباشرةً.',
 };
 
-export const AssistantChat: React.FC = () => {
+export const AssistantChat: React.FC<AssistantChatProps> = ({
+  onCartUpdated,
+  onOrderCreated,
+  onNavigate,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +71,28 @@ export const AssistantChat: React.FC = () => {
     const timeoutId = window.setTimeout(() => controller.abort(), 50_000);
     try {
       const response = await sendAssistantMessageApi(message, history, controller.signal);
-      setMessages((items) => [...items, { role: 'assistant', content: response.answer }]);
+
+      // Apply the cart snapshot the assistant returned so the shared cart
+      // (navbar badge + cart page) updates immediately, without a page reload
+      // or a second round-trip that could silently fail.
+      if (response.action === 'ADDED_TO_CART') onCartUpdated?.(response.cart ?? null);
+      if (response.action === 'ORDER_CREATED') onOrderCreated?.();
+
+      const orderNumber =
+        response.order && typeof response.order === 'object' && 'orderNumber' in response.order
+          ? String((response.order as { orderNumber?: string }).orderNumber || '')
+          : undefined;
+
+      setMessages((items) => [
+        ...items,
+        {
+          role: 'assistant',
+          content: response.answer,
+          action: response.action,
+          orderNumber: orderNumber || undefined,
+          requiresAuth: response.requiresAuth,
+        },
+      ]);
     } catch (error) {
       const content = controller.signal.aborted
         ? 'تأخر الرد قليلاً. يرجى المحاولة مرة أخرى.'
@@ -70,10 +121,49 @@ export const AssistantChat: React.FC = () => {
 
           <div className="flex-1 space-y-3 overflow-y-auto bg-ph-background p-3">
             {messages.map((item, index) => (
-              <div key={`${index}-${item.role}`} className={`flex ${item.role === 'user' ? 'justify-start' : 'justify-end'}`}>
+              <div key={`${index}-${item.role}`} className={`flex flex-col ${item.role === 'user' ? 'items-start' : 'items-end'}`}>
                 <p dir="auto" className={`max-w-[88%] whitespace-pre-wrap break-words text-right rounded-2xl px-3.5 py-2.5 text-sm leading-6 ${item.role === 'user' ? 'rounded-tr-sm bg-ph-brand text-white' : 'rounded-tl-sm border border-ph-border bg-white text-ph-ink'}`}>
                   {item.content}
                 </p>
+
+                {item.action === 'ADDED_TO_CART' && (
+                  <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-ph-brand/10 px-2.5 py-1 text-[11px] font-bold text-ph-brand">
+                    <ShoppingCart className="h-3.5 w-3.5" /> تمت الإضافة إلى السلة فقط
+                  </span>
+                )}
+
+                {item.action === 'ORDER_CREATED' && (
+                  <span className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-ph-brand/10 px-2.5 py-1 text-[11px] font-bold text-ph-brand">
+                      <ShoppingBag className="h-3.5 w-3.5" /> تم إنشاء الطلب
+                    </span>
+                    {item.orderNumber && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsOpen(false);
+                          onNavigate?.('tracking', { orderId: item.orderNumber });
+                        }}
+                        className="rounded-full border border-ph-brand px-2.5 py-1 text-[11px] font-bold text-ph-brand transition hover:bg-ph-brand hover:text-white"
+                      >
+                        تتبع الطلب
+                      </button>
+                    )}
+                  </span>
+                )}
+
+                {item.action === 'NEEDS_INFO' && item.requiresAuth && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onNavigate?.('login');
+                    }}
+                    className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-ph-brand px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-ph-brand-hover"
+                  >
+                    <LogIn className="h-3.5 w-3.5" /> تسجيل الدخول للمتابعة
+                  </button>
+                )}
               </div>
             ))}
             {isLoading && (

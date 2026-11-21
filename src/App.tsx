@@ -811,7 +811,18 @@ export default function App() {
 
       {/* Main Professional E-commerce Footer */}
       <Footer onNavigate={navigateTo} />
-      <AssistantChat />
+      <AssistantChat
+        onCartUpdated={(backendCart) => {
+          // Prefer the authoritative snapshot the assistant returned; only fall
+          // back to a refetch when the reply carried no cart payload.
+          if (backendCart) applyBackendCart(backendCart);
+          else void refreshBackendCart();
+        }}
+        onOrderCreated={() => {
+          void refreshBackendOrders();
+        }}
+        onNavigate={navigateTo}
+      />
     </div>
   );
 }

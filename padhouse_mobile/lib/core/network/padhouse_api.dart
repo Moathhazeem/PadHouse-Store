@@ -296,11 +296,12 @@ class PadhouseApi {
     required String message,
     required List<Map<String, String>> history,
   }) async {
+    // The endpoint uses an optional-auth guard: when the customer is signed in
+    // the token is attached so the assistant can run cart/order actions for them.
     final response = await _dio.post<dynamic>(
       '/ai/chat',
       data: {'message': message, 'history': history},
       options: Options(
-        extra: {ApiClient.skipAuthorizationExtra: true},
         sendTimeout: const Duration(seconds: 50),
         receiveTimeout: const Duration(seconds: 50),
       ),

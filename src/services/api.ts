@@ -155,15 +155,47 @@ export interface AssistantChatTurn {
   content: string;
 }
 
+/** What the assistant actually did, or why it still needs more information. */
+export type AssistantChatAction = 'ADDED_TO_CART' | 'ORDER_CREATED' | 'NEEDS_INFO' | 'NONE';
+
+export interface AssistantChatProduct {
+  id: string;
+  sku: string;
+  nameAr: string;
+  quantity: number;
+  variantId?: string;
+  color?: string;
+}
+
+/**
+ * Structured reply from `POST /ai/chat`. `answer` is the text shown in the
+ * chat bubble; the action metadata lets both clients refresh the shared cart /
+ * order state and render clear, specific feedback.
+ */
+export interface AssistantChatResponse {
+  answer: string;
+  action: AssistantChatAction;
+  product?: AssistantChatProduct;
+  /** Fresh cart snapshot after an "add to cart" (mirrors `GET /cart`). */
+  cart?: BackendCart;
+  /** Created order after a purchase (mirrors `POST /orders`). */
+  order?: BackendOrder;
+  /** Checkout fields the customer still has to provide. */
+  missingFields?: string[];
+  /** True when the action requires the customer to be signed in. */
+  requiresAuth?: boolean;
+}
+
 export async function sendAssistantMessageApi(
   message: string,
   history: AssistantChatTurn[],
   signal?: AbortSignal,
-): Promise<{ answer: string }> {
-  return apiFetch<{ answer: string }>('/ai/chat', {
+): Promise<AssistantChatResponse> {
+  // Sends the bearer token when the customer is signed in (the endpoint uses an
+  // optional-auth guard), so the assistant can run cart/order actions for them.
+  return apiFetch<AssistantChatResponse>('/ai/chat', {
     method: 'POST',
     body: { message, history },
-    auth: false,
     signal,
   });
 }
