@@ -109,8 +109,9 @@ export class ProductsController {
   async updateStock(
     @Param('id') id: string,
     @Body('stock') stock: number,
+    @CurrentUser('id') actorId: string,
   ) {
-    return this.productsService.updateStock(id, Number(stock));
+    return this.productsService.updateStock(id, Number(stock), actorId);
   }
 
   @ApiOperation({ summary: 'حذف منتج (لوحة الإدارة)' })

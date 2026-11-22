@@ -14,6 +14,7 @@ import { CouponsService } from '../coupons/coupons.service';
 import { LoyaltyService, POINTS_PER_ILS } from '../loyalty/loyalty.service';
 import { GiftCardsService } from '../gift-cards/gift-cards.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { InventoryService } from '../inventory/inventory.service';
 import {
   DEFAULT_SHIPPING_FEE,
   PAYMENT_METHODS,
@@ -47,6 +48,7 @@ export class OrdersService {
     private loyaltyService: LoyaltyService,
     private giftCardsService: GiftCardsService,
     private notificationsService: NotificationsService,
+    private inventoryService: InventoryService,
   ) {}
 
   /** Canonical lifecycle shared by both platforms. */
@@ -209,60 +211,27 @@ export class OrdersService {
         },
       });
 
-      // Stock decrement + inventory movement
+      // Stock decrement + inventory movement + Product.stock sync (all centralized in InventoryService)
       for (const item of cart.items) {
         if (item.variant.inventory) {
-          const stockUpdate = await tx.inventory.updateMany({
-            where: {
-              id: item.variant.inventory.id,
-              currentStock: { gte: item.quantity },
-            },
-            data: { currentStock: { decrement: item.quantity } },
-          });
-          if (stockUpdate.count !== 1) {
-            throw new BadRequestException(
-              `الكمية المطلوبة من المنتج "${item.product.nameAr}" لم تعد متوفرة`,
-            );
-          }
-
-          await tx.inventoryMovement.create({
-            data: {
-              inventoryId: item.variant.inventory.id,
-              quantity: -item.quantity,
+          // Negative stock is rejected by the centralized primitive, preserving the
+          // previous atomic guard (`currentStock: { gte: quantity }`).
+          await this.inventoryService.applyVariantDelta(
+            {
+              variantId: item.variantId,
+              delta: -item.quantity,
               type: 'ORDER_FULFILLMENT',
               notes: `حجز للطلب رقم ${orderNumber}`,
               actorId: userId,
             },
-          });
-        }
-
-        // Decrement Product level stock and evaluate low-stock notification
-        const updatedProduct = await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity,
-            },
-          },
-          select: {
-            id: true,
-            nameAr: true,
-            stock: true,
-            minStock: true,
-          },
-        });
-
-        // Trigger notification safely inside transaction if stock < minStock
-        if (updatedProduct.stock < updatedProduct.minStock) {
-          await this.notificationsService.checkAndCreateLowStockNotification(
-            {
-              productId: updatedProduct.id,
-              productNameAr: updatedProduct.nameAr,
-              stock: updatedProduct.stock,
-              minStock: updatedProduct.minStock,
-            },
             tx,
           );
+        } else {
+          // Legacy fallback: variants without an Inventory row still decrement Product.stock.
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } },
+          });
         }
       }
 
@@ -508,31 +477,23 @@ export class OrdersService {
       if (!existingRestock) {
         for (const item of order.items) {
           if (item.variant?.inventory) {
-            await tx.inventory.update({
-              where: { id: item.variant.inventory.id },
-              data: {
-                currentStock: { increment: item.quantity },
-              },
-            });
-
-            await tx.inventoryMovement.create({
-              data: {
-                inventoryId: item.variant.inventory.id,
-                quantity: item.quantity,
+            await this.inventoryService.applyVariantDelta(
+              {
+                variantId: item.variantId,
+                delta: item.quantity,
                 type: 'RETURN_RESTOCK',
                 notes: `استرجاع مخزون بسبب إلغاء الطلب رقم ${order.orderNumber}`,
                 actorId,
               },
+              tx,
+            );
+          } else {
+            // Legacy fallback: restore Product.stock for variants without an Inventory row.
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.quantity } },
             });
           }
-
-          // Restore Product level stock
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              stock: { increment: item.quantity },
-            },
-          });
         }
       }
 

@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationsService } from './notifications.service';
+import {
+  NotificationsService,
+  USER_NOTIFICATION_TYPES,
+} from './notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
@@ -31,7 +34,7 @@ describe('NotificationsService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all notifications newest first along with unread count', async () => {
+    it('should return admin notifications newest first along with unread count', async () => {
       const mockNotifications = [
         { id: '1', title: 'Low Stock', createdAt: new Date() },
         { id: '2', title: 'Low Stock 2', createdAt: new Date() },
@@ -41,12 +44,20 @@ describe('NotificationsService', () => {
 
       const result = await service.findAll();
 
+      // The admin console list is scoped to global (userId = null) notifications
+      // that are not customer-facing (excludes USER_NOTIFICATION_TYPES).
+      const expectedWhere = {
+        userId: null,
+        type: { notIn: [...USER_NOTIFICATION_TYPES] },
+      };
+
       expect(prisma.notification.findMany).toHaveBeenCalledWith({
+        where: expectedWhere,
         orderBy: { createdAt: 'desc' },
         include: expect.any(Object),
       });
       expect(prisma.notification.count).toHaveBeenCalledWith({
-        where: { isRead: false },
+        where: { ...expectedWhere, isRead: false },
       });
       expect(result).toEqual({
         notifications: mockNotifications,

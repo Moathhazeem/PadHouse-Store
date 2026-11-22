@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { InventoryService } from '../inventory/inventory.service';
 import { mapCatalogProduct } from './product.mapper';
 import { CreateProductDto, UpdateProductDto } from './dto';
 
@@ -23,6 +24,7 @@ export class ProductsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private inventoryService: InventoryService,
   ) {}
 
   async fetchProductImage(sourceUrl: string): Promise<{ buffer: Buffer; contentType: string }> {
@@ -285,7 +287,8 @@ async findAll(query: {
         ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
         ...(dto.basePrice !== undefined ? { basePrice: dto.basePrice } : {}),
         ...(dto.salePrice !== undefined ? { salePrice: dto.salePrice } : {}),
-        ...(dto.stock !== undefined ? { stock: dto.stock } : {}),
+        // `stock` is intentionally omitted: it is owned by InventoryService so that
+        // Product.stock always equals the sum of the product's variant stocks.
         ...(dto.minStock !== undefined ? { minStock: dto.minStock } : {}),
         ...(dto.maxStock !== undefined ? { maxStock: dto.maxStock } : {}),
         ...(dto.ipadCompatibility ? { ipadCompatibility: dto.ipadCompatibility } : {}),
@@ -295,6 +298,18 @@ async findAll(query: {
       },
       include: CATALOG_INCLUDE,
     });
+
+    // Stock changes go through the unified stock service (syncs variants + records a movement).
+    if (dto.stock !== undefined) {
+      await this.inventoryService.setProductStock(id, dto.stock);
+
+      const refreshed = await this.prisma.product.findUnique({
+        where: { id },
+        include: CATALOG_INCLUDE,
+      });
+
+      return mapCatalogProduct(refreshed);
+    }
 
     // Check low-stock trigger (stock < minStock)
     if (updated.stock < updated.minStock) {
@@ -310,41 +325,16 @@ async findAll(query: {
   }
 
   /**
-   * Directly updates stock for ERP inventory management.
-   * Safe to call inside an existing transaction or standalone.
+   * Product-level stock update for ERP inventory management.
+   * Delegates to InventoryService so the product's variant inventories stay in sync
+   * (Product.stock becomes the sum of variants) and an audit movement is recorded.
    */
-  async updateStock(id: string, newStock: number, tx?: Prisma.TransactionClient) {
+  async updateStock(id: string, newStock: number, actorId?: string, tx?: Prisma.TransactionClient) {
     if (newStock < 0) {
       throw new BadRequestException('لا يمكن أن يكون المخزون سالباً');
     }
 
-    const client = tx || this.prisma;
-    const existing = await client.product.findUnique({
-      where: { id },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('المنتج غير موجود');
-    }
-
-    const updated = await client.product.update({
-      where: { id },
-      data: { stock: newStock },
-    });
-
-    if (updated.stock < updated.minStock) {
-      await this.notificationsService.checkAndCreateLowStockNotification(
-        {
-          productId: updated.id,
-          productNameAr: updated.nameAr,
-          stock: updated.stock,
-          minStock: updated.minStock,
-        },
-        tx,
-      );
-    }
-
-    return updated;
+    return this.inventoryService.setProductStock(id, newStock, actorId, undefined, tx);
   }
 
   async remove(id: string) {

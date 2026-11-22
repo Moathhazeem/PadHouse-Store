@@ -10,15 +10,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  BarChart3,
   Bell,
   CheckCircle2,
+  ClipboardList,
   Layers,
   Loader2,
   PackageCheck,
   PackageX,
   Plus,
   RefreshCw,
+  Sparkles,
   Trash2,
+  TrendingUp,
+  Truck,
   XCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -42,7 +47,14 @@ import {
   AdminInventoryTable,
   AdminRestockModal,
   AdminOrdersPanel,
+  AdminSuppliersPanel,
+  AdminPurchaseOrdersPanel,
+  AdminPurchaseDashboard,
+  AdminGoodsReceiptPanel,
+  AdminPurchaseAnalytics,
+  AdminAiReorderPanel,
   type AdminRestockTarget,
+  type PurchaseSection,
   calculateStockStatus,
 } from '../components/admin';
 
@@ -52,6 +64,16 @@ interface AdminPageProps {
 }
 
 export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate }) => {
+  /* ── Section navigation ── */
+  const [section, setSection] = useState<PurchaseSection>('inventory');
+  /** Order id to auto-open when handing off from another purchase section. */
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+
+  const openOrderInPurchaseOrders = (orderId: string) => {
+    setPendingOrderId(orderId);
+    setSection('purchase-orders');
+  };
+
   /* ── Products state ── */
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
@@ -352,25 +374,135 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Notification Bell with unread badge */}
-          <AdminNotificationBell
-            unreadCount={unreadCount}
-            active={notifPanelOpen}
-            onClick={() => setNotifPanelOpen((prev) => !prev)}
-            variant="dashboard"
-          />
+          {section === 'inventory' && (
+            <>
+              {/* Notification Bell with unread badge */}
+              <AdminNotificationBell
+                unreadCount={unreadCount}
+                active={notifPanelOpen}
+                onClick={() => setNotifPanelOpen((prev) => !prev)}
+                variant="dashboard"
+              />
 
-          <button
-            type="button"
-            onClick={() => setFormModal({ mode: 'add' })}
-            className="flex items-center gap-2 bg-ph-brand hover:bg-ph-brand-hover text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm active:scale-98"
-          >
-            <Plus className="h-4 w-4" />
-            <span>إضافة منتج جديد</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => setFormModal({ mode: 'add' })}
+                className="flex items-center gap-2 bg-ph-brand hover:bg-ph-brand-hover text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm active:scale-98"
+              >
+                <Plus className="h-4 w-4" />
+                <span>إضافة منتج جديد</span>
+              </button>
+            </>
+          )}
         </div>
       </header>
 
+      {/* ── Section Tabs ── */}
+      <div className="flex items-center gap-1.5 border-b border-ph-border -mt-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setSection('inventory')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'inventory'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <Layers className="h-4 w-4" />
+          <span>المنتجات والمخزون</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection('purchase-dashboard')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'purchase-dashboard'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <BarChart3 className="h-4 w-4" />
+          <span>لوحة المشتريات</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection('suppliers')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'suppliers'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <Truck className="h-4 w-4" />
+          <span>إدارة الموردين</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection('purchase-orders')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'purchase-orders'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <ClipboardList className="h-4 w-4" />
+          <span>أوامر الشراء</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection('ai-reorder')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'ai-reorder'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <Sparkles className="h-4 w-4" />
+          <span>مساعد المشتريات الذكي</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection('goods-receipts')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'goods-receipts'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <PackageCheck className="h-4 w-4" />
+          <span>استلام البضائع</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection('purchase-analytics')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'purchase-analytics'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <TrendingUp className="h-4 w-4" />
+          <span>تحليلات المشتريات</span>
+        </button>
+      </div>
+
+      {section === 'purchase-dashboard' ? (
+        <AdminPurchaseDashboard onToast={showToast} onNavigate={setSection} />
+      ) : section === 'suppliers' ? (
+        <AdminSuppliersPanel onToast={showToast} />
+      ) : section === 'purchase-orders' ? (
+        <AdminPurchaseOrdersPanel
+          onToast={showToast}
+          initialOrderId={pendingOrderId}
+          onInitialOrderConsumed={() => setPendingOrderId(null)}
+        />
+      ) : section === 'goods-receipts' ? (
+        <AdminGoodsReceiptPanel onToast={showToast} onOpenOrder={openOrderInPurchaseOrders} />
+      ) : section === 'purchase-analytics' ? (
+        <AdminPurchaseAnalytics onToast={showToast} />
+      ) : section === 'ai-reorder' ? (
+        <AdminAiReorderPanel onToast={showToast} onOpenOrder={openOrderInPurchaseOrders} />
+      ) : (
+        <>
       {/* ── KPI Stat Summary Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-ph-border bg-white p-4 shadow-2xs">
@@ -488,6 +620,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
           </div>
         )}
       </section>
+        </>
+      )}
     </div>
   );
 };

@@ -17,6 +17,8 @@ import { DeliveryModule } from './delivery/delivery.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { GiftCardsModule } from './gift-cards/gift-cards.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 import { AiModule } from './ai/ai.module';
 
 @Module({
@@ -42,6 +44,8 @@ import { AiModule } from './ai/ai.module';
     DeliveryModule,
     LoyaltyModule,
     GiftCardsModule,
+    SuppliersModule,
+    PurchaseOrdersModule,
     AiModule,
   ],
   controllers: [],

@@ -235,6 +235,667 @@ export async function adminResolveOrderCrisisApi(
 }
 
 /* ------------------------------------------------------------------ */
+/* Suppliers (Purchase Management Module)                               */
+/* ------------------------------------------------------------------ */
+
+export type AdminSupplierStatus = 'ACTIVE' | 'INACTIVE';
+
+export interface AdminSupplier {
+  id: string;
+  name: string;
+  company: string | null;
+  contactName: string | null;
+  phone: string;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  notes: string | null;
+  status: AdminSupplierStatus;
+  isActive: boolean;
+  /** Sum of non-cancelled purchase orders linked to the supplier. */
+  totalPurchaseValue: number;
+  purchaseOrdersCount: number;
+  lastPurchaseAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminPurchaseOrder {
+  id: string;
+  orderNumber: string;
+  status: string;
+  totalAmount: number;
+  notes: string | null;
+  expectedAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+}
+
+export interface AdminSupplierDetails extends AdminSupplier {
+  purchaseHistory: AdminPurchaseOrder[];
+}
+
+export interface AdminSupplierListResult {
+  items: AdminSupplier[];
+  total: number;
+  active: number;
+  inactive: number;
+  totalPurchaseValue: number;
+}
+
+export interface AdminSupplierFormData {
+  name: string;
+  company?: string;
+  contactName?: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  notes?: string;
+  status?: AdminSupplierStatus;
+}
+
+export async function adminFetchSuppliersApi(params?: {
+  search?: string;
+  status?: AdminSupplierStatus;
+}): Promise<AdminSupplierListResult> {
+  const qs = new URLSearchParams();
+  if (params?.search?.trim()) qs.set('search', params.search.trim());
+  if (params?.status) qs.set('status', params.status);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return adminFetch<AdminSupplierListResult>(`/suppliers${suffix}`);
+}
+
+export async function adminFetchSupplierApi(id: string): Promise<AdminSupplierDetails> {
+  return adminFetch<AdminSupplierDetails>(`/suppliers/${id}`);
+}
+
+export async function adminCreateSupplierApi(data: AdminSupplierFormData): Promise<AdminSupplier> {
+  return adminFetch<AdminSupplier>('/suppliers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function adminUpdateSupplierApi(
+  id: string,
+  data: Partial<AdminSupplierFormData>,
+): Promise<AdminSupplier> {
+  return adminFetch<AdminSupplier>(`/suppliers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function adminUpdateSupplierStatusApi(
+  id: string,
+  status: AdminSupplierStatus,
+): Promise<AdminSupplier> {
+  return adminFetch<AdminSupplier>(`/suppliers/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function adminDeleteSupplierApi(id: string): Promise<void> {
+  return adminFetch(`/suppliers/${id}`, { method: 'DELETE' });
+}
+
+/* ------------------------------------------------------------------ */
+/* Purchase Orders (Purchase Management Module)                        */
+/* ------------------------------------------------------------------ */
+
+export type PurchaseOrderStatus =
+  | 'DRAFT'
+  | 'PENDING_APPROVAL'
+  | 'APPROVED'
+  | 'SENT'
+  | 'PARTIALLY_RECEIVED'
+  | 'RECEIVED'
+  | 'CANCELLED';
+
+export interface AdminPurchaseOrderSupplier {
+  id: string;
+  name: string;
+  company: string | null;
+  contactName?: string | null;
+  phone?: string;
+  email?: string | null;
+  city?: string | null;
+  status?: string;
+}
+
+export interface AdminPurchaseOrderCreator {
+  id: string;
+  fullName: string;
+  email?: string;
+}
+
+export interface AdminPurchaseOrderLine {
+  id: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  orderedQuantity: number;
+  receivedQuantity: number;
+  remainingQuantity: number;
+  unitCost: number;
+  discountRate: number;
+  taxRate: number;
+  discountAmount: number;
+  taxAmount: number;
+  lineSubtotal: number;
+  /** Live stock of the linked product; increases when a receipt is confirmed. */
+  currentStock: number | null;
+}
+
+export interface AdminPurchaseOrderStatusEntry {
+  id: string;
+  fromStatus: PurchaseOrderStatus | null;
+  toStatus: PurchaseOrderStatus;
+  notes: string | null;
+  actorId: string | null;
+  actorName: string | null;
+  createdAt: string;
+}
+
+export interface AdminPurchaseOrderListItem {
+  id: string;
+  orderNumber: string;
+  status: PurchaseOrderStatus;
+  supplier: AdminPurchaseOrderSupplier | null;
+  createdBy: AdminPurchaseOrderCreator | null;
+  currency: string;
+  paymentTerms: string | null;
+  orderDate: string;
+  expectedAt: string | null;
+  receivedAt: string | null;
+  itemsCount: number;
+  subtotal: number;
+  discountTotal: number;
+  taxTotal: number;
+  shippingCost: number;
+  grandTotal: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminPurchaseOrderListResult {
+  items: AdminPurchaseOrderListItem[];
+  total: number;
+  byStatus: Record<string, number>;
+  totalValue: number;
+}
+
+export interface AdminGoodsReceiptItem {
+  id: string;
+  purchaseOrderItemId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  /** Quantity received in this receipt (not cumulative). */
+  quantityReceived: number;
+  unitCost: number;
+}
+
+export interface AdminGoodsReceipt {
+  id: string;
+  receiptNumber: string;
+  receivedAt: string;
+  receivedById: string | null;
+  receivedByName: string | null;
+  notes: string | null;
+  items: AdminGoodsReceiptItem[];
+}
+
+export interface AdminPurchaseOrderDetails
+  extends Omit<AdminPurchaseOrderListItem, 'itemsCount'> {
+  notes: string | null;
+  items: AdminPurchaseOrderLine[];
+  statusHistory: AdminPurchaseOrderStatusEntry[];
+  /** Goods receipts already recorded against this order (newest first). */
+  receipts: AdminGoodsReceipt[];
+  /** Transitions permitted by the backend state machine for the current status. */
+  allowedTransitions: PurchaseOrderStatus[];
+}
+
+export interface AdminPurchaseOrderItemInput {
+  productId: string;
+  orderedQuantity: number;
+  unitCost: number;
+  discountRate?: number;
+  taxRate?: number;
+}
+
+export interface AdminPurchaseOrderFormData {
+  supplierId: string;
+  currency?: string;
+  paymentTerms?: string;
+  orderDate?: string;
+  expectedAt?: string;
+  notes?: string;
+  shippingCost?: number;
+  items: AdminPurchaseOrderItemInput[];
+}
+
+export interface AdminReceiveLineInput {
+  itemId: string;
+  /** Quantity received in this receipt (a positive delta, not the cumulative total). */
+  quantityReceived: number;
+}
+
+export async function adminFetchPurchaseOrdersApi(params?: {
+  status?: PurchaseOrderStatus;
+  supplierId?: string;
+  search?: string;
+  /** ISO date — only orders on/after this date (used by the analytics range). */
+  from?: string;
+  /** ISO date — only orders on/before this date. */
+  to?: string;
+}): Promise<AdminPurchaseOrderListResult> {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set('status', params.status);
+  if (params?.supplierId) qs.set('supplierId', params.supplierId);
+  if (params?.search?.trim()) qs.set('search', params.search.trim());
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return adminFetch<AdminPurchaseOrderListResult>(`/purchase-orders${suffix}`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Purchase Analytics (server-side aggregation over real records)      */
+/* ------------------------------------------------------------------ */
+
+export interface AdminPurchaseAnalyticsKpis {
+  /** All matching orders (including cancelled). */
+  totalOrders: number;
+  /** Committed spend: sum of grand totals excluding cancelled orders. */
+  totalPurchaseAmount: number;
+  pendingApprovalOrders: number;
+  approvedOrders: number;
+  partiallyReceivedOrders: number;
+  /** Orders received in full. */
+  completedOrders: number;
+  /** Units actually received across non-cancelled orders. */
+  totalProductsPurchased: number;
+  /** Units ordered but not yet received, on committed orders. */
+  outstandingQuantity: number;
+}
+
+export interface AdminPurchaseStatusDistributionRow {
+  status: PurchaseOrderStatus;
+  count: number;
+  value: number;
+}
+
+export interface AdminPurchaseMonthlySpendingPoint {
+  /** Stable `YYYY-MM` key. */
+  key: string;
+  orders: number;
+  total: number;
+}
+
+export interface AdminPurchaseTopSupplierRow {
+  id: string;
+  name: string;
+  company: string | null;
+  orders: number;
+  total: number;
+  /** Share of the total committed spend, as a percentage. */
+  share: number;
+}
+
+export interface AdminPurchaseSupplierPerformanceRow {
+  id: string;
+  name: string;
+  company: string | null;
+  orders: number;
+  total: number;
+  completedOrders: number;
+  /** Completed / total orders, as a percentage. */
+  completionRate: number;
+  receivedQuantity: number;
+  outstandingQuantity: number;
+  /** Average days between order date and full receipt (null if none completed). */
+  avgLeadTimeDays: number | null;
+}
+
+export interface AdminPurchaseOutstandingProductRow {
+  productId: string;
+  productName: string;
+  sku: string;
+  orders: number;
+  orderedQuantity: number;
+  receivedQuantity: number;
+  outstandingQuantity: number;
+}
+
+export interface AdminPurchaseRecentOrderRow {
+  id: string;
+  orderNumber: string;
+  status: PurchaseOrderStatus;
+  supplierName: string | null;
+  supplierCompany: string | null;
+  currency: string;
+  orderDate: string;
+  expectedAt: string | null;
+  grandTotal: number;
+  itemsCount: number;
+}
+
+export interface AdminPurchaseAnalyticsFilters {
+  from: string | null;
+  to: string | null;
+  supplierId: string | null;
+  status: PurchaseOrderStatus | null;
+  productId: string | null;
+  topLimit: number;
+  months: number;
+}
+
+export interface AdminPurchaseAnalyticsResult {
+  filters: AdminPurchaseAnalyticsFilters;
+  kpis: AdminPurchaseAnalyticsKpis;
+  statusDistribution: AdminPurchaseStatusDistributionRow[];
+  monthlySpending: AdminPurchaseMonthlySpendingPoint[];
+  topSuppliers: AdminPurchaseTopSupplierRow[];
+  supplierPerformance: AdminPurchaseSupplierPerformanceRow[];
+  outstandingByProduct: AdminPurchaseOutstandingProductRow[];
+  recentOrders: AdminPurchaseRecentOrderRow[];
+  generatedAt: string;
+}
+
+export interface AdminPurchaseAnalyticsParams {
+  from?: string;
+  to?: string;
+  supplierId?: string;
+  status?: PurchaseOrderStatus;
+  productId?: string;
+  topLimit?: number;
+  months?: number;
+}
+
+/**
+ * Server-aggregated purchase analytics. Every figure is computed by the backend
+ * from real purchase-order records — nothing is mocked on the client.
+ */
+export async function adminFetchPurchaseAnalyticsApi(
+  params?: AdminPurchaseAnalyticsParams,
+): Promise<AdminPurchaseAnalyticsResult> {
+  const qs = new URLSearchParams();
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  if (params?.supplierId) qs.set('supplierId', params.supplierId);
+  if (params?.status) qs.set('status', params.status);
+  if (params?.productId) qs.set('productId', params.productId);
+  if (params?.topLimit != null) qs.set('topLimit', String(params.topLimit));
+  if (params?.months != null) qs.set('months', String(params.months));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return adminFetch<AdminPurchaseAnalyticsResult>(`/purchase-orders/analytics${suffix}`);
+}
+
+export async function adminFetchPurchaseOrderApi(id: string): Promise<AdminPurchaseOrderDetails> {
+  return adminFetch<AdminPurchaseOrderDetails>(`/purchase-orders/${id}`);
+}
+
+export async function adminCreatePurchaseOrderApi(
+  data: AdminPurchaseOrderFormData,
+): Promise<AdminPurchaseOrderDetails> {
+  return adminFetch<AdminPurchaseOrderDetails>('/purchase-orders', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function adminUpdatePurchaseOrderApi(
+  id: string,
+  data: Partial<AdminPurchaseOrderFormData>,
+): Promise<AdminPurchaseOrderDetails> {
+  return adminFetch<AdminPurchaseOrderDetails>(`/purchase-orders/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function adminDeletePurchaseOrderApi(id: string): Promise<void> {
+  return adminFetch(`/purchase-orders/${id}`, { method: 'DELETE' });
+}
+
+/** DRAFT → PENDING_APPROVAL */
+export async function adminSubmitPurchaseOrderApi(
+  id: string,
+  notes?: string,
+): Promise<AdminPurchaseOrderDetails> {
+  return adminFetch<AdminPurchaseOrderDetails>(`/purchase-orders/${id}/submit`, {
+    method: 'POST',
+    body: JSON.stringify({ notes }),
+  });
+}
+
+/** PENDING_APPROVAL → APPROVED */
+export async function adminApprovePurchaseOrderApi(
+  id: string,
+  notes?: string,
+): Promise<AdminPurchaseOrderDetails> {
+  return adminFetch<AdminPurchaseOrderDetails>(`/purchase-orders/${id}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ notes }),
+  });
+}
+
+/** PENDING_APPROVAL → DRAFT (sent back for changes) */
+export async function adminRejectPurchaseOrderApi(
+  id: string,
+  notes?: string,
+): Promise<AdminPurchaseOrderDetails> {
+  return adminFetch<AdminPurchaseOrderDetails>(`/purchase-orders/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ notes }),
+  });
+}
+
+/** APPROVED → SENT */
+export async function adminSendPurchaseOrderApi(
+  id: string,
+  notes?: string,
+): Promise<AdminPurchaseOrderDetails> {
+  return adminFetch<AdminPurchaseOrderDetails>(`/purchase-orders/${id}/send`, {
+    method: 'POST',
+    body: JSON.stringify({ notes }),
+  });
+}
+
+/**
+ * Confirms a goods receipt. Each line's `quantityReceived` is a positive delta
+ * for THIS receipt. On success the backend increases product stock, writes an
+ * inventory movement, and advances the order to partially/fully received.
+ */
+export async function adminReceivePurchaseOrderApi(
+  id: string,
+  data: { items: AdminReceiveLineInput[]; notes?: string },
+): Promise<AdminPurchaseOrderDetails> {
+  return adminFetch<AdminPurchaseOrderDetails>(`/purchase-orders/${id}/receive`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/** Any non-final state → CANCELLED */
+export async function adminCancelPurchaseOrderApi(
+  id: string,
+  data?: { reason?: string; notes?: string },
+): Promise<AdminPurchaseOrderDetails> {
+  return adminFetch<AdminPurchaseOrderDetails>(`/purchase-orders/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify(data || {}),
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Purchase Management AI assistant (extends the existing /ai module)  */
+/* ------------------------------------------------------------------ */
+
+export type AdminAiReorderPriority = 'HIGH' | 'MEDIUM' | 'LOW';
+
+/** Whether a suggested supplier comes from real purchase history or the active list. */
+export type AdminAiSupplierMatchSource = 'HISTORY' | 'SUGGESTED';
+
+export interface AdminAiReorderSupplierOption {
+  id: string;
+  name: string;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+  isPreferred: boolean;
+  source: AdminAiSupplierMatchSource;
+  purchaseOrdersCount: number;
+  lastPurchaseAt: string | null;
+}
+
+export interface AdminAiReorderSuggestion {
+  productId: string;
+  sku: string;
+  nameAr: string;
+  category: string | null;
+  currentStock: number;
+  minStock: number;
+  maxStock: number;
+  avgDailySales: number;
+  unitsSoldWindow: number;
+  /** Units on orders still awaiting a decision (DRAFT / PENDING_APPROVAL). */
+  pendingQuantity: number;
+  /** Units committed to a supplier but not yet received (inbound). */
+  outstandingQuantity: number;
+  inboundQuantity: number;
+  projectedStock: number;
+  suggestedQuantity: number;
+  suggestedUnitCost: number;
+  /** True when no cost is recorded — the admin must price the line before sending. */
+  needsPricing: boolean;
+  estimatedLineCost: number;
+  priority: AdminAiReorderPriority;
+  reason: string;
+  supplierCandidates: AdminAiReorderSupplierOption[];
+  preferredSupplier: AdminAiReorderSupplierOption | null;
+}
+
+/** Low-stock products already covered by pending/incoming quantities (dedupe evidence). */
+export interface AdminAiCoveredRestockItem {
+  productId: string;
+  sku: string;
+  nameAr: string;
+  currentStock: number;
+  minStock: number;
+  pendingQuantity: number;
+  outstandingQuantity: number;
+  inboundQuantity: number;
+  projectedStock: number;
+  note: string;
+}
+
+export interface AdminAiReorderKpis {
+  productsAnalyzed: number;
+  productsNeedingRestock: number;
+  productsCoveredByInbound: number;
+  outOfStockCount: number;
+  estimatedTotalCost: number;
+  currency: string;
+  windowDays: number;
+}
+
+export interface AdminAiReorderAnalysisResult {
+  generatedAt: string;
+  windowDays: number;
+  summary: string;
+  kpis: AdminAiReorderKpis;
+  suggestions: AdminAiReorderSuggestion[];
+  covered: AdminAiCoveredRestockItem[];
+}
+
+export interface AdminAiDraftPoItem {
+  productId: string;
+  productName: string;
+  sku: string;
+  orderedQuantity: number;
+  unitCost: number;
+  lineSubtotal: number;
+  needsPricing: boolean;
+}
+
+export interface AdminAiDraftPoSummary {
+  id: string;
+  orderNumber: string;
+  status: PurchaseOrderStatus;
+  currency: string;
+  supplier: { id: string; name: string; company: string | null } | null;
+  orderDate: string;
+  expectedAt: string | null;
+  grandTotal: number;
+  itemsCount: number;
+  items: AdminAiDraftPoItem[];
+}
+
+export interface AdminAiSkippedRestockItem {
+  productId: string;
+  nameAr: string;
+  reason: string;
+}
+
+export interface AdminAiDraftPurchaseOrderResult {
+  reply: string;
+  analysis: AdminAiReorderAnalysisResult;
+  drafts: AdminAiDraftPoSummary[];
+  skipped: AdminAiSkippedRestockItem[];
+  /** Always true: AI output is advisory and never auto-executed. */
+  requiresApproval: true;
+}
+
+export interface AdminAiReorderSuggestionsParams {
+  categoryId?: string;
+  windowDays?: number;
+  limit?: number;
+}
+
+export interface AdminAiDraftPurchaseOrderRequest {
+  message?: string;
+  supplierId?: string;
+  productIds?: string[];
+  windowDays?: number;
+  limit?: number;
+  expectedAt?: string;
+  notes?: string;
+}
+
+/**
+ * Read-only reorder analysis straight from the existing AI assistant. Returns
+ * products needing restocking, suggested quantities (deduplicated against
+ * pending/outstanding purchase orders) and supplier suggestions.
+ */
+export async function adminFetchAiReorderSuggestionsApi(
+  params?: AdminAiReorderSuggestionsParams,
+): Promise<AdminAiReorderAnalysisResult> {
+  return adminFetch<AdminAiReorderAnalysisResult>('/ai/inventory/reorder-suggestions', {
+    method: 'POST',
+    body: JSON.stringify(params ?? {}),
+  });
+}
+
+/**
+ * Generates **DRAFT** purchase orders for the products that need restocking.
+ * The assistant never approves, sends or confirms receipts — the admin reviews
+ * the returned drafts and performs those actions manually.
+ */
+export async function adminCreateAiDraftPurchaseOrderApi(
+  data: AdminAiDraftPurchaseOrderRequest,
+): Promise<AdminAiDraftPurchaseOrderResult> {
+  return adminFetch<AdminAiDraftPurchaseOrderResult>('/ai/inventory/draft-purchase-order', {
+    method: 'POST',
+    body: JSON.stringify(data ?? {}),
+  });
+}
+
+/* ------------------------------------------------------------------ */
 /* Restock (uses PATCH /products/:id/stock — sets absolute qty)        */
 /* or uses inventory variant endpoint if available                     */
 /* ------------------------------------------------------------------ */

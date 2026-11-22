@@ -244,17 +244,25 @@ async function main() {
 
       // Inventory is a 1:1 relation on the variant, so it is upserted separately
       // to keep the seeded quantity in sync on every re-run (idempotent).
+      //
+      // `Product.stock` is a denormalized aggregate equal to the sum of all of the
+      // product's variant stocks (see InventoryService). To preserve that invariant
+      // for multi-variant products, the whole seeded quantity is credited to the
+      // primary (first) variant only; the remaining variants start at zero. This
+      // also mirrors `InventoryService.resolveReceivingVariant`, which credits
+      // purchase receipts to the product's first tracked variant.
       const costPrice = Math.round(p.price * 0.6);
+      const variantStock = i === 0 ? p.stock : 0;
       await prisma.inventory.upsert({
         where: { variantId: variant.id },
         update: {
-          currentStock: p.stock,
+          currentStock: variantStock,
           minThreshold: p.minThreshold || 5,
           costPrice,
         },
         create: {
           variantId: variant.id,
-          currentStock: p.stock,
+          currentStock: variantStock,
           minThreshold: p.minThreshold || 5,
           costPrice,
         },

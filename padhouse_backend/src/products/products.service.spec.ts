@@ -3,11 +3,13 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 describe('ProductsService', () => {
   let service: ProductsService;
   let prisma: any;
   let notificationsService: any;
+  let inventoryService: any;
 
   beforeEach(async () => {
     prisma = {
@@ -25,11 +27,16 @@ describe('ProductsService', () => {
       checkAndCreateLowStockNotification: jest.fn(),
     };
 
+    inventoryService = {
+      setProductStock: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProductsService,
         { provide: PrismaService, useValue: prisma },
         { provide: NotificationsService, useValue: notificationsService },
+        { provide: InventoryService, useValue: inventoryService },
       ],
     }).compile();
 
@@ -172,7 +179,8 @@ describe('ProductsService', () => {
         reviews: [],
       });
 
-      await service.update('p-1', { stock: 3 });
+      // No `stock` in the payload: the direct update path (and its low-stock check) is used.
+      await service.update('p-1', { nameAr: 'منتج محدّث' });
 
       expect(notificationsService.checkAndCreateLowStockNotification).toHaveBeenCalledWith({
         productId: 'p-1',
@@ -181,6 +189,34 @@ describe('ProductsService', () => {
         minStock: 5,
       });
     });
+
+    it('should route stock changes through InventoryService to keep variants synced', async () => {
+      prisma.product.findUnique
+        .mockResolvedValueOnce({
+          id: 'p-1',
+          nameAr: 'منتج',
+          stock: 10,
+          minStock: 5,
+          maxStock: 50,
+        })
+        .mockResolvedValueOnce({
+          id: 'p-1',
+          nameAr: 'منتج',
+          stock: 25,
+          minStock: 5,
+          maxStock: 50,
+          basePrice: 50,
+          images: [],
+          variants: [],
+          reviews: [],
+        });
+      prisma.product.update.mockResolvedValue({ id: 'p-1' });
+      inventoryService.setProductStock.mockResolvedValue({ id: 'p-1', stock: 25 });
+
+      await service.update('p-1', { stock: 25 });
+
+      expect(inventoryService.setProductStock).toHaveBeenCalledWith('p-1', 25);
+    });
   });
 
   describe('updateStock', () => {
@@ -188,33 +224,16 @@ describe('ProductsService', () => {
       await expect(service.updateStock('p-1', -5)).rejects.toThrow(BadRequestException);
     });
 
-    it('should update stock and trigger notification if stock < minStock', async () => {
-      prisma.product.findUnique.mockResolvedValue({
-        id: 'p-1',
-        nameAr: 'كفر',
-        stock: 10,
-        minStock: 5,
-      });
-      prisma.product.update.mockResolvedValue({
-        id: 'p-1',
-        nameAr: 'كفر',
-        stock: 2,
-        minStock: 5,
-      });
+    it('should delegate to InventoryService so Product and variant stock stay in sync', async () => {
+      inventoryService.setProductStock.mockResolvedValue({ id: 'p-1', stock: 2 });
 
-      await service.updateStock('p-1', 2);
+      await service.updateStock('p-1', 2, 'actor-1');
 
-      expect(prisma.product.update).toHaveBeenCalledWith({
-        where: { id: 'p-1' },
-        data: { stock: 2 },
-      });
-      expect(notificationsService.checkAndCreateLowStockNotification).toHaveBeenCalledWith(
-        {
-          productId: 'p-1',
-          productNameAr: 'كفر',
-          stock: 2,
-          minStock: 5,
-        },
+      expect(inventoryService.setProductStock).toHaveBeenCalledWith(
+        'p-1',
+        2,
+        'actor-1',
+        undefined,
         undefined,
       );
     });
