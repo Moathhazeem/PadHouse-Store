@@ -36,9 +36,11 @@ const statusLabel = (code: string) =>
 
 export interface AdminOrdersPanelProps {
   onToast?: (message: string, type?: 'ok' | 'err') => void;
+  initialOrderId?: string | null;
+  onInitialOrderConsumed?: () => void;
 }
 
-export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ onToast }) => {
+export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ onToast, initialOrderId, onInitialOrderConsumed }) => {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,13 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ onToast }) =
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    if (!initialOrderId || loading) return;
+    const match = orders.find((order) => order.id === initialOrderId);
+    if (match) setActiveOrder(match);
+    onInitialOrderConsumed?.();
+  }, [initialOrderId, loading, orders, onInitialOrderConsumed]);
 
   const crisisCount = orders.filter((o) => o.isUrgentCrisis).length;
 

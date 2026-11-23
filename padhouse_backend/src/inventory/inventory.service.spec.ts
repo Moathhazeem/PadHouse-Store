@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AnalyticsCacheService } from '../analytics/analytics-cache.service';
 
 /**
  * Phase 0 (Stock Unification) tests.
@@ -134,6 +135,7 @@ describe('InventoryService (Phase 0 stock unification)', () => {
         InventoryService,
         { provide: PrismaService, useValue: prisma },
         { provide: NotificationsService, useValue: notificationsService },
+        AnalyticsCacheService,
       ],
     }).compile();
 

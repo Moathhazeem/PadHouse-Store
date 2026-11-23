@@ -16,6 +16,7 @@ describe('PurchaseOrdersService (goods receipts)', () => {
 
   let service: PurchaseOrdersService;
   let inventoryMock: { receiveStock: jest.Mock };
+  let analyticsCacheMock: { invalidateAll: jest.Mock };
 
   let order: any;
   let items: any[];
@@ -180,8 +181,13 @@ describe('PurchaseOrdersService (goods receipts)', () => {
     };
 
     inventoryMock = { receiveStock: jest.fn(async () => ({ currentStock: 0 })) };
+    analyticsCacheMock = { invalidateAll: jest.fn() };
 
-    service = new PurchaseOrdersService(prisma as any, inventoryMock as any);
+    service = new PurchaseOrdersService(
+      prisma as any,
+      inventoryMock as any,
+      analyticsCacheMock as any,
+    );
   });
 
   const receive = (lines: { itemId: string; quantityReceived: number }[], notes?: string) =>

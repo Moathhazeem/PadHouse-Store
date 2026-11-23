@@ -911,3 +911,526 @@ export async function adminRestockProductApi(
     body: JSON.stringify({ stock: newStock, notes }),
   });
 }
+
+/* ------------------------------------------------------------------ */
+/* Sales & Profit Analytics (Part 3 dashboard)                         */
+/* Server-side aggregation over real orders — nothing is mocked here.   */
+/* ------------------------------------------------------------------ */
+
+/** Trend granularity accepted by the analytics endpoints. */
+export type AnalyticsGroupBy = 'day' | 'week' | 'month';
+
+/** Canonical currency reported by every analytics endpoint. */
+export interface AdminAnalyticsCurrency {
+  code: string;
+  symbol: string;
+}
+
+/** Resolved inclusive UTC window the backend actually applied. */
+export interface AdminAnalyticsRangeMeta {
+  startDate: string | null;
+  endDate: string | null;
+  groupBy: AnalyticsGroupBy | null;
+  timezone: string;
+}
+
+/** Order counts per status/payment value (used by distribution panels). */
+export interface AdminAnalyticsStatusRow {
+  status: string;
+  count: number;
+  value: number;
+}
+
+/**
+ * Sales/profit summary. Mirrors `computeProfitSummary` on the backend:
+ * revenue is the money actually charged (cancelled orders excluded), `cogs`
+ * is the weighted-average cost of goods sold and `grossProfit` = itemRevenue − cogs.
+ */
+export interface AdminAnalyticsSalesSummary {
+  /** Money charged (`SUM(Order.grandTotal)`) over non-cancelled orders. */
+  revenue: number;
+  itemRevenue: number;
+  discountTotal: number;
+  giftCardDiscount: number;
+  shipping: number;
+  cogs: number;
+  /** Product margin: item revenue − cost of goods. */
+  grossProfit: number;
+  grossMarginPct: number;
+  /** Bottom line after discounts/shipping, minus cost of goods. */
+  netProfit: number;
+  netMarginPct: number;
+  unitsSold: number;
+  orderCount: number;
+  /** Average amount charged per valid order. */
+  averageOrderValue: number;
+  averageUnitCost: number;
+}
+
+/** Point-in-time inventory valuation totals (weighted-average cost). */
+export interface AdminAnalyticsInventoryTotals {
+  variantCount: number;
+  productCount: number;
+  totalUnits: number;
+  /** `SUM(currentStock × costPrice)` — the at-cost stock value. */
+  costValue: number;
+  /** `SUM(currentStock × list price)` — value if sold at list price. */
+  retailValue: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  overstockCount: number;
+  potentialProfit: number;
+  potentialMarginPct: number;
+}
+
+export interface AdminAnalyticsTrendPoint {
+  key: string;
+  orderCount: number;
+  revenue: number;
+}
+
+export interface AdminAnalyticsCategoryRow {
+  categoryId: string;
+  nameAr: string;
+  nameEn: string | null;
+  revenue: number;
+  cogs: number;
+  unitsSold: number;
+  orderCount: number;
+  share: number;
+}
+
+export interface AdminAnalyticsProductRow {
+  productId: string;
+  sku: string | null;
+  nameAr: string;
+  nameEn: string | null;
+  categoryId: string | null;
+  categoryNameAr: string | null;
+  /** Primary product image URL (from `ProductImage`), or `null` when absent. */
+  imageUrl: string | null;
+  unitsSold: number;
+  revenue: number;
+  cogs: number;
+  /** Units whose variant had a recorded cost (`Inventory.costPrice > 0`). */
+  costedUnits: number;
+  orderCount: number;
+}
+
+/**
+ * `/analytics/overview` payload — the single source for the dashboard KPIs.
+ * Every figure is computed by PostgreSQL against the live tables.
+ */
+export interface AdminAnalyticsOverviewResult {
+  currency: AdminAnalyticsCurrency;
+  range: AdminAnalyticsRangeMeta;
+  filters: {
+    categoryId: string | null;
+    groupBy: AnalyticsGroupBy;
+    limit: number;
+  };
+  sales: AdminAnalyticsSalesSummary;
+  orders: {
+    completedOrders: number;
+    cancelledOrders: number;
+    statusDistribution: AdminAnalyticsStatusRow[];
+    paymentDistribution: AdminAnalyticsStatusRow[];
+  };
+  inventory: AdminAnalyticsInventoryTotals;
+  trend: AdminAnalyticsTrendPoint[];
+  topCategories: AdminAnalyticsCategoryRow[];
+  topProducts: AdminAnalyticsProductRow[];
+  generatedAt: string;
+}
+
+export interface AdminAnalyticsOverviewParams {
+  /** ISO `YYYY-MM-DD` (whole day, inclusive) or full ISO timestamp. */
+  startDate?: string;
+  /** ISO `YYYY-MM-DD` (whole day, inclusive) or full ISO timestamp. */
+  endDate?: string;
+  groupBy?: AnalyticsGroupBy;
+  limit?: number;
+}
+
+/**
+ * Dashboard overview KPIs. Date boundaries are applied to `Order.createdAt`
+ * server-side; cancelled orders are never counted and each order counts once.
+ */
+export async function adminFetchAnalyticsOverviewApi(
+  params?: AdminAnalyticsOverviewParams,
+): Promise<AdminAnalyticsOverviewResult> {
+  const qs = new URLSearchParams();
+  if (params?.startDate) qs.set('startDate', params.startDate);
+  if (params?.endDate) qs.set('endDate', params.endDate);
+  if (params?.groupBy) qs.set('groupBy', params.groupBy);
+  if (params?.limit != null) qs.set('limit', String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return adminFetch<AdminAnalyticsOverviewResult>(`/analytics/overview${suffix}`);
+}
+
+/** `/analytics/inventory-valuation` payload (range-independent snapshot). */
+export interface AdminInventoryValuationResult {
+  currency: AdminAnalyticsCurrency;
+  filters: { categoryId: string | null; sortBy: string; limit: number; page: number };
+  totals: AdminAnalyticsInventoryTotals;
+  byCategory: Array<{
+    categoryId: string;
+    nameAr: string;
+    variantCount: number;
+    totalUnits: number;
+    costValue: number;
+    retailValue: number;
+    share: number;
+  }>;
+  items: Array<{
+    inventoryId: string;
+    variantId: string;
+    variantSku: string;
+    color: string | null;
+    productId: string;
+    productSku: string;
+    nameAr: string;
+    nameEn: string | null;
+    categoryNameAr: string | null;
+    currentStock: number;
+    reservedStock: number;
+    availableStock: number;
+    minThreshold: number;
+    maxStock: number;
+    costPrice: number;
+    costValue: number;
+    retailValue: number;
+    isLowStock: boolean;
+    isOverstocked: boolean;
+  }>;
+  lowStock: Array<{
+    inventoryId: string;
+    variantId: string;
+    productId: string;
+    nameAr: string;
+    variantSku: string;
+    currentStock: number;
+    minThreshold: number;
+    shortfall: number;
+  }>;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+  };
+  generatedAt: string;
+}
+
+/**
+ * Current inventory valuation snapshot. This endpoint deliberately takes **no**
+ * date range: the Inventory Value KPI is a live snapshot and must not react to
+ * the dashboard's historical sales filters.
+ */
+export async function adminFetchAnalyticsInventoryValuationApi(params: { categoryId?: string; sortBy?: string; limit?: number; page?: number } = {}): Promise<AdminInventoryValuationResult> {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== '') qs.set(key, String(value)); });
+  return adminFetch<AdminInventoryValuationResult>(`/analytics/inventory-valuation${qs.size ? `?${qs}` : ''}`);
+}
+
+export interface AdminOrdersAnalyticsResult {
+  currency: AdminAnalyticsCurrency;
+  summary: { totalOrders: number; revenue: number; averageOrderValue: number; grossTotal: number; discounts: number };
+  statusDistribution: Array<{ status: string; count: number; value: number }>;
+  paymentDistribution: Array<{ status: string; count: number; value: number }>;
+  recentOrders: Array<{ id: string; orderNumber: string; status: string; paymentStatus: string; grandTotal: number; itemsCount: number; createdAt: string }>;
+  pagination: { page: number; limit: number; total: number; totalPages: number; hasNext: boolean };
+}
+
+export interface AdminProductPerformanceResult {
+  currency: AdminAnalyticsCurrency;
+  products: Array<{ productId: string; sku: string | null; nameAr: string; imageUrl: string | null; categoryId: string; categoryNameAr: string | null; unitsSold: number; revenue: number; cogs: number; costKnown: boolean; profit: number | null; marginPct: number | null; currentStock: number; minStock: number; inventoryValue: number }>;
+  pagination: { page: number; limit: number; total: number; totalPages: number; hasNext: boolean };
+}
+
+function analyticsQuery(params: Record<string, string | number | undefined>): string {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== '') qs.set(key, String(value)); });
+  return qs.size ? `?${qs}` : '';
+}
+
+export function adminFetchAnalyticsOrdersApi(params: { startDate?: string; endDate?: string; categoryId?: string; limit?: number; page?: number } = {}) {
+  return adminFetch<AdminOrdersAnalyticsResult>(`/analytics/orders${analyticsQuery(params)}`);
+}
+
+export function adminFetchAnalyticsProductPerformanceApi(params: { startDate?: string; endDate?: string; categoryId?: string; sortBy?: string; limit?: number; page?: number } = {}) {
+  return adminFetch<AdminProductPerformanceResult>(`/analytics/product-performance${analyticsQuery(params)}`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sales Analytics (Part 4 — Over Time / by Category / by Product)      */
+/* Same server-side aggregations as Part 3; cancelled orders excluded,  */
+/* each order counted once. Nothing below fabricates figures.           */
+/* ------------------------------------------------------------------ */
+
+/** Filter block echoed by `/analytics/sales`. */
+export interface AdminAnalyticsSalesFilters {
+  categoryId: string | null;
+  groupBy: AnalyticsGroupBy;
+  limit: number;
+}
+
+/**
+ * `/analytics/sales` payload — trend + category + product breakdowns in a
+ * single round-trip. `summary` is the very same `computeProfitSummary` used by
+ * `/analytics/overview`, so the chart totals always agree with the dashboard KPIs.
+ */
+export interface AdminAnalyticsSalesResult {
+  currency: AdminAnalyticsCurrency;
+  range: AdminAnalyticsRangeMeta;
+  filters: AdminAnalyticsSalesFilters;
+  summary: AdminAnalyticsSalesSummary;
+  statusDistribution: AdminAnalyticsStatusRow[];
+  trend: AdminAnalyticsTrendPoint[];
+  byCategory: AdminAnalyticsCategoryRow[];
+  topProducts: AdminAnalyticsProductRow[];
+  generatedAt: string;
+}
+
+export interface AdminAnalyticsSalesParams {
+  /** ISO `YYYY-MM-DD` (whole day, inclusive) or full ISO timestamp. */
+  startDate?: string;
+  endDate?: string;
+  categoryId?: string;
+  groupBy?: AnalyticsGroupBy;
+  limit?: number;
+}
+
+/** Sales trend + category + product breakdown for the selected window. */
+export async function adminFetchAnalyticsSalesApi(
+  params?: AdminAnalyticsSalesParams,
+): Promise<AdminAnalyticsSalesResult> {
+  const qs = new URLSearchParams();
+  if (params?.startDate) qs.set('startDate', params.startDate);
+  if (params?.endDate) qs.set('endDate', params.endDate);
+  if (params?.categoryId) qs.set('categoryId', params.categoryId);
+  if (params?.groupBy) qs.set('groupBy', params.groupBy);
+  if (params?.limit != null) qs.set('limit', String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return adminFetch<AdminAnalyticsSalesResult>(`/analytics/sales${suffix}`);
+}
+
+/**
+ * A product row from `/analytics/best-selling-products`, enriched by the backend
+ * with `profit` (line revenue − COGS) and a `share` of the ranked metric.
+ *
+ * `profit`/`marginPct` are `null` when `costKnown` is false — the product's cost
+ * was never captured, so the backend reports no profit rather than fabricating
+ * one from a zero/unknown cost.
+ */
+export interface AdminAnalyticsRankedProductRow extends AdminAnalyticsProductRow {
+  /** True when every sold unit resolved to a recorded cost. */
+  costKnown: boolean;
+  /** Line revenue − COGS, or `null` when the cost is unknown. */
+  profit: number | null;
+  /** Gross margin %, or `null` when `profit` is unavailable. */
+  marginPct: number | null;
+  /** Share of the ranked metric (units or revenue) across the returned page. */
+  share: number;
+}
+
+export interface AdminAnalyticsBestSellingResult {
+  currency: AdminAnalyticsCurrency;
+  range: AdminAnalyticsRangeMeta;
+  filters: { categoryId: string | null; sortBy: string; limit: number; page: number };
+  totals: { revenue: number; unitsSold: number };
+  products: AdminAnalyticsRankedProductRow[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+  };
+  generatedAt: string;
+}
+
+export interface AdminAnalyticsBestSellingParams {
+  startDate?: string;
+  endDate?: string;
+  categoryId?: string;
+  sortBy?: 'unitsSold' | 'revenue' | 'orderCount';
+  limit?: number;
+  page?: number;
+}
+
+/** Products ranked by the chosen metric (default: revenue). */
+export async function adminFetchAnalyticsBestSellingProductsApi(
+  params?: AdminAnalyticsBestSellingParams,
+): Promise<AdminAnalyticsBestSellingResult> {
+  const qs = new URLSearchParams();
+  if (params?.startDate) qs.set('startDate', params.startDate);
+  if (params?.endDate) qs.set('endDate', params.endDate);
+  if (params?.categoryId) qs.set('categoryId', params.categoryId);
+  if (params?.sortBy) qs.set('sortBy', params.sortBy);
+  if (params?.limit != null) qs.set('limit', String(params.limit));
+  if (params?.page != null) qs.set('page', String(params.page));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return adminFetch<AdminAnalyticsBestSellingResult>(`/analytics/best-selling-products${suffix}`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Gross Profit Analytics (Part 6 — historical purchase costing)        */
+/* COGS is resolved from goods-receipt cost layers as of each sale, not */
+/* from the current inventory cost. Units with no purchase history are  */
+/* never silently priced — they surface as data-quality warnings.       */
+/* ------------------------------------------------------------------ */
+
+/** Costing basis the gross-profit endpoint reports alongside the chain. */
+export interface AdminProfitCostBasis {
+  /** Costing method applied to historical lines (e.g. `historical-weighted-average`). */
+  method: string;
+  /** Where the historical purchase cost comes from (`GoodsReceiptItem.unitCost`). */
+  source: string;
+  /** Method the inventory module itself applies to on-hand stock. */
+  inventoryMethod: string;
+  /** Cost used only when no purchase history precedes the sale. */
+  fallback: string;
+}
+
+/**
+ * The Gross Sales → Net Sales → Gross Profit chain.
+ *
+ * `netSales = grossSales − discounts − refunds`, `grossProfit = netSales − cogs`
+ * and `grossProfitMarginPct = (grossProfit ÷ netSales) × 100`. This is a **gross**
+ * profit figure: salaries, marketing, operating and other overhead costs are not
+ * modelled and are never subtracted here.
+ */
+export interface AdminProfitSummary {
+  grossSales: number;
+  /** Coupon discount + gift-card discount. */
+  discounts: number;
+  discountTotal: number;
+  giftCardDiscount: number;
+  refunds: number;
+  netSales: number;
+  cogs: number;
+  grossProfit: number | null;
+  grossProfitMarginPct: number | null;
+  unitsSold: number;
+  orderCount: number;
+  averageOrderValue: number;
+  averageUnitCost: number;
+  /** Sold units whose cost fell back to the current inventory cost. */
+  uncostedUnits: number;
+  /** % of sold units priced from real purchase history (0–100). */
+  costCoveragePct: number;
+}
+
+/** Discounts / refunds / shipping split for the selected window. */
+export interface AdminProfitBreakdown {
+  discounts: { coupon: number; giftCard: number; total: number; sharePct: number };
+  refunds: { total: number; orderCount: number; sharePct: number };
+  /** Reported for completeness only — excluded from the gross-profit chain. */
+  shipping: number;
+}
+
+/** One period of the gross-profit trend. */
+export interface AdminProfitTrendPoint {
+  key: string;
+  grossSales: number;
+  discounts: number;
+  refunds: number;
+  netSales: number;
+  cogs: number;
+  grossProfit: number | null;
+  marginPct: number | null;
+  unitsSold: number;
+  orderCount: number;
+}
+
+/** A product whose sold units were not fully costed from purchase history. */
+export interface AdminProfitAffectedProduct {
+  productId: string;
+  sku: string | null;
+  nameAr: string;
+  unitsSold: number;
+  uncostedUnits: number;
+}
+
+/** Data-quality signals for the gross-profit chain. */
+export interface AdminProfitDataQuality {
+  /** True when every sold unit was costed from historical purchase records. */
+  isComplete: boolean;
+  unitsSold: number;
+  unitsWithHistory: number;
+  uncostedUnits: number;
+  costCoveragePct: number;
+  affectedProducts: AdminProfitAffectedProduct[];
+  /** Human-readable warnings (Arabic) for the dashboard. */
+  notes: string[];
+}
+
+/** `/analytics/profit` payload. */
+export interface AdminProfitAnalyticsResult {
+  currency: AdminAnalyticsCurrency;
+  range: AdminAnalyticsRangeMeta;
+  filters: { categoryId: string | null; groupBy: AnalyticsGroupBy; limit: number };
+  costBasis: AdminProfitCostBasis;
+  summary: AdminProfitSummary;
+  breakdown: AdminProfitBreakdown;
+  trend: AdminProfitTrendPoint[];
+  dataQuality: AdminProfitDataQuality;
+  generatedAt: string;
+}
+
+export interface AdminProfitAnalyticsParams {
+  /** ISO `YYYY-MM-DD` (whole day, inclusive) or full ISO timestamp. */
+  startDate?: string;
+  endDate?: string;
+  categoryId?: string;
+  groupBy?: AnalyticsGroupBy;
+  limit?: number;
+}
+
+/** Gross-profit chain + trend + data-quality signals for the selected window. */
+export async function adminFetchAnalyticsProfitApi(
+  params?: AdminProfitAnalyticsParams,
+): Promise<AdminProfitAnalyticsResult> {
+  const qs = new URLSearchParams();
+  if (params?.startDate) qs.set('startDate', params.startDate);
+  if (params?.endDate) qs.set('endDate', params.endDate);
+  if (params?.categoryId) qs.set('categoryId', params.categoryId);
+  if (params?.groupBy) qs.set('groupBy', params.groupBy);
+  if (params?.limit != null) qs.set('limit', String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return adminFetch<AdminProfitAnalyticsResult>(`/analytics/profit${suffix}`);
+}
+
+/** Category option for the analytics filter dropdown (from `/categories`). */
+export interface AdminCategoryOption {
+  id: string;
+  slug: string;
+  nameAr: string;
+  nameEn: string | null;
+}
+
+/**
+ * Active storefront categories. Backs the category filter so admins can scope
+ * the whole section to a single category. Failures degrade to an empty list —
+ * the analytics still render unfiltered rather than blocking the dashboard.
+ */
+export async function adminFetchCategoriesApi(): Promise<AdminCategoryOption[]> {
+  const payload = await adminFetch<any>('/categories');
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+    ? payload.data
+    : Array.isArray(payload?.items)
+    ? payload.items
+    : [];
+  return list
+    .map((c: any) => ({
+      id: String(c?.id ?? ''),
+      slug: String(c?.slug ?? ''),
+      nameAr: String(c?.nameAr ?? c?.name ?? ''),
+      nameEn: c?.nameEn ?? null,
+    }))
+    .filter((c: AdminCategoryOption) => c.id.length > 0);
+}

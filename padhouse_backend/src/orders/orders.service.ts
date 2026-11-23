@@ -15,6 +15,7 @@ import { LoyaltyService, POINTS_PER_ILS } from '../loyalty/loyalty.service';
 import { GiftCardsService } from '../gift-cards/gift-cards.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { AnalyticsCacheService } from '../analytics/analytics-cache.service';
 import {
   DEFAULT_SHIPPING_FEE,
   PAYMENT_METHODS,
@@ -49,6 +50,7 @@ export class OrdersService {
     private giftCardsService: GiftCardsService,
     private notificationsService: NotificationsService,
     private inventoryService: InventoryService,
+    private analyticsCache: AnalyticsCacheService,
   ) {}
 
   /** Canonical lifecycle shared by both platforms. */
@@ -297,6 +299,9 @@ export class OrdersService {
       return created;
     });
 
+    // A committed sale changes the sales, profit, order and product aggregates.
+    this.analyticsCache.invalidateAll();
+
     // Confirm the purchase immediately with the order number, total and a
     // deep link the customer can tap to track the order.
     if (order.userId) {
@@ -411,7 +416,7 @@ export class OrdersService {
    * Restores inventory atomically and idempotently.
    */
   async cancelOrder(orderId: string, actorId: string, reason?: string, requesterUserId?: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
         include: {
@@ -525,6 +530,10 @@ export class OrdersService {
         },
       });
     });
+
+    // A cancellation (refund) restores stock and changes sales/profit aggregates.
+    this.analyticsCache.invalidateAll();
+    return result;
   }
 
   async updateStatus(orderId: string, dto: UpdateOrderStatusDto, actorId: string) {
@@ -543,7 +552,7 @@ export class OrdersService {
       throw new BadRequestException('لا يمكن تغيير حالة طلب ملغى');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.order.update({
         where: { id: orderId },
         data: {
@@ -598,6 +607,10 @@ export class OrdersService {
 
       return updated;
     });
+
+    // Status changes (e.g. DELIVERED settling a COD payment) move order aggregates.
+    this.analyticsCache.invalidateAll();
+    return result;
   }
 
   /**

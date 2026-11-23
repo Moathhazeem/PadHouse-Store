@@ -74,6 +74,10 @@ export const PO_RECEIVABLE_STATUSES: PurchaseOrderStatus[] = [
 /** Top-level sections of the Purchase Management module (hosted by AdminPage). */
 export type PurchaseSection =
   | 'inventory'
+  | 'sales-analytics'
+  | 'inventory-orders-analytics'
+  | 'profit-analytics'
+  | 'best-selling'
   | 'purchase-dashboard'
   | 'purchase-orders'
   | 'goods-receipts'

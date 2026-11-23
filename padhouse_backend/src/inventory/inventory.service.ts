@@ -6,6 +6,7 @@ import {
 import { Prisma, StockMovementType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AnalyticsCacheService } from '../analytics/analytics-cache.service';
 import { UpdateStockDto } from './dto/inventory.dto';
 
 /** Prisma transaction client used to keep multi-record stock changes atomic. */
@@ -77,6 +78,7 @@ export class InventoryService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private analyticsCache: AnalyticsCacheService,
   ) {}
 
   async getInventoryOverview() {
@@ -122,7 +124,7 @@ export class InventoryService {
    * Keeps `Product.stock` synchronized and records a RESTOCK/MANUAL_ADJUSTMENT movement.
    */
   async updateStock(variantId: string, dto: UpdateStockDto, actorId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const inventory = await tx.inventory.findUnique({ where: { variantId } });
 
       if (!inventory) {
@@ -141,6 +143,10 @@ export class InventoryService {
 
       return updated;
     });
+
+    // A stock movement changes the inventory valuation and product-cost aggregates.
+    this.analyticsCache.invalidateAll();
+    return result;
   }
 
   /**
@@ -154,7 +160,13 @@ export class InventoryService {
     if (tx) {
       return this.applyStockDeltaTx(tx, input);
     }
-    return this.prisma.$transaction((client) => this.applyStockDeltaTx(client, input));
+    const result = await this.prisma.$transaction((client) =>
+      this.applyStockDeltaTx(client, input),
+    );
+    // Own transaction → the movement is committed; drop cached analytics. When a
+    // caller supplies its own `tx`, that caller invalidates after it commits.
+    this.analyticsCache.invalidateAll();
+    return result;
   }
 
   /**
@@ -190,7 +202,12 @@ export class InventoryService {
       });
     };
 
-    const result = input.tx ? await run(input.tx) : await this.prisma.$transaction(run);
+    if (input.tx) {
+      return (await run(input.tx)).inventory;
+    }
+    const result = await this.prisma.$transaction(run);
+    // Committed restock: recalculates WAC, so cached valuation/profit is stale.
+    this.analyticsCache.invalidateAll();
     return result.inventory;
   }
 
@@ -297,7 +314,9 @@ export class InventoryService {
     if (tx) {
       return run(tx);
     }
-    return this.prisma.$transaction(run);
+    const result = await this.prisma.$transaction(run);
+    this.analyticsCache.invalidateAll();
+    return result;
   }
 
   /**

@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { AnalyticsCacheService } from '../analytics/analytics-cache.service';
 import {
   CancelPurchaseOrderDto,
   CreatePurchaseOrderDto,
@@ -117,6 +118,7 @@ export class PurchaseOrdersService {
   constructor(
     private prisma: PrismaService,
     private inventoryService: InventoryService,
+    private analyticsCache: AnalyticsCacheService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -464,7 +466,7 @@ export class PurchaseOrdersService {
     // Retry on the rare race where two receipts grab the same sequence number.
     for (let attempt = 0; ; attempt++) {
       try {
-        return await this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
           // Serialize concurrent receipts for the same order.
           await tx.$queryRaw`SELECT "id" FROM "PurchaseOrder" WHERE "id" = ${id} FOR UPDATE`;
 
@@ -568,6 +570,11 @@ export class PurchaseOrdersService {
 
           return this.toDetail(updated);
         });
+
+        // A confirmed receipt restocks inventory (recalculating WAC), so the
+        // cached inventory-valuation and profit aggregates are now stale.
+        this.analyticsCache.invalidateAll();
+        return result;
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
           if (attempt < 4) continue;

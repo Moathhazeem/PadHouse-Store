@@ -6,6 +6,7 @@ import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { GiftCardsModule } from '../gift-cards/gift-cards.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { InventoryModule } from '../inventory/inventory.module';
     GiftCardsModule,
     NotificationsModule,
     InventoryModule,
+    AnalyticsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

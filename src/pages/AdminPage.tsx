@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Layers,
+  LineChart,
   Loader2,
   PackageCheck,
   PackageX,
@@ -23,6 +24,7 @@ import {
   Sparkles,
   Trash2,
   TrendingUp,
+  Trophy,
   Truck,
   XCircle,
 } from 'lucide-react';
@@ -52,7 +54,11 @@ import {
   AdminPurchaseDashboard,
   AdminGoodsReceiptPanel,
   AdminPurchaseAnalytics,
+  AdminSalesAnalytics,
+  AdminProfitAnalytics,
+  AdminBestSellingProducts,
   AdminAiReorderPanel,
+  AdminInventoryOrdersAnalytics,
   type AdminRestockTarget,
   type PurchaseSection,
   calculateStockStatus,
@@ -68,6 +74,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
   const [section, setSection] = useState<PurchaseSection>('inventory');
   /** Order id to auto-open when handing off from another purchase section. */
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [pendingAnalyticsOrderId, setPendingAnalyticsOrderId] = useState<string | null>(null);
 
   const openOrderInPurchaseOrders = (orderId: string) => {
     setPendingOrderId(orderId);
@@ -413,6 +420,50 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
         </button>
         <button
           type="button"
+          onClick={() => setSection('sales-analytics')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'sales-analytics'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <LineChart className="h-4 w-4" />
+          <span>المبيعات والأرباح</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection('profit-analytics')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'profit-analytics'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <TrendingUp className="h-4 w-4" />
+          <span>تحليلات الأرباح</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection('inventory-orders-analytics')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${section === 'inventory-orders-analytics' ? 'border-ph-brand text-ph-brand' : 'border-transparent text-ph-muted hover:text-ph-ink'}`}
+        >
+          <BarChart3 className="h-4 w-4" />
+          <span>المخزون والطلبات</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection('best-selling')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            section === 'best-selling'
+              ? 'border-ph-brand text-ph-brand'
+              : 'border-transparent text-ph-muted hover:text-ph-ink'
+          }`}
+        >
+          <Trophy className="h-4 w-4" />
+          <span>الأكثر مبيعاً</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setSection('purchase-dashboard')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
             section === 'purchase-dashboard'
@@ -485,7 +536,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
         </button>
       </div>
 
-      {section === 'purchase-dashboard' ? (
+      {section === 'sales-analytics' ? (
+        <AdminSalesAnalytics onToast={showToast} />
+      ) : section === 'inventory-orders-analytics' ? (
+        <AdminInventoryOrdersAnalytics onOpenOrder={(id) => { setPendingAnalyticsOrderId(id); setSection('inventory'); }} />
+      ) : section === 'profit-analytics' ? (
+        <AdminProfitAnalytics onToast={showToast} />
+      ) : section === 'best-selling' ? (
+        <AdminBestSellingProducts onToast={showToast} />
+      ) : section === 'purchase-dashboard' ? (
         <AdminPurchaseDashboard onToast={showToast} onNavigate={setSection} />
       ) : section === 'suppliers' ? (
         <AdminSuppliersPanel onToast={showToast} />
@@ -543,7 +602,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
       </div>
 
       {/* ── Orders Tracking / ETA / Urgent Crisis Panel ── */}
-      <AdminOrdersPanel onToast={showToast} />
+      <AdminOrdersPanel onToast={showToast} initialOrderId={pendingAnalyticsOrderId} onInitialOrderConsumed={() => setPendingAnalyticsOrderId(null)} />
 
       {/* ── Collapsible Low-Stock Alerts Panel ── */}
       <AnimatePresence>
