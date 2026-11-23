@@ -101,6 +101,7 @@ model User {
   auditLogs       AuditLog[]
   purchaseOrders  PurchaseOrder[]        @relation("PurchaseOrderCreator")
   goodsReceipts   GoodsReceipt[]         @relation("GoodsReceiptReceiver")
+  forecastingConfigUpdates ForecastConfiguration[] @relation("ForecastConfigurationUpdater")
 
   @@index([email])
 }
@@ -200,11 +201,133 @@ model Product {
   notifications     Notification[]
   purchaseOrderItems PurchaseOrderItem[]
   goodsReceiptItems GoodsReceiptItem[]
+  demandForecasts  DemandForecast[]
+  forecastResults   ForecastProductResult[]
+  replenishmentRecommendation ReplenishmentRecommendation?
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
 
   @@index([categoryId])
   @@index([sku])
+}
+
+model DemandForecastRun {
+  id                    String           @id @default(uuid())
+  generatedAt           DateTime         @default(now())
+  historyStart          DateTime
+  historyDays           Int
+  productCount          Int
+  movingAverageWindows Int[]
+  forecasts              DemandForecast[]
+  productResults          ForecastProductResult[]
+
+  @@index([generatedAt])
+}
+
+/// Immutable forecast snapshot for later accuracy evaluation.
+model DemandForecast {
+  id                 String   @id @default(uuid())
+  runId              String
+  run                DemandForecastRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  productId          String
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku                String
+  productName        String
+  categoryId         String?
+  categoryName       String?
+  generatedAt        DateTime @default(now())
+  status             String
+  selectedModel      String?
+  trainingDays       Int
+  salesUnits         Int
+  refundedUnitsProxy Int      @default(0)
+  metrics            Json
+  horizons           Json
+  dailyForecast      Json?
+  dataQuality        Json
+
+  @@index([productId, generatedAt])
+  @@index([runId])
+  @@index([generatedAt])
+  @@index([status])
+}
+
+
+/// Normalized, queryable forecast horizon snapshot.
+model ForecastProductResult {
+  id                String            @id @default(uuid())
+  runId             String
+  run               DemandForecastRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  forecastDate      DateTime          @db.Date
+  horizonDays       Int
+  forecastedQuantity Decimal          @db.Decimal(12, 3)
+  lowerBound        Decimal           @db.Decimal(12, 3)
+  upperBound        Decimal           @db.Decimal(12, 3)
+  algorithm         String
+  confidence        Decimal           @db.Decimal(5, 4)
+  dataQualityStatus String
+  modelVersion      String
+  evaluationResults Json?
+  createdAt         DateTime          @default(now())
+
+  @@unique([runId, productId, forecastDate, horizonDays])
+  @@index([forecastDate, horizonDays])
+  @@index([productId, forecastDate])
+  @@index([runId, horizonDays])
+}
+
+model ForecastConfiguration {
+  id                   String   @id @default("default")
+  historyDays          Int      @default(730)
+  movingAverageWindows Int[]    @default([7, 14, 30])
+  defaultHorizonDays   Int      @default(30)
+  stockoutLeadDays     Int      @default(14)
+  overstockCoverDays   Int      @default(90)
+  stockoutCriticalDays Int      @default(2)
+  stockoutHighRiskDays Int      @default(7)
+  stockoutMediumRiskDays Int    @default(14)
+  safetyStockMethod String @default("SERVICE_LEVEL")
+  safetyStockZScore Float @default(1.65)
+  replenishmentPeriodDays Int @default(30)
+  scheduledForecastingEnabled Boolean @default(false)
+  scheduledForecastingTime String @default("02:00")
+  lastScheduledForecastAt DateTime?
+  alertStockoutDays Int @default(7)
+  alertAccuracyWapeThreshold Float @default(0.35)
+  alertOverstockDays Int @default(120)
+  updatedById          String?
+  updatedBy             User?    @relation("ForecastConfigurationUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt            DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
+model ReplenishmentRecommendation {
+  id String @id @default(uuid())
+  productId String @unique
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  runId String
+  generatedAt DateTime @default(now())
+  currentAvailableStock Int
+  forecastedDemand Decimal @db.Decimal(12, 3)
+  leadTimeDemand Decimal @db.Decimal(12, 3)
+  reorderPoint Decimal @db.Decimal(12, 3)
+  safetyStock Int
+  safetyStockOverride Int?
+  quantityOverride Int?
+  incomingQuantity Int
+  recommendedQuantity Int
+  supplierId String?
+  supplierName String?
+  estimatedStockoutAt DateTime?
+  reason String
+  limitation String?
+  calculation Json
+  updatedAt DateTime @updatedAt
+  @@index([runId])
+  @@index([generatedAt])
 }
 
 model ProductImage {
@@ -746,6 +869,7 @@ model Supplier {
   city           String?
   notes          String?
   status         SupplierStatus  @default(ACTIVE)
+  leadTimeDays   Int?
   purchaseOrders PurchaseOrder[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

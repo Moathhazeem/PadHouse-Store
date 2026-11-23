@@ -13,9 +13,9 @@ import {
   BarChart3,
   Bell,
   CheckCircle2,
+  LineChart,
   ClipboardList,
   Layers,
-  LineChart,
   Loader2,
   PackageCheck,
   PackageX,
@@ -59,6 +59,7 @@ import {
   AdminBestSellingProducts,
   AdminAiReorderPanel,
   AdminInventoryOrdersAnalytics,
+  AdminDemandForecasting,
   type AdminRestockTarget,
   type PurchaseSection,
   calculateStockStatus,
@@ -512,6 +513,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
         </button>
         <button
           type="button"
+          onClick={() => setSection('demand-forecasting')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${section === 'demand-forecasting' ? 'border-ph-brand text-ph-brand' : 'border-transparent text-ph-muted hover:text-ph-ink'}`}
+        >
+          <LineChart className="h-4 w-4" />
+          <span>Demand Forecasting</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setSection('goods-receipts')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-t-xl transition-colors border-b-2 -mb-px whitespace-nowrap ${
             section === 'goods-receipts'
@@ -560,6 +569,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ currentUser, onNavigate })
         <AdminPurchaseAnalytics onToast={showToast} />
       ) : section === 'ai-reorder' ? (
         <AdminAiReorderPanel onToast={showToast} onOpenOrder={openOrderInPurchaseOrders} />
+      ) : section === 'demand-forecasting' ? (
+        <AdminDemandForecasting onToast={showToast} />
       ) : (
         <>
       {/* ── KPI Stat Summary Cards ── */}

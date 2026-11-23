@@ -3,6 +3,7 @@ export * from './AdminLowStockPanel';
 export * from './AdminProductFormModal';
 export * from './AdminInventoryTable';
 export * from './AdminRestockModal';
+export * from './AdminDemandForecasting';
 export * from './AdminOrdersPanel';
 export * from './AdminSuppliersPanel';
 export * from './AdminSupplierFormModal';

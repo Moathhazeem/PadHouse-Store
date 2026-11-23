@@ -35,6 +35,27 @@ async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T
   return data as T;
 }
 
+export type ForecastHorizon = 7 | 14 | 30 | 60 | 90;
+const forecastQuery = (params: Record<string, string | number | undefined>) => {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== '') query.set(key, String(value)); });
+  return query.size ? `?${query}` : '';
+};
+export const adminFetchForecastOverviewApi = () => adminFetch<any>('/forecasting/overview');
+export const adminFetchForecastDemandApi = (params: {limit?:number;offset?:number;productId?:string;search?:string} = {}) => adminFetch<any>(`/forecasting/demand${forecastQuery(params)}`);
+export const adminFetchStockoutPredictionsApi = (params: {limit?:number;offset?:number;search?:string} = {}) => adminFetch<any>(`/forecasting/stockout-predictions${forecastQuery(params)}`);
+export const adminFetchForecastRecommendationsApi = (params: {limit?:number;offset?:number;search?:string} = {}) => adminFetch<any>(`/forecasting/recommendations${forecastQuery(params)}`);
+export const adminFetchForecastOverstockApi = (params: {limit?:number;offset?:number;search?:string} = {}) => adminFetch<any>(`/forecasting/overstock${forecastQuery(params)}`);
+export const adminFetchForecastTrendsApi = (params: {productId?:string} = {}) => adminFetch<any>(`/forecasting/trends${forecastQuery(params)}`);
+export const adminFetchForecastAccuracyApi = () => adminFetch<any>('/forecasting/accuracy');
+export const adminFetchProductForecastApi = (productId:string) => adminFetch<any>(`/forecasting/products/${encodeURIComponent(productId)}`);
+export const adminOverrideForecastRecommendationApi = (productId:string, recommendedQuantity:number) => adminFetch<any>(`/forecasting/recommendations/${encodeURIComponent(productId)}/override`, {method:'PATCH',body:JSON.stringify({recommendedQuantity})});
+export const adminCreateForecastPurchaseOrderApi = (productId:string, supplierId:string, unitCost:number) => adminFetch<any>(`/forecasting/recommendations/${encodeURIComponent(productId)}/create-purchase-order`, {method:'POST',body:JSON.stringify({supplierId,unitCost})});
+export const adminFetchInventoryForecastToolDefinitionsApi = () => adminFetch<Array<{name:string;description:string;parameters:Record<string,unknown>}>>('/ai/inventory/forecast-tools');
+export const adminExecuteInventoryForecastToolApi = (name:string, args:Record<string,unknown>) => adminFetch<any>(`/ai/inventory/forecast-tools/${encodeURIComponent(name)}`, {method:'POST',body:JSON.stringify(args)});
+export const adminGenerateForecastApi = (options:Record<string,unknown> = {}) => adminFetch<any>('/forecasting/generate', {method:'POST',body:JSON.stringify(options)});
+export const adminUpdateForecastConfigurationApi = (options:Record<string,unknown>) => adminFetch<any>('/forecasting/configuration', {method:'PATCH',body:JSON.stringify(options)});
+
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
 /* ------------------------------------------------------------------ */

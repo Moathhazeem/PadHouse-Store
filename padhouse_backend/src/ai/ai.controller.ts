@@ -1,9 +1,10 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { CreateDraftPurchaseOrderDto, ReorderSuggestionsDto } from './dto/inventory-ai.dto';
 import { AiService } from './ai.service';
 import { AiInventoryService } from './ai-inventory.service';
+import { ForecastingAiToolsService } from './forecasting-ai-tools.service';
 import { PurchaseOrderActor } from '../purchase-orders/purchase-orders.service';
 import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -25,6 +26,7 @@ export class AiController {
   constructor(
     private readonly aiService: AiService,
     private readonly aiInventoryService: AiInventoryService,
+    private readonly forecastingTools: ForecastingAiToolsService,
   ) {}
 
   @Post('chat')
@@ -68,6 +70,22 @@ export class AiController {
   @ApiOperation({ summary: 'إنشاء مسودة أمر شراء ذكية للمنتجات التي تحتاج توريداً (لوحة الإدارة)' })
   createDraftPurchaseOrder(@Body() body: CreateDraftPurchaseOrderDto, @CurrentUser() user: AuthUser) {
     return this.aiInventoryService.createDraftPurchaseOrders(body, this.actor(user));
+  }
+
+  @Get('inventory/forecast-tools')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'INVENTORY_MANAGER')
+  @ApiOperation({ summary: 'List inventory forecasting assistant tool definitions.' })
+  forecastToolDefinitions() { return this.forecastingTools.definitions(); }
+
+  @Post('inventory/forecast-tools/:toolName')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'INVENTORY_MANAGER')
+  @ApiOperation({ summary: 'Execute a real inventory forecasting assistant tool.' })
+  executeForecastTool(@Param('toolName') toolName: string, @Body() body: Record<string, unknown>, @CurrentUser() user: AuthUser) {
+    return this.forecastingTools.execute(toolName, body ?? {}, this.actor(user));
   }
 
   private actor(user: AuthUser): PurchaseOrderActor {

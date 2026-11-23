@@ -83,6 +83,7 @@ export type PurchaseSection =
   | 'goods-receipts'
   | 'purchase-analytics'
   | 'ai-reorder'
+  | 'demand-forecasting'
   | 'suppliers';
 
 export const poStatusLabel = (status: PurchaseOrderStatus | string): string =>

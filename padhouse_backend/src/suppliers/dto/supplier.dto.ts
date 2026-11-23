@@ -6,6 +6,9 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsInt,
+  Min,
+  Max,
   Matches,
   MaxLength,
 } from 'class-validator';
@@ -18,6 +21,10 @@ import {
 export const SUPPLIER_PHONE_PATTERN = /^\+?[0-9\s\-()]{7,20}$/;
 
 export class CreateSupplierDto {
+  @ApiPropertyOptional({ minimum: 1, maximum: 365, description: 'Expected supplier lead time in days.' })
+  @IsOptional() @IsInt() @Min(1) @Max(365)
+  leadTimeDays?: number;
+
   @ApiProperty({ example: 'شركة التقنية للتوريدات', description: 'اسم المورد' })
   @IsString()
   @IsNotEmpty({ message: 'اسم المورد مطلوب' })

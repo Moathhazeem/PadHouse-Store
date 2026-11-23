@@ -133,6 +133,7 @@ export class SuppliersService {
     if (dto.city !== undefined) data.city = dto.city.trim() || null;
     if (dto.notes !== undefined) data.notes = dto.notes.trim() || null;
     if (dto.status !== undefined) data.status = dto.status;
+    if (dto.leadTimeDays !== undefined) data.leadTimeDays = dto.leadTimeDays;
 
     await this.assertUnique(
       {
@@ -194,6 +195,7 @@ export class SuppliersService {
       city: dto.city?.trim() || null,
       notes: dto.notes?.trim() || null,
       status: dto.status ?? SupplierStatus.ACTIVE,
+      leadTimeDays: dto.leadTimeDays ?? null,
     };
   }
 
@@ -315,6 +317,7 @@ export class SuppliersService {
       city: supplier.city ?? null,
       notes: supplier.notes ?? null,
       status: supplier.status,
+      leadTimeDays: supplier.leadTimeDays ?? null,
       isActive: supplier.status === SupplierStatus.ACTIVE,
       totalPurchaseValue: stats.totalPurchaseValue,
       purchaseOrdersCount: stats.purchaseOrdersCount,

@@ -21,6 +21,7 @@ import { SuppliersModule } from './suppliers/suppliers.module';
 import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AiModule } from './ai/ai.module';
+import { ForecastingModule } from './forecasting/forecasting.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { AiModule } from './ai/ai.module';
     PurchaseOrdersModule,
     AnalyticsModule,
     AiModule,
+    ForecastingModule,
   ],
   controllers: [],
   providers: [],

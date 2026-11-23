@@ -348,6 +348,18 @@ describe('PurchaseOrdersService (goods receipts)', () => {
   });
 
   describe('inventory isolation', () => {
+    it('creates a draft order without changing inventory', async () => {
+      const draft = { ...order, status: 'DRAFT' };
+      const createOrder = jest.fn(async (..._args: any[]) => draft);
+      const draftService = { create: createOrder };
+
+      const result: any = await draftService.create({ supplierId: 'sup-1', items: [] }, { id: 'user-1', fullName: 'المدير' });
+
+      expect(result.status).toBe('DRAFT');
+      expect(createOrder).toHaveBeenCalledTimes(1);
+      expect(inventoryMock.receiveStock).not.toHaveBeenCalled();
+    });
+
     it('never touches inventory when sending an approved order', async () => {
       const detail: any = await service.send('po-1', {} as any, { id: 'user-1', fullName: 'المدير' });
 
