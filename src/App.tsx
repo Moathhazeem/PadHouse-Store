@@ -15,6 +15,7 @@ import {
   removeWishlistApi,
   clearTokens,
   getAccessToken,
+  getRefreshToken,
   backendOrderToOrder,
   type BackendCart,
 } from './services/api';
@@ -123,7 +124,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem('padhouse_current_user_v2');
       // Only trust the saved session when a backend token also exists.
-      return saved && getAccessToken() ? JSON.parse(saved) : null;
+      return saved && (getAccessToken() || getRefreshToken()) ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
@@ -217,6 +218,12 @@ export default function App() {
       }
     } catch {}
   }, [currentUser]);
+
+  useEffect(() => {
+    const expireSession = () => setCurrentUser(null);
+    window.addEventListener('padhouse:session-expired', expireSession);
+    return () => window.removeEventListener('padhouse:session-expired', expireSession);
+  }, []);
 
   // Fetch backend products on mount
   useEffect(() => {

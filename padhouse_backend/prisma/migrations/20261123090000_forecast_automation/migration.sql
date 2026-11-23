@@ -1,7 +1,23 @@
-ALTER TABLE "ForecastConfiguration"
-  ADD COLUMN "scheduledForecastingEnabled" BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN "scheduledForecastingTime" TEXT NOT NULL DEFAULT '02:00',
-  ADD COLUMN "lastScheduledForecastAt" TIMESTAMP(3),
-  ADD COLUMN "alertStockoutDays" INTEGER NOT NULL DEFAULT 7,
-  ADD COLUMN "alertAccuracyWapeThreshold" DOUBLE PRECISION NOT NULL DEFAULT 0.35,
-  ADD COLUMN "alertOverstockDays" INTEGER NOT NULL DEFAULT 120;
+CREATE TABLE "ForecastConfiguration" (
+  "id" TEXT NOT NULL DEFAULT 'default',
+  "historyDays" INTEGER NOT NULL DEFAULT 730,
+  "movingAverageWindows" INTEGER[] NOT NULL DEFAULT ARRAY[7,14,30]::INTEGER[],
+  "defaultHorizonDays" INTEGER NOT NULL DEFAULT 30,
+  "stockoutLeadDays" INTEGER NOT NULL DEFAULT 14,
+  "overstockCoverDays" INTEGER NOT NULL DEFAULT 90,
+  "stockoutCriticalDays" INTEGER NOT NULL DEFAULT 2,
+  "stockoutHighRiskDays" INTEGER NOT NULL DEFAULT 7,
+  "stockoutMediumRiskDays" INTEGER NOT NULL DEFAULT 14,
+  "safetyStockMethod" TEXT NOT NULL DEFAULT 'SERVICE_LEVEL',
+  "safetyStockZScore" DOUBLE PRECISION NOT NULL DEFAULT 1.65,
+  "replenishmentPeriodDays" INTEGER NOT NULL DEFAULT 30,
+  "scheduledForecastingEnabled" BOOLEAN NOT NULL DEFAULT false,
+  "scheduledForecastingTime" TEXT NOT NULL DEFAULT '02:00',
+  "lastScheduledForecastAt" TIMESTAMP(3),
+  "alertStockoutDays" INTEGER NOT NULL DEFAULT 7,
+  "alertAccuracyWapeThreshold" DOUBLE PRECISION NOT NULL DEFAULT 0.35,
+  "alertOverstockDays" INTEGER NOT NULL DEFAULT 120,
+  "updatedById" TEXT,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "ForecastConfiguration_pkey" PRIMARY KEY ("id")
+);

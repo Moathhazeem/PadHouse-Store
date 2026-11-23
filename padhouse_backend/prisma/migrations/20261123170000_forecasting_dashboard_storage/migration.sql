@@ -16,18 +16,6 @@ CREATE TABLE "ForecastProductResult" (
   CONSTRAINT "ForecastProductResult_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "ForecastConfiguration" (
-  "id" TEXT NOT NULL DEFAULT 'default',
-  "historyDays" INTEGER NOT NULL DEFAULT 730,
-  "movingAverageWindows" INTEGER[] NOT NULL DEFAULT ARRAY[7,14,30]::INTEGER[],
-  "defaultHorizonDays" INTEGER NOT NULL DEFAULT 30,
-  "stockoutLeadDays" INTEGER NOT NULL DEFAULT 14,
-  "overstockCoverDays" INTEGER NOT NULL DEFAULT 90,
-  "updatedById" TEXT,
-  "updatedAt" TIMESTAMP(3) NOT NULL,
-  CONSTRAINT "ForecastConfiguration_pkey" PRIMARY KEY ("id")
-);
-
 CREATE UNIQUE INDEX "ForecastProductResult_runId_productId_forecastDate_horizonDays_key"
   ON "ForecastProductResult"("runId", "productId", "forecastDate", "horizonDays");
 CREATE INDEX "ForecastProductResult_forecastDate_horizonDays_idx" ON "ForecastProductResult"("forecastDate", "horizonDays");

@@ -85,6 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifLoading, setNotifLoading] = useState(false);
+  const [notifError, setNotifError] = useState('');
 
   const loadMyNotifications = useCallback(async () => {
     if (!currentUser) return;
@@ -93,6 +94,11 @@ export const Header: React.FC<HeaderProps> = ({
       const { notifications: list, unreadCount } = await fetchMyNotificationsApi();
       setNotifications(list);
       setNotifUnread(unreadCount);
+      setNotifError('');
+    } catch (error: any) {
+      setNotifications([]);
+      setNotifUnread(0);
+      setNotifError(error?.message || 'تعذر تحميل التنبيهات');
     } finally {
       setNotifLoading(false);
     }
@@ -102,6 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
     if (!currentUser) {
       setNotifications([]);
       setNotifUnread(0);
+      setNotifError('');
       return;
     }
     loadMyNotifications();
@@ -412,10 +419,8 @@ export const Header: React.FC<HeaderProps> = ({
                           ) : notifications.length === 0 ? (
                             <div className="py-10 px-6 text-center">
                               <Inbox className="w-8 h-8 text-ph-muted mx-auto mb-2" />
-                              <p className="text-xs font-bold text-ph-ink">لا توجد تنبيهات حالياً</p>
-                              <p className="text-[11px] text-ph-muted mt-1">
-                                ستظهر هنا تحديثات طلباتك والعروض وحالات الطوارئ.
-                              </p>
+                              <p className="text-xs font-bold text-ph-ink">{notifError || 'لا توجد تنبيهات حالياً'}</p>
+                              {!notifError && <p className="text-[11px] text-ph-muted mt-1">ستظهر هنا تحديثات طلباتك والعروض وحالات الطوارئ.</p>}
                             </div>
                           ) : (
                             notifications.map((n) => {

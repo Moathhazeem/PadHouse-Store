@@ -2,37 +2,15 @@
  * adminApi.ts — Admin-specific API calls
  * Covers: Notifications, Admin Product CRUD, Restock
  */
-import { getAccessToken, mapBackendProduct } from './api';
+import { apiFetchRequest, mapBackendProduct } from './api';
 import type { Product } from '../types';
-
-const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
 
 /* ------------------------------------------------------------------ */
 /* Shared admin fetch wrapper                                           */
 /* ------------------------------------------------------------------ */
 
 async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getAccessToken();
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers as Record<string, string>),
-  };
-
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  const text = await res.text();
-  let data: any = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-
-  if (!res.ok) {
-    const message = Array.isArray(data?.message) ? data.message.join('، ') : data?.message || `خطأ (${res.status})`;
-    const err: any = new Error(message);
-    err.status = res.status;
-    throw err;
-  }
-  return data as T;
+  return apiFetchRequest<T>(path, options);
 }
 
 export type ForecastHorizon = 7 | 14 | 30 | 60 | 90;

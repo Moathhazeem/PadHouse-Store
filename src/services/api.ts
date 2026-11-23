@@ -1,6 +1,6 @@
 import { Order, Product } from '../types';
 
-const API_BASE_URL =
+export const API_BASE_URL =
   (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
 
 const TOKEN_KEY = 'padhouse_token_v1';
@@ -38,6 +38,7 @@ export function clearTokens() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
   } catch {}
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('padhouse:session-expired'));
 }
 
 /* --------------------------- Error type --------------------------- */
@@ -90,7 +91,7 @@ async function tryRefresh(): Promise<boolean> {
   return refreshInFlight;
 }
 
-async function apiFetch<T>(path: string, options: RequestOptions = {}, retry = true): Promise<T> {
+export async function apiFetch<T>(path: string, options: RequestOptions = {}, retry = true): Promise<T> {
   const { method = 'GET', body, auth = true, query, signal } = options;
 
   let url = `${API_BASE_URL}${path}`;
@@ -122,10 +123,10 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}, retry = t
     throw new ApiError('تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.', 0);
   }
 
-  if (res.status === 401 && auth && retry && getRefreshToken()) {
-    const refreshed = await tryRefresh();
-    if (refreshed) {
-      return apiFetch<T>(path, options, false);
+  if (res.status === 401 && auth && retry) {
+    if (getRefreshToken()) {
+      const refreshed = await tryRefresh();
+      if (refreshed) return apiFetch<T>(path, options, false);
     }
     clearTokens();
   }
@@ -148,6 +149,18 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}, retry = t
   }
 
   return data as T;
+}
+
+export async function apiFetchRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  let body: unknown = options.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch { /* Keep non-JSON request bodies unchanged. */ }
+  }
+  return apiFetch<T>(path, {
+    method: options.method,
+    body,
+    signal: options.signal ?? undefined,
+  });
 }
 
 export interface AssistantChatTurn {
@@ -684,13 +697,9 @@ export async function fetchMyNotificationsApi(): Promise<{
   notifications: UserNotification[];
   unreadCount: number;
 }> {
-  try {
-    return await apiFetch<{ notifications: UserNotification[]; unreadCount: number }>(
-      '/notifications/my',
-    );
-  } catch {
-    return { notifications: [], unreadCount: 0 };
-  }
+  return apiFetch<{ notifications: UserNotification[]; unreadCount: number }>(
+    '/notifications/my',
+  );
 }
 
 export async function markMyNotificationReadApi(id: string): Promise<UserNotification> {

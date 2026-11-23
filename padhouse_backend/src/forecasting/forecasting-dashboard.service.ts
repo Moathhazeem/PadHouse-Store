@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PurchaseOrdersService } from '../purchase-orders/purchase-orders.service';
 import { CreatePurchaseOrderDto } from '../purchase-orders/dto/purchase-order.dto';
@@ -88,17 +89,17 @@ export class ForecastingDashboardService {
 
   async accuracy(query: ForecastingQueryDto) {
     const completed = await this.evaluateCompleted();
-    const rows = await this.prisma.forecastProductResult.findMany({ where: { ...(query.productId ? { productId: query.productId } : {}), ...(query.categoryId ? { product: { categoryId: query.categoryId } } : {}), evaluationResults: { not: null } }, orderBy: { forecastDate: 'desc' } });
+    const rows = await this.prisma.forecastProductResult.findMany({ where: { ...(query.productId ? { productId: query.productId } : {}), ...(query.categoryId ? { product: { categoryId: query.categoryId } } : {}), evaluationResults: { not: Prisma.DbNull } }, orderBy: { forecastDate: 'desc' } });
     const byProduct = new Map<string, any[]>(); const byAlgorithm = new Map<string, any[]>();
     for (const row of rows) { const result = asObject(row.evaluationResults); const p = byProduct.get(row.productId) ?? []; p.push(result); byProduct.set(row.productId, p); const a = byAlgorithm.get(row.algorithm) ?? []; a.push(result); byAlgorithm.set(row.algorithm, a); }
-    const summarize = (items: any[]) => { const valid = items.filter((x) => Number.isFinite(Number(x.forecastedDemand)) && Number.isFinite(Number(x.actualDemand))); return { ...errorMetrics(valid.map((x) => Number(x.forecastedDemand)), valid.map((x) => Number(x.actualDemand))), evaluatedPeriods: valid.length }; };
+    const summarize = (items: any[]) => { const valid = items.filter((x) => isFiniteMetric(x.forecastedDemand) && isFiniteMetric(x.actualDemand)); return { ...errorMetrics(valid.map((x) => Number(x.forecastedDemand)), valid.map((x) => Number(x.actualDemand))), evaluatedPeriods: valid.length }; };
     const products = await this.prisma.product.findMany({ where: { id: { in: [...byProduct.keys()] } }, select: { id: true, sku: true, nameAr: true } });
     return { evaluatedNow: completed, products: paginate(products.map((p) => ({ productId: p.id, sku: p.sku, productName: p.nameAr, ...summarize(byProduct.get(p.id) ?? []) })), query), algorithms: [...byAlgorithm].map(([algorithm, values]) => ({ algorithm, ...summarize(values) })), note: 'Accuracy is shown only for completed, actually evaluated forecast periods.' };
   }
 
   async evaluateCompleted() {
     const today = new Date(); const cutoff = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    const pending = await this.prisma.forecastProductResult.findMany({ where: { forecastDate: { lt: cutoff }, evaluationResults: null }, select: { id: true, productId: true, forecastDate: true, forecastedQuantity: true } });
+    const pending = await this.prisma.forecastProductResult.findMany({ where: { forecastDate: { lt: cutoff }, evaluationResults: { equals: Prisma.DbNull } }, select: { id: true, productId: true, forecastDate: true, forecastedQuantity: true } });
     let evaluated = 0;
     for (const row of pending) {
       const start = new Date(row.forecastDate); const end = new Date(start.getTime() + 86_400_000);
@@ -189,5 +190,9 @@ export class ForecastingDashboardService {
 }
 function paginate<T>(items: T[], query: ForecastingQueryDto) { return { data: items.slice(query.offset, query.offset + query.limit), total: items.length, limit: query.limit, offset: query.offset }; }
 function asObject(value: unknown): Record<string, any> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {}; }
+
+function isFiniteMetric(value: unknown) {
+  return (typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')) && Number.isFinite(Number(value));
+}
 function seriesRows(series: Map<string, number>) { return [...series].sort(([a], [b]) => a.localeCompare(b)).map(([period, units]) => ({ period, units })); }
 function round(value: number) { return Math.round((value + Number.EPSILON) * 100) / 100; }

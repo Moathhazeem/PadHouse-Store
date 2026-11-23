@@ -1,8 +1,3 @@
-ALTER TABLE "ForecastConfiguration"
-  ADD COLUMN "safetyStockMethod" TEXT NOT NULL DEFAULT 'SERVICE_LEVEL',
-  ADD COLUMN "safetyStockZScore" DOUBLE PRECISION NOT NULL DEFAULT 1.65,
-  ADD COLUMN "replenishmentPeriodDays" INTEGER NOT NULL DEFAULT 30;
-
 CREATE TABLE "ReplenishmentRecommendation" (
   "id" TEXT NOT NULL,
   "productId" TEXT NOT NULL,

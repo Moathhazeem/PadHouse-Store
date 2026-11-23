@@ -23,12 +23,20 @@ export class ForecastAutomationService implements OnModuleInit, OnModuleDestroy 
   ) {}
 
   onModuleInit() {
-    this.timer = setInterval(() => void this.tick(), 60_000);
+    this.timer = setInterval(() => void this.runTick(), 60_000);
     this.timer.unref?.();
-    void this.tick();
+    void this.runTick();
   }
 
   onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
+
+  private async runTick() {
+    try {
+      await this.tick();
+    } catch (error) {
+      this.logger.error(`Forecast automation tick failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 
   async tick(now = new Date()) {
     const config = await this.prisma.forecastConfiguration.findUnique({ where: { id: 'default' } });

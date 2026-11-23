@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "dev:all": "concurrently -k -n \"API,WEB\" -c \"cyan,green\" \"npm --prefix padhouse_backend run start:dev\" \"npm run dev\"",
+    "dev:all": "npm --prefix padhouse_backend run db:migrate && concurrently -k -n \"API,WEB\" -c \"cyan,green\" \"npm --prefix padhouse_backend run start:dev\" \"npm run dev\"",
     "dev:mobile": "concurrently -k -n \"API,APP\" -c \"cyan,magenta\" \"npm --prefix padhouse_backend run start:dev\" \"cd padhouse_mobile && flutter run -d chrome\""
   },
   "dependencies": {

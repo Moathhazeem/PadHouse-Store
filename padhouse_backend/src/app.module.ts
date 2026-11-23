@@ -22,6 +22,7 @@ import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AiModule } from './ai/ai.module';
 import { ForecastingModule } from './forecasting/forecasting.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -52,7 +53,7 @@ import { ForecastingModule } from './forecasting/forecasting.module';
     AiModule,
     ForecastingModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [],
 })
 export class AppModule {}
